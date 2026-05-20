@@ -33,7 +33,7 @@
       nameTask: item.NOMBRE_ACTIVIDAD,
       dateProgrammed: item.FECHA_PROGRAMADA,
       dateLimit: item.LIMITE_CIERRE
-    }" />
+    }" @select="(color) => handleClick(item, color)" />
 
     <p v-if="!filteredData.length && data.length" class="empty-hint">
       Ninguna OTM programada coincide con los filtros seleccionados.
@@ -57,9 +57,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import axios from '../../api/axios.js'
 import { getSessionUser } from '../../utils/authSession.js'
+import { setSelectedOtm } from '../../utils/dataTransfer.js'
+
+const router = useRouter()
 
 /** Alineado con RutasPanel / UiCard: rojo=vencida, amarillo=hoy, verde=próxima (según fecha programada) */
 const DATE_CATEGORY = {
@@ -140,6 +144,18 @@ function goPrev() {
 
 function goNext() {
   if (currentPage.value < totalPages.value) currentPage.value++
+}
+
+function handleClick(item, color) {
+  setSelectedOtm({ ...item, COLOR_CARD: color })
+  // Usamos setTimeout para sacar la navegación del ciclo de actualización actual de Vue
+  // Esto evita el error "Cannot set properties of null (setting '__vnode')"
+  setTimeout(() => {
+    router.push({
+      name: 'otm-programada-register',
+      params: { id: item.ID_OTM }
+    })
+  }, 0)
 }
 
 onMounted(async () => {

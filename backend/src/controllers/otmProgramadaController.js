@@ -1,4 +1,4 @@
-import { getOtmProgramadas } from '../services/otmProgramadaService.js'
+import { getOtmProgramadas, getDatosOtmById } from '../services/otmProgramadaService.js'
 
 export async function listOtmProgramadas(req, res, next) {
     try {
@@ -8,6 +8,17 @@ export async function listOtmProgramadas(req, res, next) {
         }
         const otmProgramada = await getOtmProgramadas(codigoPersona)
         res.json(otmProgramada)
+    }
+    catch (err) {
+        next(err)
+    }
+}
+
+export async function getDatosOtmProgramada(req, res, next) {
+    try {
+        const idOtmProgramada = String(req.query.idOtmProgramada || '').trim()
+        const datosOtmProgramada = await getDatosOtmById(idOtmProgramada)
+        res.json(datosOtmProgramada)
     }
     catch (err) {
         next(err)

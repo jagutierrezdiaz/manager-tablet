@@ -44,6 +44,18 @@ const routes = [
                 path: 'otm-correctivas',
                 name: 'principal-correctivas',
                 component: () => import('../views/dashboard/OtmCorrectivasPanel.vue')
+            },
+            {
+                path: 'otm-programada-register/:id',
+                name: 'otm-programada-register',
+                component: () => import('../views/register/otmProgramadaRegister.vue'),
+                props: true
+            },
+            {
+                path: 'otm-correctiva-register/:id',
+                name: 'otm-correctiva-register',
+                component: () => import('../views/register/otmCorrectivaRegister.vue'),
+                props: true
             }
         ]
     }

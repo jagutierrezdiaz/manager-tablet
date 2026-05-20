@@ -5,6 +5,7 @@ const router = express.Router()
 
 // GET /api/otmProgamada/list-otm-programadas
 router.get('/list-otm-programadas', otmProgramadaController.listOtmProgramadas)
+router.get('/get-datos-otm-programada', otmProgramadaController.getDatosOtmProgramada)
 
 
 
