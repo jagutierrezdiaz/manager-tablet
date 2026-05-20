@@ -1,5 +1,5 @@
 <template>
-    <div class="ui-card">
+    <div class="ui-card" @click.stop="onSelect">
         <div class="text-title" :class="[colorCard]">
             <template v-if="nameText">
                 {{ nameText.charAt(0).toUpperCase() }}
@@ -21,6 +21,8 @@
 import { computed } from 'vue'
 import { Icon } from '@iconify/vue'
 
+const emit = defineEmits(['select'])
+
 const props = defineProps({
     nameText: {
         type: String,
@@ -32,6 +34,10 @@ const props = defineProps({
         required: true
     }
 })
+
+const onSelect = () => {
+    emit('select', colorCard.value)
+}
 
 /**
  * Clasificación jerárquica para maquinaria industrial.

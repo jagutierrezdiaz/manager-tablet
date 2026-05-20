@@ -3,40 +3,28 @@
     <div class="flex flex-col container-header">
       <img :src="logo" alt="" class="img-logo">
       <div class="flex justify-between pr-4 pl-4 pb-2 flex-wrap gap-2">
-        <UiButton
-          :class="['btn-header', { 'is-selected': selected === 'inicio' }]"
+        <UiNavButton
           label="Inicio"
-          outlined
-          color="info"
-          size="lg"
           icon="Home"
+          :active="selected === 'inicio'"
           @click="onClick('inicio', 'principal-inicio')"
         />
-        <UiButton
-          :class="['btn-header', { 'is-selected': selected === 'rutas' }]"
+        <UiNavButton
           label="Ejecución Rutas"
-          outlined
-          color="info"
-          size="lg"
           icon="Route"
+          :active="selected === 'rutas'"
           @click="onClick('rutas', 'principal-rutas')"
         />
-        <UiButton
-          :class="['btn-header', { 'is-selected': selected === 'programadas' }]"
+        <UiNavButton
           label="OTM Programadas"
-          outlined
-          color="info"
-          size="lg"
           icon="CalendarPlus"
+          :active="selected === 'programadas'"
           @click="onClick('programadas', 'principal-programadas')"
         />
-        <UiButton
-          :class="['btn-header', { 'is-selected': selected === 'correctivas' }]"
+        <UiNavButton
           label="OTM Correctivas"
-          outlined
-          color="info"
-          size="lg"
           icon="CalendarX2"
+          :active="selected === 'correctivas'"
           @click="onClick('correctivas', 'principal-correctivas')"
         />
       </div>
@@ -50,6 +38,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import UiNavButton from './UiNavButton.vue'
 import logo from '../assets/manager_logo.png'
 import { getSessionUser } from '../utils/authSession.js'
 
@@ -119,18 +108,6 @@ function onClick(name, routeName) {
   .img-logo-emp {
     height: 36px;
   }
-
-  /* Selector que afecte a los UiButton que reciben la clase btn-header */
-  .btn-header {
-    /* Reducir fuente y padding para botones grandes */
-    font-size: 0.9rem;
-    padding: 6px 10px;
-  }
-
-  /* Si el botón usa la estructura interna .ui-btn__label, ajustarla también */
-  .btn-header .ui-btn__label {
-    font-size: 0.9rem;
-  }
 }
 
 /* Pantallas más pequeñas (teléfonos): aún más compacto y aumentar spacer */
@@ -138,22 +115,6 @@ function onClick(name, routeName) {
   .img-logo {
     height: 26px;
     margin-top: 10px;
-  }
-
-  .btn-header {
-    font-size: 0.85rem;
-    padding: 6px 8px;
-    border-radius: 6px;
-  }
-
-  .btn-header .ui-btn__label {
-    font-size: 0.85rem;
-  }
-
-  /* Forzar tamaño de iconos internos más pequeño (si aplica) */
-  .btn-header .ui-btn__icon {
-    width: 16px;
-    height: 16px;
   }
 
   /* Aumentar el spacer para que el contenido no quede oculto por el header */
@@ -178,28 +139,32 @@ function onClick(name, routeName) {
     max-width: none;
     margin: 0;
     width: 100%;
-    padding-left: 12px;
-    padding-right: 12px;
+    padding-left: 4px;
+    padding-right: 4px;
   }
 
-  /* Apilar los botones en columna y que ocupen todo el ancho */
+  /* Scroll horizontal para los botones en móvil */
   .container-header > div {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-    align-items: stretch;
+    flex-direction: row;
+    overflow-x: auto;
+    justify-content: space-between;
+    gap: 0;
+    padding-bottom: 0;
+    scrollbar-width: none;
   }
 
-  .btn-header {
-    width: 100%;
-    display: block;
-    padding-left: 12px;
-    padding-right: 12px;
+  .container-header > div::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+
+  .ui-nav-btn {
+    flex: 0 0 auto;
   }
 
   /* Aumentar el spacer para mayor separación con el contenido */
   .header-spacer {
-    height: 190px;
+    height: 140px;
   }
 }
 /* Mejoras visuales para escritorio: logos más grandes, botones alineados y mayor contraste */
@@ -230,28 +195,5 @@ function onClick(name, routeName) {
     gap: 18px;
     padding: 8px 12px;
   }
-
-  .btn-header {
-    padding: 10px 16px;
-    font-size: 0.95rem;
-    border-radius: 8px;
-  }
-  .btn-header .ui-btn__label { font-size: 0.95rem; }
-}
-/* Estado seleccionado visual para botones del header */
-.btn-header.is-selected {
-  /* usar la variable --btn-color que define cada UiButton para dar color consistente */
-  background-color: var(--btn-color) !important;
-  color: #ffffff !important;
-  border-color: transparent !important;
-  box-shadow: 0 6px 18px rgba(15,23,42,0.12);
-  transform: translateY(-1px);
-}
-.btn-header.is-selected .ui-btn__icon {
-  color: #ffffff;
-}
-.btn-header.is-selected .ui-btn__label {
-  color: #ffffff;
-  font-weight: 600;
 }
 </style>
