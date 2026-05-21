@@ -1,8 +1,25 @@
 <template>
     <div class="register-container">
+
+        <div class="buttons-container">
+            <UiButton label="Regresar" color="info" icon="arrow-left" @click="$router.back()" />
+            <div v-if="itemsList.length > 0">
+                <span v-if="itemsList.length > 1" class="pagination-info">{{ currentIndex + 1 }} de {{ itemsList.length
+                    }}</span>
+                <UiButton v-if="itemsList.length > 1" label="Anterior" color="edit" icon="arrow-left"
+                    :disabled="currentIndex === 0" @click="anterior()" />
+
+                <UiButton v-if="currentIndex < itemsList.length - 1" label="Siguiente" color="edit" icon="arrow-right"
+                    @click="siguiente()" />
+
+                <UiButton v-if="currentIndex === itemsList.length - 1" label="Cumplir" color="create" icon="save"
+                    @click="cumplir()" />
+            </div>
+        </div>
+
         <div v-if="otmData && currentDatosOtm" class="data-container">
 
-            <section class="data-otm">
+            <section class="section-card data-otm">
                 <h2>Datos de la OTM</h2>
                 <table>
                     <thead>
@@ -23,7 +40,7 @@
             </section>
 
 
-            <section class="data-item-referencia-layout">
+            <section class="section-card data-item-referencia-layout">
                 <h2>Referencia en el Layout</h2>
                 <table>
                     <tbody>
@@ -51,63 +68,35 @@
                 </table>
             </section>
 
-            <section class="data-tiempo-ejecucion items-center">
-                <h2 class="text-sm font-semibold">Tiempo de ejecución</h2>
-                <div class="flex justify-between items-center gap-2">    
-                    <input type="number" class="text-sm font-semibold border-gray-300 p-1" v-model="tiempoEjecucion" min="0" max="24" />
-                    <h2 class="text-sm font-semibold">Horas</h2>
+            <section class="section-card data-tiempo-ejecucion">
+                <h2 style="margin:0; border:none; padding:0;">Tiempo de ejecución</h2>
+                <div class="flex items-center gap-3">    
+                    <UiInput type="number" v-model="tiempoEjecucion" min="0" max="24" size="sm" minWidth="120px" />
+                    <span class="font-bold">Horas</span>
                 </div>
             </section>
 
-            <nav class="tabs-navigation">
-                <UiNavButton
-                    label="Observaciones"
-                    icon="Eye"
-                    :active="currentTab === 'obs'"
-                    @click="currentTab = 'obs'"
-                />
-                <UiNavButton
-                    label="Usuarios"
-                    icon="User"
-                    :active="currentTab === 'users'"
-                    @click="currentTab = 'users'"
-                />
-            </nav>
-
-            <section class="data-observaciones" v-if="currentTab === 'obs'">
-                <div>
-                    <h2 class="text-md text-center font-semibold">Observaciones al crear la OTM</h2>
-                    <textarea v-model="currentDatosOtm.OBSERVACION_OTM" />
+            <section class="data-observaciones">
+                <div class="section-card obs-box">
+                    <h2>Observaciones al crear</h2>
+                    <textarea v-model="currentDatosOtm.OBSERVACION_OTM" readonly />
                 </div>
 
-                <div>
-                    <h2 class="text-md text-center font-semibold">Observaciones al ejecutar la OTM</h2>
-                    <textarea />
+                <div class="section-card obs-box">
+                    <h2>Observaciones al ejecutar</h2>
+                    <textarea placeholder="Escribe aquí tus observaciones..." />
                 </div>
             </section>
 
-            <section class="data-usuarios" v-if="currentTab === 'users'">
-                <h2 class="text-sm font-semibold">Usuarios</h2>
+            <section class="section-card data-usuarios">
+                <h2>Usuarios asignados</h2>
+                <p class="text-muted">No hay usuarios adicionales asignados.</p>
             </section>
 
 
         </div>
 
-        <div class="buttons-container">
-            <UiButton label="Regresar" color="info" icon="arrow-left" @click="$router.back()" />
-            <div v-if="itemsList.length > 0">
-                <span v-if="itemsList.length > 1" class="pagination-info">{{ currentIndex + 1 }} de {{ itemsList.length
-                    }}</span>
-                <UiButton v-if="itemsList.length > 1" label="Anterior" color="edit" icon="arrow-left"
-                    :disabled="currentIndex === 0" @click="anterior()" />
-
-                <UiButton v-if="currentIndex < itemsList.length - 1" label="Siguiente" color="edit" icon="arrow-right"
-                    @click="siguiente()" />
-
-                <UiButton v-if="currentIndex === itemsList.length - 1" label="Cumplir" color="create" icon="save"
-                    @click="cumplir()" />
-            </div>
-        </div>
+        
     </div>
 </template>
 
@@ -116,7 +105,6 @@ import { onMounted, ref, computed } from 'vue'
 import { getSelectedOtm, clearSelectedOtm } from '../../utils/dataTransfer.js'
 import axios from '../../api/axios.js'
 import UiButton from '../../components/UiButton.vue'
-import UiNavButton from '../../components/UiNavButton.vue'
 import { formatDate } from '../../utils/formatDate.js'
 
 const props = defineProps({
@@ -130,7 +118,6 @@ const otmData = ref(null)
 const itemsList = ref([])
 const currentIndex = ref(0)
 const tiempoEjecucion = ref(0)
-const currentTab = ref('obs')
 
 const currentDatosOtm = computed(() => {
     return itemsList.value.length > 0 ? itemsList.value[currentIndex.value] : null
@@ -175,162 +162,120 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.data-container{
+.register-container {
+    padding: var(--space-md);
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.data-container {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: var(--space-md);
 }
-.data-preview {
-    background: #f4f4f4;
-    padding: 15px;
-    border-radius: 8px;
-    margin: 20px 0;
+
+.section-card {
+    background: var(--color-background);
+    border-radius: var(--space-sm);
+    padding: var(--space-md);
+    box-shadow: var(--shadow-md);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.section-card h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: var(--space-sm);
+    color: var(--color-text);
+    border-bottom: 2px solid var(--color-surface);
+    padding-bottom: 2px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    text-align: left;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-muted);
+    padding: 6px 2px;
+    background: var(--color-surface);
+}
+
+td {
+    padding: 6px 2px;
+    font-size: 1rem;
+    border-bottom: 1px solid var(--color-surface);
+}
+
+.data-item-referencia-layout th {
+    width: 30%;
+    background: transparent;
+}
+
+.data-tiempo-ejecucion {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.data-observaciones {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.obs-box {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.obs-box h2 {
+    font-size: 1rem;
+    border: none;
+    margin: 0;
+}
+
+textarea {
+    width: 100%;
+    min-height: 150px;
+    border-radius: var(--radius);
+    border: 2px solid var(--color-surface);
+    padding: var(--space-md);
+    font-family: inherit;
+    font-size: 1rem;
+    transition: border-color 0.2s ease;
+    resize: vertical;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
 }
 
 .buttons-container {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 20px;
-}
-
-.buttons-container div {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    margin-bottom: var(--space-sm);
+    margin-top: var(--space-sm);
+    padding-bottom: var(--space-sm);
+    border-top: 1px solid var(--color-surface);
 }
 
 .pagination-info {
-    font-weight: bold;
-    margin-right: 10px;
-}
-
-.data-otm {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
-    padding: 10px;
-    border-radius: 5px;
-}
-
-.data-otm h2 {
-    font-size: 1.1rem;
     font-weight: 700;
-    margin: 0;
-    text-align: center;
+    color: var(--color-muted);
 }
 
-.data-otm table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.data-otm table th {
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin: 0;
-    text-align: center;
-    border: 1px solid #e0e0e0;
-    padding: 0px 5px;
-}
-
-.data-otm table td {
-    font-size: 0.8rem;
-    font-weight: 400;
-    margin: 0;
-    text-align: center;
-    border: 1px solid #e0e0e0;
-    padding: 0px 5px;
-}
-
-
-.data-item-referencia-layout {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
-    padding: 10px;
-    border-radius: 5px;
-}
-
-.data-item-referencia-layout h2 {
-    font-size: 1.1rem;
-    font-weight: 700;
-    margin: 0;
-    text-align: center;
-}
-
-.data-item-referencia-layout table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.data-item-referencia-layout table th {
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin: 0;
-    text-align: left;
-    border: 1px solid #e0e0e0;
-    padding: 0px 5px;
-}
-
-.data-item-referencia-layout table td {
-    font-size: 0.8rem;
-    font-weight: 400;
-    margin: 0;
-    text-align: left;
-    border: 1px solid #e0e0e0;
-    padding: 0px 5px;
-}
-
-.data-tiempo-ejecucion{
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
-    padding: 10px;
-    border-radius: 5px;
-}
-
-.data-tiempo-ejecucion input{
-    width: 100px;
-    border: 1px solid #e0e0e0;
-    border-radius: 5px;
-    padding: 5px;
-}
-
-.tabs-navigation {
-    display: flex;
-    gap: 5px;
-    border-bottom: 1px solid #e2e8f0;
-    margin-top: 10px;
-}
-
-.data-observaciones{
-    display: flex;
-    flex-wrap: wrap;
-    width: 100%;
-    gap: 10px;
-    padding: 10px;
-    border-radius: 5px;
-}
-
-.data-observaciones div{
-    display: flex;
-    width: 100%;
-    flex-direction: column;
-    gap: 10px;
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
-    padding: 10px;
-}
-
-.data-observaciones textarea{
-    width: 100%;
-    height: 200px;
-    border: 1px solid #e0e0e0;
-    border-radius: 5px;
-    padding: 5px;
+@media (max-width: 768px) {
+    .section-card {
+        padding: var(--space-md);
+    }
 }
 </style>

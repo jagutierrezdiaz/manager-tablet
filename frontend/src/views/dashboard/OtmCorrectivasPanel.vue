@@ -1,5 +1,5 @@
 <template>
-  <div style="padding:20px">
+  <div class="container">
     <UiCard v-for="item in list" :key="item.ID_MAQUINA" :content="{
       nameTask: item.NOMBRE_MAQUINA,
       subtitleTask: item.NOMBRE_PROCESO,
@@ -11,7 +11,7 @@
 <script setup>
 
 import axios from '../../api/axios.js'
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { setSelectedOtm } from '../../utils/dataTransfer.js'
 
@@ -41,6 +41,11 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-h2 { margin-bottom: 8px }
+.container {
+  padding: var(--space-md);
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+}
 </style>
 

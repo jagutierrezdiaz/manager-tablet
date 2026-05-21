@@ -69,62 +69,70 @@ async function onSubmit() {
 
 <template>
   <div class="container-login min-h-screen"
-    :style="{ backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${fondo})` }">
-    <div class="flex flex-col items-center justify-between min-h-screen gap-4 p-10">
+    :style="{ backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url(${fondo})` }">
+    <div class="flex flex-col items-center justify-between min-h-screen gap-8 p-10">
       <img :src="logo" alt="" class="img-logo">
-      <section
-        class="section-info flex flex-col gap-4 items-center justify-center bg-white p-6 rounded-lg shadow-md max-w-sm">
+      
+      <section class="section-info glass-card">
         <h1>Iniciar sesión</h1>
-        <form class="flex flex-col gap-4" @submit.prevent="onSubmit">
+        <form class="flex flex-col gap-6" @submit.prevent="onSubmit">
           <UiAlert v-if="alertVisible" :type="alertType" :message="alertMessage" @close="alertVisible = false" />
-          <UiInput v-model="codigoPersonal" type="text" label="ID Usuario" icon="Number" />
-          <UiButton @click="onSubmit" label="Iniciar sesión" color="read" size="lg" icon="Login" iconPosition="end" />
+          <UiInput v-model="codigoPersonal" type="text" label="ID Usuario" icon="User" placeholder="Ingresa tu ID" />
+          <UiButton @click="onSubmit" label="Acceder" color="read" size="lg" icon="LogIn" iconPosition="end" />
         </form>
       </section>
+
       <img :src="logo_emp" alt="" class="img-logo-emp">
     </div>
   </div>
 </template>
 
 <style scoped>
-* {
-  box-sizing: border-box;
-}
-
 .container-login {
-  background-color: rgba(0, 0, 0, 0.5);
   min-height: 100vh;
-  position: relative;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  width: 100%;
+  max-width: 420px;
 }
 
 h1 {
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--color-surface);
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--color-text);
+  margin-bottom: var(--space-lg);
+  text-align: center;
 }
 
 .img-logo {
-  width: 90%;
+  max-width: 320px;
+  width: 80%;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
 }
 
 .img-logo-emp {
-  width: 70%;
-}
-
-.section-info {
-  background-color: rgba(190, 190, 190, 0.5);
+  max-width: 200px;
+  width: 50%;
+  opacity: 0.9;
 }
 
 @media (min-width: 900px) {
   .img-logo {
-    width: 50%;
-  }
-
-  .img-logo-emp {
-    width: 30%;
+    max-width: 450px;
   }
 }
 </style>

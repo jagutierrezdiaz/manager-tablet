@@ -19,38 +19,55 @@
   --color-muted: #262a30;
 
   /* Spacing scale (base: móvil) */
-  --space-xxs: 4px;
-  --space-xs: 8px;
-  --space-sm: 12px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
-  --space-xxl: 48px;
+  --space-xxs: 6px;
+  --space-xs: 10px;
+  --space-sm: 14px;
+  --space-md: 20px;
+  --space-lg: 30px;
+  --space-xl: 40px;
+  --space-xxl: 60px;
 
   /* Tamaños de fuente (base: móvil) */
-  --fs-xs: 12px;
-  --fs-sm: 14px;
-  --fs-base: 16px;
-  --fs-lg: 20px;
-  --fs-xl: 24px;
-  --fs-xxl: 32px;
+  --fs-xs: 13px;
+  --fs-sm: 15px;
+  --fs-base: 17px;
+  --fs-lg: 21px;
+  --fs-xl: 26px;
+  --fs-xxl: 34px;
 
-  --radius: 8px;
+  --radius: 12px;
+  --radius-lg: 18px;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+
+  /* Colores semánticos para botones */
+  --btn-create: #10b981;
+  --btn-edit: #f59e0b;
+  --btn-delete: #ef4444;
+  --btn-read: #2563eb;
+  --btn-info: #64748b;
 }
 
 /* Modo oscuro: activar con [data-theme="dark"] en <html> o con la clase .dark en <body> */
 [data-theme="dark"], .dark {
-  --color-background: #0b1220;
-  --color-surface: #071022;
-  --color-primary: #60a5fa;
-  --color-secondary: #a78bfa;
+  --color-background: #0f172a;
+  --color-surface: #1e293b;
+  --color-primary: #38bdf8;
+  --color-secondary: #818cf8;
   --color-accent: #2dd4bf;
-  --color-text: #e6eef8;
+  --color-text: #f1f5f9;
   --color-muted: #94a3b8;
+
+  --btn-read: #38bdf8;
+  --btn-info: #475569;
 }
 
 /* Base del documento */
-html, body { height: 100%; }
+html, body { 
+  height: 100%; 
+  -webkit-tap-highlight-color: transparent;
+}
 body {
   margin: 0;
   padding: 0;
@@ -58,7 +75,7 @@ body {
   background-color: var(--color-background);
   color: var(--color-text);
   font-size: var(--fs-base);
-  line-height: 1.5;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -75,22 +92,23 @@ body {
 /* Responsive: tablet ~11" and up */
 @media (min-width: 768px) {
   :root {
-    --space-md: 18px;
-    --space-lg: 28px;
-    --space-xl: 36px;
-    --fs-base: 17px;
-    --fs-lg: 22px;
+    --space-md: 24px;
+    --space-lg: 36px;
+    --space-xl: 48px;
+    --fs-base: 18px;
+    --fs-lg: 24px;
+    --radius: 16px;
   }
 }
 
 /* Desktop */
 @media (min-width: 1200px) {
   :root {
-    --space-md: 20px;
-    --space-lg: 32px;
-    --space-xl: 40px;
-    --fs-base: 18px;
-    --fs-lg: 24px;
+    --space-md: 28px;
+    --space-lg: 40px;
+    --space-xl: 56px;
+    --fs-base: 19px;
+    --fs-lg: 26px;
   }
 }
 

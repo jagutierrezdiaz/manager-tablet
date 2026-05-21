@@ -111,28 +111,29 @@ function onInput(e) {
 
 .ui-input__label {
   display: block;
-  margin-bottom: 6px;
-  color: var(--color-surface);
+  margin-bottom: 8px;
+  color: var(--color-text);
   font-size: var(--fs-sm);
+  font-weight: 600;
 }
 
 .ui-input__wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: var(--color-surface);
-  border: 1px solid rgba(15,23,42,0.08);
-  border-radius: 6px;
-  padding: var(--space-xs) var(--space-sm);
-  transition: box-shadow 120ms ease, transform 120ms ease, background-color 120ms ease;
+  gap: 12px;
+  background: var(--color-background);
+  border: 2px solid rgba(15,23,42,0.08);
+  border-radius: 8px;
+  padding: var(--space-sm) var(--space-md);
+  transition: all 0.2s ease;
 }
 
-.ui-input__wrap--sm { padding: var(--space-xxs) var(--space-xs); }
-.ui-input__wrap--lg { padding: var(--space-sm) var(--space-lg); }
-.ui-input__wrap--disabled { opacity: 0.6; pointer-events: none; }
+.ui-input__wrap--sm { padding: var(--space-xs) var(--space-sm); }
+.ui-input__wrap--lg { padding: var(--space-md) var(--space-xl); }
+.ui-input__wrap--disabled { opacity: 0.5; pointer-events: none; background: var(--color-surface); }
 .ui-input__wrap--readonly {
-  background: rgba(15,23,42,0.02);
-  border-color: rgba(15,23,42,0.06);
+  background: var(--color-surface);
+  border-color: rgba(15,23,42,0.04);
   cursor: text;
 }
 
@@ -141,6 +142,7 @@ function onInput(e) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  opacity: 0.7;
 }
 
 .ui-input__field {
@@ -152,15 +154,25 @@ function onInput(e) {
   width: 100%;
   min-width: 0;
   padding: 0;
+  font-weight: 500;
 }
 
 .ui-input__field::placeholder {
   color: var(--color-muted);
+  opacity: 0.5;
 }
 
 /* focus */
 .ui-input__wrap:focus-within {
-  box-shadow: 0 0 0 2px rgba(2, 2, 2, 0.4);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+  background: var(--color-background);
+}
+
+@media (pointer: coarse) {
+  .ui-input__wrap {
+    min-height: 48px;
+  }
 }
 
 /* No aplicar efecto de 'press' — debe comportarse como un input normal.

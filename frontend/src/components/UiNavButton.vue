@@ -12,8 +12,6 @@
       :is="ResolvedIcon"
       class="ui-nav-btn__icon"
       :stroke-width="2.5"
-      :width="18"
-      :height="18"
     />
     <span class="ui-nav-btn__label">
       <slot>{{ label }}</slot>
@@ -44,49 +42,63 @@ const ResolvedIcon = computed(() => {
 .ui-nav-btn {
   background: transparent;
   border: none;
-  border-bottom: 3px solid transparent;
-  padding: 10px 16px;
+  padding: 8px 12px;
   cursor: pointer;
-  font-weight: 700;
-  font-size: 0.9rem;
-  color: #64748b;
-  text-transform: uppercase;
-  transition: all 0.2s ease;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-}
-
-@media (max-width: 600px) {
-  .ui-nav-btn {
-    flex-direction: column;
-    gap: 2px;
-    padding: 8px 12px;
-    font-size: 0.7rem;
-  }
-  .ui-nav-btn__icon {
-    width: 20px !important;
-    height: 20px !important;
-  }
-}
-
-.ui-nav-btn:hover {
-  color: #0d5e94;
-  background-color: rgba(0, 0, 0, 0.02);
-}
-
-.ui-nav-btn--active {
-  color: #0d5e94;
-  border-bottom-color: #0d5e94;
+  gap: 4px;
+  border-radius: 16px;
+  user-select: none;
+  flex: 1;
+  min-width: 64px;
+  position: relative;
 }
 
 .ui-nav-btn__icon {
+  width: 24px !important;
+  height: 24px !important;
   flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+
+.ui-nav-btn:hover {
+  color: var(--color-primary);
+  background-color: rgba(37, 99, 235, 0.05);
+}
+
+.ui-nav-btn--active {
+  color: var(--color-primary);
+  background-color: rgba(37, 99, 235, 0.08);
+}
+
+.ui-nav-btn--active .ui-nav-btn__icon {
+  transform: translateY(-2px);
+}
+
+.ui-nav-btn--active .ui-nav-btn__label {
+  font-weight: 700;
 }
 
 .ui-nav-btn__label {
   white-space: nowrap;
+}
+
+.ui-nav-btn:active {
+  transform: scale(0.9);
+}
+
+@media (min-width: 768px) {
+  .ui-nav-btn {
+    font-size: 0.85rem;
+    padding: 4px 8px;
+    gap: 4px;
+  }
+
 }
 </style>

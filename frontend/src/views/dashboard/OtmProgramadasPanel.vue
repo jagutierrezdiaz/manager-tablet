@@ -28,7 +28,7 @@
       </div>
     </section>
 
-    <UiCard v-for="item in paginatedItems" :key="item.ID_OTM" :nameText="item.CLASE_ACTIVIDAD" :content="{
+    <UiCard v-for="item in filteredData" :key="item.ID_OTM" :nameText="item.CLASE_ACTIVIDAD" :content="{
       idTask: item.ID_OTM,
       nameTask: item.NOMBRE_ACTIVIDAD,
       dateProgrammed: item.FECHA_PROGRAMADA,
@@ -41,23 +41,11 @@
     <p v-if="!data.length" class="empty-hint">
       No hay OTMs programadas para mostrar.
     </p>
-
-    <div v-if="filteredData.length > PAGE_SIZE" class="pagination">
-      <button type="button" class="pagination__btn" :disabled="currentPage <= 1" @click="goPrev">
-        Anterior
-      </button>
-      <button type="button" class="pagination__btn" :disabled="currentPage >= totalPages" @click="goNext">
-        Siguiente
-      </button>
-    </div>
-    <span class="pagination__info">
-      Página {{ currentPage }} de {{ totalPages }}
-    </span>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from '../../api/axios.js'
 import { getSessionUser } from '../../utils/authSession.js'
@@ -88,10 +76,7 @@ function routeDateCategory(fecha) {
   return DATE_CATEGORY.future
 }
 
-const PAGE_SIZE = 7
-
 const data = ref([])
-const currentPage = ref(1)
 
 const filters = reactive({
   [DATE_CATEGORY.past]: true,
@@ -125,27 +110,6 @@ const filteredData = computed(() =>
   data.value.filter((item) => filters[routeDateCategory(item.FECHA_PROGRAMADA)])
 )
 
-const totalPages = computed(() =>
-  Math.max(1, Math.ceil(filteredData.value.length / PAGE_SIZE))
-)
-
-const paginatedItems = computed(() => {
-  const start = (currentPage.value - 1) * PAGE_SIZE
-  return filteredData.value.slice(start, start + PAGE_SIZE)
-})
-
-watch(filters, () => {
-  currentPage.value = 1
-}, { deep: true })
-
-function goPrev() {
-  if (currentPage.value > 1) currentPage.value--
-}
-
-function goNext() {
-  if (currentPage.value < totalPages.value) currentPage.value++
-}
-
 function handleClick(item, color) {
   setSelectedOtm({ ...item, COLOR_CARD: color })
   // Usamos setTimeout para sacar la navegación del ciclo de actualización actual de Vue
@@ -172,214 +136,157 @@ onMounted(async () => {
     })
     const list = Array.isArray(response.data) ? response.data : []
     data.value = list
-    currentPage.value = 1
   } catch (e) {
     console.error('otmProgramada', e)
     data.value = []
-    currentPage.value = 1
   }
 })
 </script>
 
 <style scoped>
 .container {
-  padding: 0 20px;
-  width: 90%;
+  padding: var(--space-md);
+  width: 100%;
+  max-width: 1000px;
   margin: 0 auto;
 }
 
 h3 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #000000;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.filters-block {
+  margin-bottom: var(--space-lg);
 }
 
 .filters {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 20px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 8px;
+  gap: var(--space-sm);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-.filters div{
+.filters div {
   display: flex;
   flex-direction: row;
-  gap: 10px;
+  gap: var(--space-sm);
   justify-content: center;
   align-items: center;
+  flex-wrap: wrap;
 }
-
 
 .pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  border-radius: 6px;
-  border: 2px solid #e2e8f0;
-  background: #fff;
-  color: #475569;
-  font-size: 0.9rem;
+  gap: 10px;
+  padding: 10px 20px;
+  border-radius: 100px;
+  border: 2px solid transparent;
+  background: #ffffff;
+  color: var(--color-muted);
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease,
-    color 0.15s ease, opacity 0.15s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
+  box-shadow: var(--shadow-sm);
 }
 
 .pill:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
-.pill:focus-visible {
-  outline: 2px solid #2563eb;
-  outline-offset: 2px;
+.pill:active {
+  transform: scale(0.96);
 }
 
 .pill__dot {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-.pill--past .pill__dot {
-  background: #b91c1c;
-}
+.pill--past .pill__dot { background: #ef4444; }
+.pill--today .pill__dot { background: #f59e0b; }
+.pill--future .pill__dot { background: #10b981; }
+.pill--todas .pill__dot { background: var(--color-primary); }
 
-.pill--today .pill__dot {
-  background: #ca8a04;
-}
-
-.pill--future .pill__dot {
-  background: #15803d;
-}
-
-.pill--todas .pill__dot {
-  background: #193379;
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.15);
-}
-
-.pill--todas:not(.pill--active) .pill__dot {
-  opacity: 0.55;
-  filter: saturate(0.9);
-}
-
-.pill--todas.pill--active .pill__dot {
-  opacity: 1;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.5),
-    0 0 0 1px rgba(25, 51, 121, 0.25);
+.pill--active {
+  background: var(--color-background);
+  border-color: currentColor;
 }
 
 .pill--todas.pill--active {
-  background: #d3dbff;
-  border-color: #193379;
-  color: #193379;
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.pill--todas.pill--active .pill__dot {
+  background: #ffffff;
 }
 
 .pill--past.pill--active {
-  background: #fee2e2;
-  border-color: #b91c1c;
-  color: #7f1d1d;
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fca5a5;
 }
 
 .pill--today.pill--active {
-  background: #fef9c3;
-  border-color: #ca8a04;
-  color: #713f12;
+  background: #fffbeb;
+  color: #92400e;
+  border-color: #fcd34d;
 }
 
 .pill--future.pill--active {
-  background: #dcfce7;
-  border-color: #15803d;
-  color: #14532d;
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: #6ee7b7;
 }
 
-/* Pastillas de categoría apagadas: se nota que están excluidas */
-.pill--past:not(.pill--active),
-.pill--today:not(.pill--active),
-.pill--future:not(.pill--active) {
-  opacity: 0.72;
-  border-style: hidden;
-  border-color: #cbd5e1;
+.pill:not(.pill--active) {
+  opacity: 0.7;
   background: #f8fafc;
-  color: #94a3b8;
-}
-
-.pill--past:not(.pill--active) .pill__dot,
-.pill--today:not(.pill--active) .pill__dot,
-.pill--future:not(.pill--active) .pill__dot {
-  opacity: 0.45;
 }
 
 .pill__badge {
-  margin-left: 2px;
-  padding: 2px 7px;
-  border-radius: 6px;
-  font-size: 0.65rem;
+  margin-left: 4px;
+  padding: 2px 8px;
+  border-radius: 100px;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(0, 0, 0, 0.05);
   color: inherit;
-}
-
-.pill__badge--off {
-  background: #e2e8f0;
-  color: #64748b;
-}
-
-.pill--past:not(.pill--active) .pill__badge--off,
-.pill--today:not(.pill--active) .pill__badge--off,
-.pill--future:not(.pill--active) .pill__badge--off {
-  background: #e2e8f0;
 }
 
 .empty-hint {
   text-align: center;
-  color: #64748b;
-  margin: 16px 0;
-  font-size: 0.95rem;
+  color: var(--color-muted);
+  margin: var(--space-xl) 0;
+  font-size: 1.1rem;
+  font-weight: 500;
 }
 
-.pagination {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  margin-top: 20px;
-  padding: 12px 0;
-}
-
-.pagination__btn {
-  padding: 8px 18px;
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
-  background: #fff;
-  color: #0f172a;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.pagination__btn:hover:not(:disabled) {
-  background: #f1f5f9;
-}
-
-.pagination__btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.pagination__info {
-  display: block;
-  text-align: end;
-  font-size: 0.95rem;
-  color: #334155;
+@media (max-width: 768px) {
+  .container {
+    padding: var(--space-sm);
+  }
+  .filters {
+    padding: var(--space-sm);
+    border-radius: var(--radius);
+  }
+  .pill {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+  }
 }
 </style>

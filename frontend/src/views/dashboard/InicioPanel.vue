@@ -171,75 +171,81 @@ const barOptions = {
 </script>
 
 <template>
-  <div class="container-principal">
-    <div class="container-content">
-      <div class="container-grafics">
-        <div style="min-height:360px; display:flex; align-items:center; justify-content:center;">
-          <div style="width:100%; max-width:640px; height:360px; margin:0 auto;">
-            <Pie :data="chartData" :options="chartOptions" />
-          </div>
+  <div class="container">
+    <div class="dashboard-grid">
+      <div class="chart-card">
+        <div class="chart-container">
+          <Pie :data="chartData" :options="chartOptions" />
         </div>
       </div>
 
-      <div class="container-grafics">
-        <div style="min-height:360px; display:flex; align-items:center; justify-content:center;">
-          <div style="width:100%; max-width:640px; height:360px; margin:0 auto;">
-            <Bar :data="barData" :options="barOptions" />
-          </div>
+      <div class="chart-card">
+        <div class="chart-container">
+          <Bar :data="barData" :options="barOptions" />
         </div>
       </div>
     </div>
 
-    <div class="flex justify-center mb-4">
-      <UiButton label="Cerrar sesión" color="delete" size="lg" icon="Logout" @click="$emit('logout')"
-        style="margin-top:12px;" iconPosition="end" />
+    <div class="actions-footer">
+      <UiButton label="Cerrar sesión" color="delete" size="lg" icon="LogOut" @click="$emit('logout')"
+        iconPosition="end" />
     </div>
   </div>
 </template>
 
 <style scoped>
-.container-content {
-  background-color: rgb(247, 247, 247);
-  border-radius: 10px;
-  padding: 20px;
-  margin-top: 10px;
-  display: flex;
-  gap: 20px;
+.container {
+  padding: var(--space-md);
   width: 100%;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
-  flex-wrap: wrap;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  gap: var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+
+.chart-card {
+  background: var(--color-background);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease;
+}
+
+.chart-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.chart-container {
+  height: 400px;
+  width: 100%;
+  display: flex;
+  align-items: center;
   justify-content: center;
 }
 
-.container-grafics {
-  background: #fff;
-  border-radius: 10px;
-  padding: 16px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
-  border: 1px solid rgba(15, 23, 42, 0.04);
-  min-height: 360px;
-  width: 48%
-}
-
-.container-buttons {
+.actions-footer {
   display: flex;
-  justify-content: space-evenly;
-  gap: 10px;
-  padding: 12px 32px
+  justify-content: center;
+  padding: var(--space-lg) 0;
 }
 
-@media (max-width: 900px) {
-  .container-content {
-    flex-direction: column;
-    gap: 22px;
-    max-width: 90%;
-    margin: 16px auto;
-    padding: 4px;
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
   }
-
-  .container-grafics {
-    width: 100%;
+  .chart-card {
+    padding: var(--space-md);
   }
-
+  .chart-container {
+    height: 320px;
+  }
 }
 </style>
