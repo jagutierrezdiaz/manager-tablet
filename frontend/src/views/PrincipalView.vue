@@ -5,10 +5,7 @@ import { getSessionUser, clearSessionUser } from '../utils/authSession.js'
 
 const router = useRouter()
 
-const logout = () => {
-    clearSessionUser()
-    router.replace({ name: 'login' })
-}
+
 
 function onContinue() {
   if (!getSessionUser()) {
@@ -36,6 +33,7 @@ function onContinue() {
 </template>
 
 <style scoped>
+
 .principal-outlet {
   flex: 1;
   min-width: 0;

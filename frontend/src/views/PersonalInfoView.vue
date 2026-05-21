@@ -48,12 +48,17 @@ const goToPrincipal = () => {
 </script>
 
 <template>
-    <div
-      class="container-login min-h-screen"
-      :style="{ backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url(${fondo})` }"
-    >
-        <div class="flex flex-col items-center justify-between min-h-screen gap-8 p-10">
-            <img :src="logo" alt="" class="img-logo">
+    <div class="container-login min-h-screen">
+        <!-- Abstract background elements -->
+        <div class="bg-decoration">
+            <div class="circle circle-1"></div>
+            <div class="circle circle-2"></div>
+        </div>
+
+        <div class="content-wrapper">
+            <header class="header-logo">
+                <img :src="logo" alt="Manager Logo" class="img-logo">
+            </header>
             
             <section class="glass-card">
                 <h1>Información Personal</h1>
@@ -69,7 +74,10 @@ const goToPrincipal = () => {
                 </div>
             </section>
 
-            <img :src="logo_emp" alt="" class="img-logo-emp">
+            <footer class="footer-logo">
+                <span class="powered-by">Realizado por</span>
+                <img :src="logo_emp" alt="Hazlo Software" class="img-logo-emp">
+            </footer>
         </div>
     </div>
 </template>
@@ -77,22 +85,81 @@ const goToPrincipal = () => {
 <style scoped>
 .container-login {
     min-height: 100vh;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Background Decoration */
+.bg-decoration {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.circle {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.15;
+}
+
+.circle-1 {
+    width: 400px;
+    height: 400px;
+    background: var(--color-primary);
+    top: -100px;
+    right: -100px;
+}
+
+.circle-2 {
+    width: 300px;
+    height: 300px;
+    background: var(--color-secondary);
+    bottom: -50px;
+    left: -50px;
+}
+
+.content-wrapper {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 100vh;
+    width: 100%;
+    padding: var(--space-xl) var(--space-md);
+}
+
+.header-logo {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-bottom: var(--space-sm);
+}
+
+.img-logo {
+    max-width: 280px;
+    width: 70%;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
 }
 
 .glass-card {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-radius: var(--radius-lg);
-    padding: var(--space-xl);
+    padding: var(--space-md);
     box-shadow: var(--shadow-lg);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     width: 100%;
     max-width: 480px;
 }
@@ -100,15 +167,15 @@ const goToPrincipal = () => {
 h1 {
     font-size: 1.75rem;
     font-weight: 800;
-    color: var(--color-text);
-    margin-bottom: var(--space-lg);
+    color: #1e293b;
+    margin-bottom: var(--space-sm);
     text-align: center;
 }
 
 .info-form {
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
+    gap: var(--space-sm);
 }
 
 .actions {
@@ -123,16 +190,30 @@ h1 {
     flex: 1;
 }
 
-.img-logo {
-    max-width: 320px;
-    width: 80%;
-    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+.footer-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: var(--space-sm);
+}
+
+.powered-by {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255, 255, 255, 0.4);
 }
 
 .img-logo-emp {
-    max-width: 200px;
-    width: 50%;
-    opacity: 0.9;
+    max-width: 140px;
+    width: 60%;
+    transition: opacity 0.3s ease;
+}
+
+.img-logo-emp:hover {
+    opacity: 1;
 }
 
 @media (max-width: 600px) {
@@ -141,9 +222,12 @@ h1 {
     }
 }
 
-@media (min-width: 900px) {
+@media (min-width: 768px) {
     .img-logo {
-        max-width: 450px;
+        max-width: 380px;
+    }
+    .img-logo-emp {
+        max-width: 250px;
     }
 }
 </style>

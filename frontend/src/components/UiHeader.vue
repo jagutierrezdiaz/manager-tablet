@@ -32,6 +32,12 @@
           :active="selected === 'correctivas'"
           @click="onClick('correctivas', 'principal-correctivas')"
         />
+        <UiNavButton
+          label="Cerrar sesión"
+          icon="LogOut"
+          :active="selected === 'logout'"
+          @click="onClick('logout', 'principal-logout')"
+        />
       </div>
     </nav>
 
@@ -43,7 +49,7 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import UiNavButton from './UiNavButton.vue'
 import logo from '../assets/manager_logo.png'
-import { getSessionUser } from '../utils/authSession.js'
+import { getSessionUser, clearSessionUser } from '../utils/authSession.js'
 
 const emit = defineEmits(['select-route'])
 const route = useRoute()
@@ -53,12 +59,22 @@ const selectedByRouteName = {
   'principal-inicio': 'inicio',
   'principal-rutas': 'rutas',
   'principal-programadas': 'programadas',
-  'principal-correctivas': 'correctivas'
+  'principal-correctivas': 'correctivas',
+  'principal-logout': 'logout'
 }
 
 const selected = computed(() => selectedByRouteName[route.name] ?? '')
 
 function onClick(name, routeName) {
+  if (name === 'logout') {
+      router.replace({ name: 'login' }).then(() => {
+      clearSessionUser()
+    }).catch(() => {
+      clearSessionUser()
+      router.replace({ name: 'login' })
+    })
+    return
+  }
   emit('select-route', { name, routeName })
   if (!getSessionUser()) {
     router.replace({ name: 'login' }).catch(() => {})
@@ -76,7 +92,7 @@ function onClick(name, routeName) {
   left: 0;
   right: 0;
   height: 64px;
-  background-color: rgb(146 148 151);
+  background: linear-gradient(179deg, #0f172a 0%, #1e293b 100%);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
   z-index: 1000;

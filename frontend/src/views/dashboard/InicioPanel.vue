@@ -172,6 +172,7 @@ const barOptions = {
 
 <template>
   <div class="container">
+    
     <div class="dashboard-grid">
       <div class="chart-card">
         <div class="chart-container">
@@ -186,10 +187,7 @@ const barOptions = {
       </div>
     </div>
 
-    <div class="actions-footer">
-      <UiButton label="Cerrar sesión" color="delete" size="lg" icon="LogOut" @click="$emit('logout')"
-        iconPosition="end" />
-    </div>
+
   </div>
 </template>
 
@@ -233,13 +231,13 @@ const barOptions = {
 .actions-footer {
   display: flex;
   justify-content: center;
-  padding: var(--space-lg) 0;
+  padding: var(--space-sm) 0;
 }
 
 @media (max-width: 768px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
-    gap: var(--space-md);
+    gap: var(--space-xl);
   }
   .chart-card {
     padding: var(--space-md);
