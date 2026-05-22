@@ -27,6 +27,14 @@ export async function getAllUsers() {
   return rows.map(convertUserRowToDto)
 }
 
+export async function getNotSuspendedUsers() {
+  const sql = "SELECT * FROM MOD WHERE UPPER(TRIM(SUSPENDIDO)) = 'NO' ORDER BY NOMBRE_PERSONA"
+  const rows = await db.query(sql, [])
+  if (!Array.isArray(rows)) return []
+  return rows.map(convertUserRowToDto)
+}
+
+
 export async function getUserById(id) {
   // Buscar por la clave numérica CODIGO_PERSONA de la tabla MOD
   const sql = `
@@ -47,3 +55,18 @@ export async function getUserById(id) {
   return convertUserRowToDto(rows[0])
 }
 
+export async function getSupervisores() {
+  const sql = `
+    SELECT
+      M.CODIGO_PERSONA,
+      M.NOMBRE_PERSONA
+    FROM MOD M
+    INNER JOIN CARGO_MOD CM
+      ON M.ID_CARGO = CM.ID_CARGO
+    WHERE UPPER(TRIM(CM.NOMBRE_CARGO)) ='SUPERVISOR MANTENIMIENTO'
+    ORDER BY CM.NOMBRE_CARGO,
+      M.NOMBRE_PERSONA
+  `
+  const rows = await db.query(sql, [])
+  return rows.map(convertUserRowToDto)
+}

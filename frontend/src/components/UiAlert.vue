@@ -1,6 +1,5 @@
 <template>
   <div
-    v-if="visible"
     :class="['ui-alert', `ui-alert--${type}`, { 'ui-alert--no-title': !title }]"
     :style="alertStyle"
     role="status"
@@ -20,7 +19,7 @@
       <div class="ui-alert__message"><slot>{{ message }}</slot></div>
     </div>
 
-  <button class="ui-alert__close" @click="close" aria-label="Cerrar alerta">
+  <button type="button" class="ui-alert__close" @click="close" aria-label="Cerrar alerta">
       <component v-if="CloseIcon" :is="CloseIcon" :stroke="iconStroke" :width="16" :height="16" />
       <span v-else aria-hidden="true">×</span>
     </button>
@@ -45,11 +44,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close']);
 
-// Estado visible local (se puede cerrar si dismissible)
-const visible = ref(true);
-
 function close() {
-  visible.value = false;
   emit('close');
 }
 
@@ -126,7 +121,7 @@ const CloseIcon = Icons['X'] || Icons['XCircle'] || null;
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: var(--space-md) var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius);
   background: var(--alert-bg);
   border: 1px solid rgba(0,0,0,0.02);
@@ -135,7 +130,6 @@ const CloseIcon = Icons['X'] || Icons['XCircle'] || null;
   max-width: 100%;
   box-sizing: border-box;
   box-shadow: var(--shadow-sm);
-  transition: all 0.3s ease;
 }
 .ui-alert__icon {
   flex: 0 0 auto;
@@ -175,7 +169,7 @@ const CloseIcon = Icons['X'] || Icons['XCircle'] || null;
 
 @media (pointer: coarse) {
   .ui-alert {
-    padding: var(--space-lg);
+    padding: var(--space-sm) var(--space-md);
   }
   .ui-alert__close {
     width: 44px;
