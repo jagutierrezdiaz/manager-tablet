@@ -124,50 +124,62 @@ const CloseIcon = Icons['X'] || Icons['XCircle'] || null;
 }
 .ui-alert {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: var(--alert-radius);
+  align-items: center;
+  gap: 16px;
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius);
   background: var(--alert-bg);
-  border: 1px solid rgba(0,0,0,0.04);
+  border: 1px solid rgba(0,0,0,0.02);
   color: var(--color-text);
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  align-items: center;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
 }
 .ui-alert__icon {
   flex: 0 0 auto;
   color: var(--alert-color);
-  margin-top: 2px;
 }
 .ui-alert__body {
   flex: 1 1 auto;
 }
 .ui-alert__title {
-  font-weight: 600;
+  font-weight: 700;
   margin-bottom: 4px;
-  font-size: var(--fs-sm);
+  font-size: var(--fs-base);
+  color: var(--alert-color);
 }
 .ui-alert__message {
   color: var(--color-text);
   font-size: var(--fs-sm);
-  line-height: 1.3;
-  opacity: 0.95;
+  line-height: 1.5;
+  font-weight: 500;
 }
 .ui-alert__close {
   background: transparent;
   border: none;
   color: var(--alert-color);
   cursor: pointer;
-  padding: 6px;
-  border-radius: 6px;
+  padding: 8px;
+  border-radius: 50%;
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transition: background-color 0.2s ease;
 }
 .ui-alert__close:hover {
-  background: rgba(0,0,0,0.03);
+  background: rgba(0,0,0,0.05);
+}
+
+@media (pointer: coarse) {
+  .ui-alert {
+    padding: var(--space-lg);
+  }
+  .ui-alert__close {
+    width: 44px;
+    height: 44px;
+  }
 }
 </style>

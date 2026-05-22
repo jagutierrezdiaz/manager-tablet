@@ -144,33 +144,25 @@ const iconSize = computed(() => {
 </script>
 
 <style scoped>
-:root {
-  /* mapeo semántico para variantes de botón */
-  --btn-create: #16a34a; /* verde */
-  --btn-edit: #f59e0b; /* ámbar */
-  --btn-delete: #ef4444; /* rojo */
-  --btn-read: #2563eb; /* azul (primario) */
-  --btn-info: #c5c5c5; /* blanco */
-}
-
 .ui-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  border-radius: 6px;
+  gap: 10px;
+  border-radius: 8px;
   font-family: var(--font-stack);
   font-size: var(--fs-base);
-  line-height: 1;
+  font-weight: 600;
+  line-height: 1.2;
   cursor: pointer;
-  padding: var(--space-xs) var(--space-sm); /* vertical pequeño, horizontal ligeramente menor */
-  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease,
-    box-shadow 120ms ease;
+  padding: var(--space-sm) var(--space-md);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
   vertical-align: middle;
+  border: none;
 }
 
 .ui-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
 }
@@ -179,7 +171,7 @@ const iconSize = computed(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: inherit; /* el icono hereda el color actual (lucide usa currentColor para stroke) */
+  color: inherit;
 }
 
 .ui-btn__label {
@@ -187,32 +179,31 @@ const iconSize = computed(() => {
   align-items: center;
   justify-content: center;
   white-space: nowrap;
-  flex: 1; /* permite que el label ocupe el espacio disponible y empuje el icono al final */
+  flex: 1;
   text-align: center;
 }
 
 /* solo-icono: hacerlo más compacto y cuadrado */
 .ui-btn--icon-only {
-  padding: var(--space-xs);
-  width: 32px;
-  height: 32px;
+  padding: var(--space-sm);
+  width: 48px;
+  height: 48px;
   justify-content: center;
 }
 
 /* estilo outlined: fondo transparente, borde y texto coloreado */
 .ui-btn--outlined {
   background: transparent;
-  color: currentColor;
-  border-width: 1px;
-  border-style: solid;
+  color: var(--btn-color);
+  border: 2px solid var(--btn-color);
 }
 
 /* estilo relleno: fondo coloreado, texto contrastado */
 .ui-btn:not(.ui-btn--outlined) {
   color: #ffffff;
-  border: none;
+  background-color: var(--btn-color);
+  box-shadow: var(--shadow-sm);
 }
-
 
 /* Las clases de variante mapean a variables CSS */
 .ui-btn--create { --btn-color: var(--btn-create); }
@@ -221,65 +212,48 @@ const iconSize = computed(() => {
 .ui-btn--read { --btn-color: var(--btn-read); }
 .ui-btn--info { --btn-color: var(--btn-info); }
 
-/* Aplicar el color de variante a estados outlined y relleno */
-.ui-btn--create.ui-btn--outlined,
-.ui-btn--edit.ui-btn--outlined,
-.ui-btn--delete.ui-btn--outlined,
-.ui-btn--read.ui-btn--outlined,
-.ui-btn--info.ui-btn--outlined {
-  color: var(--btn-color);
-  border-color: var(--btn-color);
-}
-
-.ui-btn--create:not(.ui-btn--outlined),
-.ui-btn--edit:not(.ui-btn--outlined),
-.ui-btn--delete:not(.ui-btn--outlined),
-.ui-btn--read:not(.ui-btn--outlined),
-.ui-btn--info:not(.ui-btn--outlined) {
-  background-color: var(--btn-color);
-}
-
 /* Estados hover, focus y active (presionado) */
 .ui-btn:not(:disabled):hover {
-  filter: brightness(0.97);
-  box-shadow: 0 1px 2px rgba(2,6,23,0.08);
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
-/* foco visual sutil (usa :focus-visible si el navegador lo soporta) */
-.ui-btn:focus,
+/* foco visual sutil */
 .ui-btn:focus-visible {
-  outline: none;
-  box-shadow: 0 1px 2px rgba(2,6,23,0.06);
+  outline: 3px solid rgba(37, 99, 235, 0.3);
+  outline-offset: 2px;
 }
 
-/* efecto de 'presionar' — parece que el botón se hunde */
+/* efecto de 'presionar' */
 .ui-btn:not(:disabled):active {
-  /* feedback consistente: escala ligera y oscurecimiento */
-  transform: scale(0.98);
-  filter: brightness(0.92);
-  box-shadow: none;
-}
-
-/* transición para el transform */
-.ui-btn {
-  transition: transform 120ms ease, background-color 120ms ease, color 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+  transform: scale(0.96);
+  filter: brightness(0.95);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Ajustes para tamaños pequeño/grande */
-.ui-btn[size="sm"] { font-size: var(--fs-sm); padding: var(--space-xxs) var(--space-sm); }
-.ui-btn[size="lg"] { font-size: var(--fs-lg); padding: var(--space-xs) var(--space-lg); }
+.ui-btn[size="sm"] { 
+  font-size: var(--fs-sm); 
+  padding: var(--space-xs) var(--space-sm); 
+  min-height: 36px;
+}
+.ui-btn[size="lg"] { 
+  font-size: var(--fs-lg); 
+  padding: var(--space-md) var(--space-xl); 
+  min-height: 56px;
+}
 
-
-/* Ajustes específicos para dispositivos táctiles (tablets/ móviles con pointer coarse) */
+/* Ajustes específicos para dispositivos táctiles */
 @media (pointer: coarse) {
   .ui-btn {
-    -webkit-tap-highlight-color: transparent;
-    min-height: 44px; /* objetivo táctil mínimo recomendado */
-    transition-duration: 90ms; /* efecto más rápido en touch */
+    min-height: 48px;
+    padding: var(--space-sm) var(--space-lg);
   }
-
-  /* en touch usamos scale para el feedback en lugar de translateY */
-  /* (no override — el mismo efecto active se aplica en todos los dispositivos) */
+  .ui-btn--icon-only {
+    width: 52px;
+    height: 52px;
+  }
 }
 
 /* Respetar preferencia de reducir movimiento */

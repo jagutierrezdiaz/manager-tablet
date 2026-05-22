@@ -197,36 +197,37 @@ const colorCard = computed(() => {
 .ui-card {
     display: flex;
     flex-direction: row;
-    gap: 20px;
-    margin-bottom: 16px;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
     cursor: pointer;
-    box-shadow: 0 0 0px 2px rgba(0, 0, 0, 0.1);
-    border-radius: 5px;
-    background-color: rgba(255, 255, 255, 0.7);
+    box-shadow: var(--shadow-md);
+    border-radius: var(--radius);
+    background-color: var(--color-background);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
 }
 
 .ui-card:hover {
-    transform: scale(1.02);
-    transition: transform 0.3s ease;
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
 }
 
 .ui-card:active {
     transform: scale(0.98);
-    transition: transform 0.3s ease;
 }
 
 .text-title {
-    width: fit-content;
-    min-width: 100px;
-    padding: 10px;
-    border-radius: 5px;
+    width: 100px;
+    padding: var(--space-md);
     color: white;
-    font-size: 1.8rem;
-    font-weight: bold;
+    font-size: 2rem;
+    font-weight: 800;
     text-align: center;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .task-icon {
@@ -235,27 +236,52 @@ const colorCard = computed(() => {
 
 .content {
     width: 100%;
-    padding: 10px;
-    border-radius: 5px;
-    color: black;
+    padding: var(--space-sm);
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: center;
+    gap: 6px;
 }
 
 .content h3 {
-    font-size: 1.2rem;
-    font-weight: bold;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0;
+}
+
+.content h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-muted);
+    margin: 0;
 }
 
 .content p {
-    font-size: 1rem;
-    font-weight: normal;
+    font-size: 0.95rem;
+    font-weight: 400;
+    color: var(--color-muted);
+    margin: 4px 0;
+    line-height: 1.4;
 }
 
 .content span {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     font-weight: 600;
-    text-align: right;
+    color: var(--color-muted);
+    margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+    .ui-card {
+        gap: var(--space-sm);
+    }
+    .text-title {
+        width: 80px;
+        font-size: 1.5rem;
+    }
+    .task-icon {
+        font-size: 2.5rem;
+    }
 }
 </style>

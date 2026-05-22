@@ -30,34 +30,56 @@ const props = defineProps({
 .ui-title-view {
     display: flex;
     align-items: center;
-    gap: 25px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #e0e0e0;
+    gap: var(--space-lg);
+    padding: var(--space-md) 0;
+    margin-bottom: var(--space-lg);
 }
 .text-title {
-    width: fit-content;
-    min-width: 80px;
-    padding: 10px;
-    border-radius: 5px;
+    width: 80px;
+    height: 80px;
+    padding: var(--space-md);
+    border-radius: var(--radius);
     color: white;
-    font-size: 1.5rem;
-    font-weight: bold;
+    font-size: 2rem;
+    font-weight: 800;
     text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-md);
 }
 .content {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
 }
 .content h3 {
-    font-size: 1.5rem;
-    font-weight: bold;
-    text-align: center;
+    font-size: 1.75rem;
+    font-weight: 800;
+    text-align: left;
+    color: var(--color-text);
+    margin: 0;
 }
 .content h4 {
-    font-size: 1.2rem;
-    font-weight: bold;
-    text-align: center;
+    font-size: 1.25rem;
+    font-weight: 600;
+    text-align: left;
+    color: var(--color-muted);
+    margin: 4px 0 0 0;
+}
+
+@media (max-width: 768px) {
+    .ui-title-view {
+        gap: var(--space-md);
+    }
+    .text-title {
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+    }
+    .content h3 {
+        font-size: 1.4rem;
+    }
 }
 </style>

@@ -1,8 +1,13 @@
 <template>
-  <div>
-    <div class="flex flex-col container-header">
-      <img :src="logo" alt="" class="img-logo">
-      <div class="flex justify-between pr-4 pl-4 pb-2 flex-wrap gap-2">
+  <div class="layout-navigation">
+    <!-- Top Bar: Logo -->
+    <header class="top-bar">
+      <img :src="logo" alt="Manager Logo" class="img-logo">
+    </header>
+
+    <!-- Bottom Navigation: Actions -->
+    <nav class="bottom-nav">
+      <div class="nav-container">
         <UiNavButton
           label="Inicio"
           icon="Home"
@@ -10,28 +15,32 @@
           @click="onClick('inicio', 'principal-inicio')"
         />
         <UiNavButton
-          label="Ejecución Rutas"
-          icon="Route"
+          label="Rutas"
+          icon="Map"
           :active="selected === 'rutas'"
           @click="onClick('rutas', 'principal-rutas')"
         />
         <UiNavButton
-          label="OTM Programadas"
-          icon="CalendarPlus"
+          label="Programadas"
+          icon="Calendar"
           :active="selected === 'programadas'"
           @click="onClick('programadas', 'principal-programadas')"
         />
         <UiNavButton
-          label="OTM Correctivas"
-          icon="CalendarX2"
+          label="Correctivas"
+          icon="Wrench"
           :active="selected === 'correctivas'"
           @click="onClick('correctivas', 'principal-correctivas')"
         />
+        <UiNavButton
+          label="Cerrar sesión"
+          icon="LogOut"
+          :active="selected === 'logout'"
+          @click="onClick('logout', 'principal-logout')"
+        />
       </div>
-    </div>
+    </nav>
 
-    <!-- Spacer para que el contenido de la página no quede oculto por el header fijo -->
-    <div class="header-spacer" aria-hidden="true"></div>
   </div>
 </template>
 
@@ -40,7 +49,7 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import UiNavButton from './UiNavButton.vue'
 import logo from '../assets/manager_logo.png'
-import { getSessionUser } from '../utils/authSession.js'
+import { getSessionUser, clearSessionUser } from '../utils/authSession.js'
 
 const emit = defineEmits(['select-route'])
 const route = useRoute()
@@ -50,12 +59,22 @@ const selectedByRouteName = {
   'principal-inicio': 'inicio',
   'principal-rutas': 'rutas',
   'principal-programadas': 'programadas',
-  'principal-correctivas': 'correctivas'
+  'principal-correctivas': 'correctivas',
+  'principal-logout': 'logout'
 }
 
 const selected = computed(() => selectedByRouteName[route.name] ?? '')
 
 function onClick(name, routeName) {
+  if (name === 'logout') {
+      router.replace({ name: 'login' }).then(() => {
+      clearSessionUser()
+    }).catch(() => {
+      clearSessionUser()
+      router.replace({ name: 'login' })
+    })
+    return
+  }
   emit('select-route', { name, routeName })
   if (!getSessionUser()) {
     router.replace({ name: 'login' }).catch(() => {})
@@ -66,134 +85,110 @@ function onClick(name, routeName) {
 </script>
 
 <style scoped>
-.container-header {
-  width: 90%;
+/* Top Bar Styles */
+.top-bar {
   position: fixed;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: linear-gradient(179deg, #0f172a 0%, #1e293b 100%);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
   z-index: 1000;
-  border-radius: 10px;
-  gap: 2px;
-}
-
-/* Centrar el contenido interno y limitar ancho para pantallas grandes */
-.container-header header,
-.container-header>div {
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 4px var(--space-md);
 }
 
 .img-logo {
-  height: 40px;
+  height: 32px;
   object-fit: contain;
-  display: flex;
-  justify-content: center;
 }
 
-
-/* Espacio que evita que el contenido quede oculto por el header fijo */
-.header-spacer {
-  height: 125px;
-  width: 100%;
-}
-
-/* Ajustes responsive: en pantallas de tablet / móvil reducir botones y letra, aumentar spacer */
-@media (max-width: 1024px) {
-  /* Reducir tamaño de las imágenes del header para dejar más espacio */
-  .img-logo,
-  .img-logo-emp {
-    height: 36px;
-  }
-}
-
-/* Pantallas más pequeñas (teléfonos): aún más compacto y aumentar spacer */
 @media (max-width: 600px) {
+  .top-bar {
+    height: 56px;
+  }
   .img-logo {
-    height: 26px;
-    margin-top: 10px;
+    height: 28px;
   }
-
-  /* Aumentar el spacer para que el contenido no quede oculto por el header */
-  .header-spacer {
-    height: 160px;
+  .top-spacer {
+    height: 56px;
   }
 }
-/* Móvil: ocupar todo el ancho, apilar botones, quitar borde redondeado y suavizar blur/sombra */
-@media (max-width: 600px) {
-  .container-header {
-    width: 100%;
-    left: 0;
-    transform: none;
-    top: 0;
-    border-radius: 0;
-    padding-bottom: 8px;
-  }
 
-  /* Hacer que el contenido interno no esté limitado a max-width en móvil */
-  .container-header header,
-  .container-header>div {
-    max-width: none;
-    margin: 0;
-    width: 100%;
-    padding-left: 4px;
-    padding-right: 4px;
-  }
+/* Bottom Nav Styles */
+.bottom-nav {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 92%;
+  max-width: 600px;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  z-index: 1000;
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 8px;
+}
 
-  /* Scroll horizontal para los botones en móvil */
-  .container-header > div {
-    display: flex;
-    flex-direction: row;
-    overflow-x: auto;
-    justify-content: space-between;
+.nav-container {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Dark Mode Overrides */
+[data-theme="dark"] .top-bar,
+[data-theme="dark"] .bottom-nav {
+  background-color: rgba(15, 23, 42, 0.85);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Spacers */
+.top-spacer {
+  height: 64px;
+}
+
+.bottom-spacer {
+  height: 80px;
+}
+
+@media (min-width: 768px) {
+  .bottom-spacer {
+    height: 100px;
+  }
+}
+
+/* Tablet / Desktop adjustments */
+@media (min-width: 768px) {
+  .bottom-nav {
+    bottom: 24px;
+    padding: 10px;
+  }
+  
+  .img-logo {
+    height: 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .bottom-nav {
+    width: 100%;
+    bottom: 0;
+    border-radius: 20px 20px 0 0;
+    padding: 6px 4px;
+  }
+  
+  .nav-container {
     gap: 0;
-    padding-bottom: 0;
-    scrollbar-width: none;
-  }
-
-  .container-header > div::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
-  }
-
-  .ui-nav-btn {
-    flex: 0 0 auto;
-  }
-
-  /* Aumentar el spacer para mayor separación con el contenido */
-  .header-spacer {
-    height: 140px;
-  }
-}
-/* Mejoras visuales para escritorio: logos más grandes, botones alineados y mayor contraste */
-@media (min-width: 1025px) {
-  .container-header {
-    width: 85%;
-    top: 12px;
-    padding: 2px 18px;
-  }
-
-  .container-header header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    padding: 6px 0;
-  }
-
-  .img-logo, .img-logo-emp {
-    height: 42px;
-  }
-
-  /* Botones en línea centrados y con mayor separación */
-  .container-header > div {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 18px;
-    padding: 8px 12px;
   }
 }
 </style>
