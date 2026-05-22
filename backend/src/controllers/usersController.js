@@ -1,8 +1,17 @@
-import { getUserById, getAllUsers } from '../services/usersService.js'
+import { getUserById, getAllUsers, getNotSuspendedUsers, getSupervisores } from '../services/usersService.js'
 
 export async function listUsers(req, res, next) {
   try {
     const users = await getAllUsers()
+    res.json(users)
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function listNotSuspendedUsers(req, res, next) {
+  try {
+    const users = await getNotSuspendedUsers()
     res.json(users)
   } catch (err) {
     next(err)
@@ -25,3 +34,12 @@ export async function getUser(req, res, next) {
   }
 }
 
+
+export async function getListSupervisores(req, res, next) {
+  try {
+    const supervisores = await getSupervisores()
+    res.json(supervisores)
+  } catch (err) {
+    next(err)
+  }
+}

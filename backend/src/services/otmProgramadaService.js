@@ -27,8 +27,8 @@ export async function getDatosOtmById(idOtmProgramada) {
             OTM.FECHA_PROGRAMADA,
             OTM.FECHA_CIERRE,
             OTM.LIMITE_CIERRE,
-            OTM.OBSERVACION_OTM, 
-            OTM.COMENTARIOS_DE_CIERRE,
+            CAST(OTM.OBSERVACION_OTM AS VARCHAR(2000)) AS OBSERVACION_OTM, 
+            CAST(OTM.COMENTARIOS_DE_CIERRE AS VARCHAR(2000)) AS COMENTARIOS_DE_CIERRE,
             OTM.FOTO_1, 
             OTM.FOTO_2,
             OTM.TIEMPO_REAL,
@@ -52,5 +52,37 @@ export async function getDatosOtmById(idOtmProgramada) {
            AND OTM.ID_OTM =  ?
     `
     const rows = await db.query(sql, [idOtmProgramada])
+    return rows
+}
+
+export async function getTipoRepuestos() {
+    const sql = `
+        SELECT 
+            ID_TIPO_REPUESTO, 
+            NOMBRE_TIPO_REPUESTO
+        FROM TIPO_REPUESTO
+        ORDER BY NOMBRE_TIPO_REPUESTO
+    `
+    const rows = await db.query(sql)
+    return rows
+}
+
+
+export async function getRepuestos(idTipoRepuesto) {
+    const sql = `
+        SELECT 
+            RE.ID_REPUESTO,
+            RE.NOMBRE_REPUESTO,
+            UM.UNIDAD_MEDIDA,
+            CAST(CAST(RE.INV_ACTUAL AS NUMERIC(15,2)) AS VARCHAR(20)) AS INV_ACTUAL
+        FROM REPUESTO RE
+        INNER JOIN TIPO_REPUESTO TR
+            ON RE.ID_TIPO_REPUESTO = TR.ID_TIPO_REPUESTO
+        INNER JOIN UNIDAD_MEDIDA UM
+            ON RE.UND_MEDIDA = UM.ID_UND
+        WHERE TR.ID_TIPO_REPUESTO = ?
+        ORDER BY RE.NOMBRE_REPUESTO;
+    `
+    const rows = await db.query(sql, [idTipoRepuesto])
     return rows
 }

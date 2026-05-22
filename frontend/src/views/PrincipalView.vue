@@ -14,6 +14,11 @@ function onContinue() {
     return
   }
 }
+
+function logout() {
+  clearSessionUser()
+  router.replace({ name: 'login' })
+}
 </script>
 
 <template>

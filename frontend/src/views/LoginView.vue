@@ -2,7 +2,7 @@
 import logo from '../assets/manager_logo.png'
 import logo_emp from '../assets/hazlo_software.png'
 import fondo from '../assets/fondo.jpg'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { SESSION_USER_KEY } from '../utils/authSession.js'
 import UiInput from '../components/UiInput.vue'
@@ -36,7 +36,15 @@ onMounted(async () => {
 
 async function onSubmit() {
   alertVisible.value = false
+  await nextTick()
   const id = String(codigoPersonal.value || '').trim()
+
+  if (!id) {
+    alertMessage.value = 'Por favor, ingresa tu ID de usuario'
+    alertType.value = 'warning'
+    alertVisible.value = true
+    return
+  }
 
   try {
     const res = await fetch(`/api/users/${encodeURIComponent(id)}`)
@@ -83,9 +91,11 @@ async function onSubmit() {
       <section class="section-info glass-card">
         <h1>Iniciar sesión</h1>
         <form class="flex flex-col gap-6" @submit.prevent="onSubmit">
-          <UiAlert v-if="alertVisible" :type="alertType" :message="alertMessage" @close="alertVisible = false" />
+          <Transition name="fade-slide">
+            <UiAlert v-if="alertVisible" :type="alertType" :message="alertMessage" @close="alertVisible = false" />
+          </Transition>
           <UiInput v-model="codigoPersonal" type="text" label="ID Usuario" icon="User" placeholder="Ingresa tu ID" />
-          <UiButton @click="onSubmit" label="Acceder" color="read" size="lg" icon="LogIn" iconPosition="end" />
+          <UiButton type="submit" label="Acceder" color="read" size="lg" icon="LogIn" iconPosition="end" />
         </form>
       </section>
 
@@ -191,7 +201,7 @@ h1 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 2px;
   margin-top: var(--space-sm);
 }
 
@@ -211,6 +221,22 @@ h1 {
 
 .img-logo-emp:hover {
   opacity: 1;
+}
+
+/* Animations */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.3s ease-out;
+}
+
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 
 @media (min-width: 768px) {

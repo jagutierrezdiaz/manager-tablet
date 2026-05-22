@@ -1,13 +1,18 @@
 import express from 'express'
-import * as usersController from '../controllers/usersController.js'
+import { listUsers, listNotSuspendedUsers, getUser, getListSupervisores } from '../controllers/usersController.js'
 
 const router = express.Router()
 
 // GET /api/users
-router.get('/', usersController.listUsers)
+router.get('/', listUsers)
+
+// GET /api/users/not-suspended
+router.get('/not-suspended', listNotSuspendedUsers)
+
+// GET /api/users/supervisores
+router.get('/get-supervisores', getListSupervisores)
 
 // GET /api/users/:id
-router.get('/:id', usersController.getUser)
+router.get('/:id', getUser)
 
 export default router
-
