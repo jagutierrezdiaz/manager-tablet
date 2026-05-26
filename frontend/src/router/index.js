@@ -3,9 +3,27 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
 import PersonalInfoView from '../views/PersonalInfoView.vue'
 import PrincipalView from '../views/PrincipalView.vue'
+import DatabaseSelectView from '../views/DatabaseSelectView.vue'
+import DeviceRegisterView from '../views/DeviceRegisterView.vue'
 import { getSessionUser } from '../utils/authSession.js'
+import { getSelectedDbProfile } from '../utils/dbProfile.js'
+import { getDeviceRegisteredStatus } from '../utils/deviceInfo.js'
 
 const routes = [
+    {
+        path: '/',
+        redirect: { name: 'select-database' }
+    },
+    {
+        path: '/select-database',
+        name: 'select-database',
+        component: DatabaseSelectView
+    },
+    {
+        path: '/device-register',
+        name: 'device-register',
+        component: DeviceRegisterView
+    },
     {
         path: '/login',
         name: 'login',
@@ -73,12 +91,30 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
+    if (to.name === 'select-database') {
+        return true
+    }
+
+    if (!getSelectedDbProfile()) {
+        return { name: 'select-database', replace: true }
+    }
+
+    if (to.name === 'device-register') {
+        return true
+    }
+
+    if (!getDeviceRegisteredStatus() && to.name !== 'select-database') {
+        return { name: 'device-register', replace: true }
+    }
+
     if (to.name === 'login') {
         return true
     }
+
     if (!getSessionUser()) {
         return { name: 'login', replace: true }
     }
+
     return true
 })
 
