@@ -46,7 +46,7 @@ export async function getUserById(id) {
     FROM MOD MO
     LEFT JOIN CARGO_MOD CA
       ON MO.ID_CARGO = CA.ID_CARGO
-    WHERE UPPER(TRIM(MO.SUSPENDIDO)) = 'NO'
+    WHERE (MO.SUSPENDIDO IS NULL OR UPPER(TRIM(MO.SUSPENDIDO)) <> 'SI')
     AND MO.CODIGO_PERSONA = ?
   `
   const params = [id]
@@ -68,5 +68,28 @@ export async function getSupervisores() {
       M.NOMBRE_PERSONA
   `
   const rows = await db.query(sql, [])
+  return rows.map(convertUserRowToDto)
+}
+
+
+export async function getPersonasAsignadas(idOtm) {
+  const sql = `
+    SELECT 
+      MO.NOMBRE_PERSONA, 
+      MO.CODIGO_PERSONA,
+      CM.FECHA_INICIO AS HORA_INICIO, 
+      CM.FECHA_FIN AS HORA_FIN, 
+      CM.HORAS_TRABAJO AS HORA_TOTAL
+    FROM CIERRE_MOD CM, MOD MO
+    WHERE CM.CODIGO_PERSONA = MO.CODIGO_PERSONA
+      AND CM.ID_OTM = ?
+    ORDER BY MO.NOMBRE_PERSONA
+  `
+
+
+
+
+  const params = [idOtm]
+  const rows = await db.query(sql, params)
   return rows.map(convertUserRowToDto)
 }

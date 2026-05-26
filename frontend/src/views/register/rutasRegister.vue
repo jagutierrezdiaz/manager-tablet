@@ -37,13 +37,7 @@
         </section>
 
 
-        <section class="section-card data-tiempo-ejecucion">
-            <h2 style="margin:0; border:none; padding:0;">Tiempo Real de Ejecución Ruta</h2>
-            <div class="flex items-center gap-3">
-                <UiInput type="number" v-model="tiempoEjecucion" min="0" max="24" size="sm" minWidth="120px" />
-                <span class="font-bold">Horas</span>
-            </div>
-        </section>
+       
 
 
         <section class="section-card data-tarea">
@@ -68,10 +62,14 @@
                     <UiRadio label="Si cumple" v-model="cumpleCriterios" value="si" color="create" name="criterios" />
                     <UiRadio label="No cumple" v-model="cumpleCriterios" value="no" color="delete" name="criterios" />
                 </div>
-                <div class="flex justify-end mt-2">
-                    <UiButton label="Guardar resultados" color="create" icon="Check" iconPosition="end"
-                        :disabled="!cumpleCriterios" @click="guardarResultados()" />
-                </div>
+            </div>
+        </section>
+
+        <section class="section-card data-tiempo-ejecucion">
+            <h2 style="margin:0; border:none; padding:0;">Tiempo Real de Ejecución Ruta</h2>
+            <div class="flex items-center gap-3">
+                <UiInput type="number" v-model="tiempoEjecucion" min="0" max="24" size="sm" minWidth="120px" />
+                <span class="font-bold">Horas</span>
             </div>
         </section>
 
@@ -117,9 +115,6 @@ function handleConfirmCumplir() {
     router.push({ name: 'principal-rutas' })
 }
 
-function guardarResultados() {
-    console.log('Resultados guardados:', cumpleCriterios.value)
-}
 
 onMounted(() => {
     const data = getSelectedRuta()

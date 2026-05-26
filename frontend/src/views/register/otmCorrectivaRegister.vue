@@ -11,6 +11,9 @@
                 :titleActivity="otmData.NOMBRE_MAQUINA" 
                 :colorCard="otmData.COLOR_CARD" 
             />
+
+
+            <!--  falta implementar la referencia de la maquina y listado de equipos -->
             
             <section class="section-card data-actividades">
                 <div class="flex justify-between items-center mb-4">

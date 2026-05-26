@@ -29,11 +29,11 @@ export async function registerDevice(idPersistente, direccionIp, estado, codigoP
         CODIGO_PERSONA
       )
       VALUES (
-        ?,  -- ID_PERSISTENTE
-        ?,  -- DIRECCION_IP
-        ?,  -- ESTADO
-        CURRENT_DATE,  -- FECHA_REGISTRO
-        ?   -- CODIGO_PERSONA
+        ?, 
+        ?, 
+        ?, 
+        CURRENT_DATE,  
+        ?  
       );
     `
     const params = [idPersistente, direccionIp, estado, codigoPersona]
@@ -47,10 +47,10 @@ export async function registerDevice(idPersistente, direccionIp, estado, codigoP
         FECHA_REGISTRO
       )
       VALUES (
-        ?,  -- ID_PERSISTENTE
-        ?,  -- DIRECCION_IP
-        ?,  -- ESTADO
-        CURRENT_DATE  -- FECHA_REGISTRO
+        ?,  
+        ?, 
+        ?, 
+        CURRENT_DATE 
       );
     `
     const params = [idPersistente, direccionIp, estado]

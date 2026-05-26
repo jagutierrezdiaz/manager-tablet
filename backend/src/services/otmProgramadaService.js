@@ -86,3 +86,135 @@ export async function getRepuestos(idTipoRepuesto) {
     const rows = await db.query(sql, [idTipoRepuesto])
     return rows
 }
+
+export async function savePersonaAsignadaOtm(idOtm, personaAsignada) {
+    // Reemplazar la 'T' por un espacio para compatibilidad con Firebird
+    const fechaInicio = personaAsignada.horaInicio.replace('T', ' ')
+    const fechaFin = personaAsignada.horaFin.replace('T', ' ')
+
+    // Convertir "HH:mm:ss" o "HH:mm" a horas decimales para la base de datos
+    // Firebird espera un número en HORAS_TRABAJO
+    let horasDecimales = 0
+    if (personaAsignada.horaTotal && typeof personaAsignada.horaTotal === 'string') {
+        const parts = personaAsignada.horaTotal.split(':')
+        const h = parseInt(parts[0], 10) || 0
+        const m = parseInt(parts[1], 10) || 0
+        const s = parseInt(parts[2], 10) || 0
+        horasDecimales = h + (m / 60) + (s / 3600)
+        horasDecimales = parseFloat(horasDecimales.toFixed(2))
+    } else {
+        horasDecimales = parseFloat(personaAsignada.horaTotal) || 0
+    }
+
+    const sqlCheck = 'SELECT * FROM CIERRE_MOD WHERE ID_OTM = ? AND CODIGO_PERSONA = ?'
+    const rows = await db.query(sqlCheck, [idOtm, personaAsignada.codigoPersona])
+
+    if (rows && rows.length > 0) {
+        const sqlUpdate = `
+            UPDATE CIERRE_MOD 
+            SET FECHA_INICIO = ?, FECHA_FIN = ?, ANO = ?, MES = ?, HORAS_TRABAJO = ? 
+            WHERE ID_OTM = ? AND CODIGO_PERSONA = ?
+        `
+        return await db.query(sqlUpdate, [
+            fechaInicio,
+            fechaFin,
+            personaAsignada.ano,
+            personaAsignada.mes,
+            horasDecimales,
+            idOtm,
+            personaAsignada.codigoPersona
+        ])
+    } else {
+        const sqlInsert = `
+            INSERT INTO CIERRE_MOD (ID_OTM, CODIGO_PERSONA, FECHA_INICIO, FECHA_FIN, ANO, MES, HORAS_TRABAJO)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `
+        return await db.query(sqlInsert, [
+            idOtm,
+            personaAsignada.codigoPersona,
+            fechaInicio,
+            fechaFin,
+            personaAsignada.ano,
+            personaAsignada.mes,
+            horasDecimales
+        ])
+    }
+}
+
+
+
+export async function deletePersonaAsignadaOtm(idOtm, codigoPersona) {
+    const sql = `
+        DELETE FROM CIERRE_MOD WHERE ID_OTM = ? AND CODIGO_PERSONA = ?
+    `
+    const rows = await db.query(sql, [idOtm, codigoPersona])
+    return rows
+}
+
+
+
+export async function getRepuestosAsignadosOtm(idOtm) {
+    const sql = `
+        SELECT
+            RP.ID_REPUESTO,
+            RP.NOMBRE_REPUESTO,
+            UM.UNIDAD_MEDIDA,
+            CR.UND_PROGRAMADA,
+            CR.UND_REAL
+        FROM CIERRE_REPUESTO CR
+        INNER JOIN REPUESTO RP
+            ON CR.ID_REPUESTO = RP.ID_REPUESTO
+        INNER JOIN UNIDAD_MEDIDA UM
+            ON RP.UND_MEDIDA = UM.ID_UND
+        WHERE CR.ID_OTM = ?
+        ORDER BY RP.NOMBRE_REPUESTO;
+    `
+    const rows = await db.query(sql, [idOtm])
+    return rows
+}
+
+export async function saveRepuestosAsignadosOtm(idOtm, repuestosAsignados) {
+    // Verificar si ya existe para actualizar o insertar
+    const sqlCheck = 'SELECT * FROM CIERRE_REPUESTO WHERE ID_OTM = ? AND ID_REPUESTO = ?'
+    const rows = await db.query(sqlCheck, [idOtm, repuestosAsignados.ID_REPUESTO])
+
+    if (rows && rows.length > 0) {
+        const sqlUpdate = `
+            UPDATE CIERRE_REPUESTO 
+            SET UND_REAL = ?, ANO = ?, MES = ?
+            WHERE ID_OTM = ? AND ID_REPUESTO = ?
+        `
+        return await db.query(sqlUpdate, [
+            repuestosAsignados.UND_REAL,
+            repuestosAsignados.ano,
+            repuestosAsignados.mes,
+            idOtm,
+            repuestosAsignados.ID_REPUESTO
+        ])
+    } else {
+        const sqlInsert = `
+            INSERT INTO CIERRE_REPUESTO
+            (ID_OTM, ID_REPUESTO, ANO, MES, UND_PROGRAMADA, UND_REAL, VLR_UNIDAD, VLR_REPUESTO)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `
+        return await db.query(sqlInsert, [
+            idOtm,
+            repuestosAsignados.ID_REPUESTO,
+            repuestosAsignados.ano,
+            repuestosAsignados.mes,
+            0,
+            repuestosAsignados.UND_REAL,
+            0,
+            0
+        ])
+    }
+}
+
+
+export async function deleteRepuestosAsignadosOtm(idOtm, idRepuesto) {
+    const sql = `
+        DELETE FROM CIERRE_REPUESTO WHERE ID_OTM = ? AND ID_REPUESTO = ?
+    `
+    const rows = await db.query(sql, [idOtm, idRepuesto])
+    return rows
+}
