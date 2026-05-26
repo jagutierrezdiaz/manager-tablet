@@ -250,17 +250,30 @@
                 <UiButton label="Aprobar" color="create" icon="check" iconPosition="end" @click="aprobarOTM()" />
             </section>
         </div>
+
+        <!-- Modal de Confirmación -->
+        <UiModal 
+            v-if="otmData && currentDatosOtm"
+            v-model="showConfirmModal"
+            title="Finalizar Orden de Trabajo"
+            :message="`¿Estás seguro de que deseas marcar la OTM #${otmData.ID_OTM} (${currentDatosOtm.NOMBRE_ACTIVIDAD}) como cumplida? Esta acción no se puede deshacer.`"
+            confirmLabel="Sí, finalizar"
+            confirmIcon="Check"
+            @confirm="handleConfirmCumplir"
+        />
     </div>
 </template>
 
 <script setup>
 import { onMounted, ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { getSelectedOtm, clearSelectedOtm } from '../../utils/dataTransfer.js'
 import axios from '../../api/axios.js'
 import UiButton from '../../components/UiButton.vue'
 import UiInput from '../../components/UiInput.vue'
 import UiSearchSelector from '../../components/UiSearchSelector.vue'
 import UiImageUpload from '../../components/UiImageUpload.vue'
+import UiModal from '../../components/UiModal.vue'
 import { formatDate } from '../../utils/formatDate.js'
 
 const props = defineProps({
@@ -270,6 +283,7 @@ const props = defineProps({
     }
 })
 
+const router = useRouter()
 const otmData = ref(null)
 const itemsList = ref([])
 const usersList = ref([])
@@ -287,6 +301,7 @@ const selectedTipoRepuesto = ref(null)
 const addRepuestosList = ref([])
 const foto1 = ref(null)
 const foto2 = ref(null)
+const showConfirmModal = ref(false)
 
 const currentDatosOtm = computed(() => {
     return itemsList.value.length > 0 ? itemsList.value[currentIndex.value] : null
@@ -305,7 +320,14 @@ function anterior() {
 }
 
 function cumplir() {
-    console.log('Cumplir')
+    showConfirmModal.value = true
+}
+
+function handleConfirmCumplir() {
+    console.log('OTM Cumplida confirmada')
+    // Aquí iría la lógica de guardado final
+    clearSelectedOtm()
+    router.push({ name: 'principal-programadas' })
 }
 
 onMounted(async () => {

@@ -56,6 +56,12 @@ const routes = [
                 name: 'otm-correctiva-register',
                 component: () => import('../views/register/otmCorrectivaRegister.vue'),
                 props: true
+            },
+            {
+                path: 'rutas-register/:id',
+                name: 'rutas-register',
+                component: () => import('../views/register/rutasRegister.vue'),
+                props: true
             }
         ]
     }

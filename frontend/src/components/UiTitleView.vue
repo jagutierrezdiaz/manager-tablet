@@ -1,7 +1,7 @@
 <template>
     <div class="ui-title-view">
         <div class="text-title" :class="[colorCard]">
-            {{ titleOTM?.charAt(0).toUpperCase() || '' }}
+            {{ String(titleOTM || '').charAt(0).toUpperCase() }}
         </div>
         <div class="content">
             <h3>{{ titleActivity || 'Sin título' }}</h3>
