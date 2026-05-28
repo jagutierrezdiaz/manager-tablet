@@ -133,7 +133,7 @@ const CloseIcon = Icons['X'] || Icons['XCircle'] || null;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
   position: relative;
   overflow: hidden;
-  animation: slide-in-top 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+  animation: slide-in-top 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 @keyframes slide-in-top {

@@ -1,10 +1,16 @@
 <template>
     <div class="ui-title-view">
         <div class="text-title" :class="[colorCard]">
-            {{ String(titleOTM || '').charAt(0).toUpperCase() }}
+            <h2>{{ String(titleOTM || '').charAt(0).toUpperCase() }}</h2>
+            
         </div>
         <div class="content">
             <h3>{{ titleActivity || 'Sin título' }}</h3>
+            <div>
+                <p>ID: {{ idOTM }}</p>
+                <p>Fecha: {{ fechaProgramada }}</p>
+            </div>
+                
         </div>
     </div>
 </template>
@@ -22,6 +28,14 @@ const props = defineProps({
     colorCard: {
         type: String,
         required: true
+    },
+    idOTM: {
+        type: String,
+        required: false
+    },
+    fechaProgramada: {
+        type: String,
+        required: false
     }
 })
 </script>

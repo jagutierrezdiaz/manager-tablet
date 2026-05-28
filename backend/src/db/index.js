@@ -13,6 +13,7 @@ const options = {
   user: process.env.FB_USER || 'SYSDBA',
   password: process.env.FB_PASSWORD || 'masterkey',
   lowercase_keys: false,
+  blobAsText: true,
   role: null,
   pageSize: 4096
 }

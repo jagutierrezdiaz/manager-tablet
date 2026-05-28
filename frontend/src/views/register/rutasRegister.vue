@@ -2,68 +2,82 @@
     <div class="register-container">
         <div class="buttons-container">
             <UiButton label="Regresar" color="info" icon="ArrowLeft" @click="$router.back()" />
-            <div class="buttons-container-cards">
-                <UiButton label="Cumplir" color="create" icon="Check" @click="cumplirRuta" />
+            <div class="buttons-container-cards" v-if="itemsList.length > 0">
+                <UiButton color="edit" icon="ArrowLeft" :disabled="currentIndex === 0" @click="anterior()" />
+
+                <UiButton color="edit" icon="ArrowRight" :disabled="currentIndex === itemsList.length - 1"
+                    @click="siguiente()" />
             </div>
         </div>
 
-        <div v-if="rutas" class="data-container">
-            <UiTitleView :titleOTM="rutas.ID_NUMERICO" :titleActivity="rutas.NOMBRE_TIPO_RUTA"
-                :colorCard="rutas.COLOR_CARD" />
+        <div v-if="rutaInfo" class="data-container">
+            <UiTitleView :titleOTM="rutaInfo.ID_TIPO_RUTA" :titleActivity="rutaInfo.NOMBRE_TIPO_RUTA" :idOTM="rutaInfo.ID_NUMERICO"
+                :colorCard="rutaInfo.COLOR_CARD || 'bg-primary'" />
         </div>
 
-        <section class="section-card data-otm">
-            <h2>Referencias de la Ruta</h2>
+        <section class="section-card data-otm" v-if="currentItem">
+            <div class="flex justify-between items-center mb-4">
+                <h2>Referencias de la Ruta</h2>
+                <span v-if="itemsList.length > 1" class="text-muted font-bold">
+                    {{ currentIndex + 1 }} de {{ itemsList.length }}
+                </span>
+            </div>
             <table>
                 <tbody>
                     <tr>
                         <th>Proceso</th>
-                        <td>{{ rutas.NOMBRE_PROCESO }}</td>
+                        <td>{{ currentItem.NOMBRE_PROCESO }}</td>
                     </tr>
                     <tr>
                         <th>Etapa</th>
-                        <td>{{ rutas.NOMBRE_ETAPA }}</td>
+                        <td>{{ currentItem.NOMBRE_ETAPA }}</td>
                     </tr>
                     <tr>
                         <th>Máquina</th>
-                        <td>{{ rutas.NOMBRE_MAQUINA }}</td>
+                        <td>{{ currentItem.NOMBRE_MAQUINA }}</td>
                     </tr>
                     <tr>
                         <th>Equipo</th>
-                        <td>{{ rutas.NOMBRE_EQUIPO }}</td>
+                        <td>{{ currentItem.NOMBRE_EQUIPO }}</td>
                     </tr>
                 </tbody>
             </table>
         </section>
 
 
-       
 
 
-        <section class="section-card data-tarea">
+
+        <section class="section-card data-tarea" v-if="currentItem">
             <h2 class="section-card-title">Tareas a realizar</h2>
 
-            <textarea placeholder="Escribe aquí tus tareas..." />
+            <textarea v-model="currentItem.INDICACIONES_ESPECIFICAS" placeholder="Escribe aquí tus tareas..." />
         </section>
 
 
-        <section class="section-card data-observaciones">
+        <section class="section-card data-observaciones" v-if="currentItem">
             <h2 class="section-card-title">Observaciones</h2>
 
-            <textarea placeholder="Escribe aquí tus observaciones..." />
+            <textarea v-model="currentItem.OBSERVACIONES" placeholder="Escribe aquí tus observaciones..." />
         </section>
 
 
-        <section class="section-card">
+        <section class="section-card" v-if="currentItem">
             <h2 class="section-card-title">Resultados de la inspección</h2>
             <div class="flex flex-col gap-4">
                 <h3>¿Cumple con los criterios de aceptación?</h3>
                 <div class="flex gap-6">
-                    <UiRadio label="Si cumple" v-model="cumpleCriterios" value="si" color="create" name="criterios" />
-                    <UiRadio label="No cumple" v-model="cumpleCriterios" value="no" color="delete" name="criterios" />
+                    <UiRadio label="Si cumple" v-model="currentItem.CUMPLE_CRITERIOS" value="si" color="create"
+                        name="criterios" />
+                    <UiRadio label="No cumple" v-model="currentItem.CUMPLE_CRITERIOS" value="no" color="delete"
+                        name="criterios" />
+                    <UiButton color="create" icon="Save" label="Guardar" @click="guardarRutaIndividual" />
                 </div>
             </div>
         </section>
+
+
+
 
         <section class="section-card data-tiempo-ejecucion">
             <h2 style="margin:0; border:none; padding:0;">Tiempo Real de Ejecución Ruta</h2>
@@ -73,36 +87,88 @@
             </div>
         </section>
 
-    </div>
+        <div class="footer-actions" v-if="itemsList.length > 0">
+            <UiButton v-if="currentIndex === itemsList.length - 1" label="Cumplir" color="create" icon="Check"
+                @click="guardarEjecucionRuta" />
+        </div>
 
-    <!-- Modal de Confirmación -->
-    <UiModal v-if="rutas && rutas.ID_NUMERICO" v-model="showConfirmModal" title="Finalizar Registro de Ruta"
-        :message="`¿Estás seguro de que deseas marcar la ruta ${rutas.NOMBRE_TIPO_RUTA} (ID: ${rutas.ID_NUMERICO}) como cumplida? Se guardarán todos los resultados de la inspección.`"
-        confirmLabel="Sí, finalizar" confirmIcon="Check" @confirm="handleConfirmCumplir" />
+        <!-- Modal de Confirmación -->
+        <UiModal v-if="rutaInfo" v-model="showConfirmModal" title="Finalizar Registro de Ruta"
+            :message="`¿Estás seguro de que deseas marcar la ruta ${rutaInfo.NOMBRE_TIPO_RUTA} (ID: ${rutaInfo.ID_TIPO_RUTA}) como cumplida? Se guardarán todos los resultados de la inspección.`"
+            confirmLabel="Sí, finalizar" confirmIcon="Check" @confirm="handleConfirmCumplir" />
+
+        <!-- Alertas Flotantes -->
+        <Transition name="fade-slide">
+            <div v-if="alertConfig.show" class="alert-container-centered">
+                <UiAlert :type="alertConfig.type" :title="alertConfig.title" :message="alertConfig.message"
+                    @close="alertConfig.show = false" />
+            </div>
+        </Transition>
+    </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import UiButton from '../../components/UiButton.vue'
 import UiInput from '../../components/UiInput.vue'
 import UiRadio from '../../components/UiRadio.vue'
-import UiSearchSelector from '../../components/UiSearchSelector.vue'
 import UiTitleView from '../../components/UiTitleView.vue'
 import UiModal from '../../components/UiModal.vue'
+import UiAlert from '../../components/UiAlert.vue'
 import { getSelectedRuta, clearSelectedRuta } from '../../utils/dataTransfer.js'
+import api from '../../api/axios.js'
 
 const router = useRouter()
 
-const rutas = ref({
-    ID_NUMERICO: '',
-    NOMBRE_TIPO_RUTA: '',
-    COLOR_CARD: '#000000'
+const rutaInfo = ref(null)
+const itemsList = ref([])
+const currentIndex = ref(0)
+const ejecucionData = ref([])
+
+// Estado para alertas
+const alertConfig = ref({
+    show: false,
+    type: 'info',
+    title: '',
+    message: ''
+})
+
+function showAlert(type, title, message) {
+    alertConfig.value = { show: true, type, title, message }
+    setTimeout(() => {
+        alertConfig.value.show = false
+    }, 5000)
+}
+
+const currentItem = computed(() => {
+    return itemsList.value.length > 0 ? itemsList.value[currentIndex.value] : null
 })
 
 const tiempoEjecucion = ref(0)
-const cumpleCriterios = ref('')
 const showConfirmModal = ref(false)
+
+// Lógica de autoguardado en LocalStorage
+const storageKey = computed(() => rutaInfo.value ? `draft_ruta_${rutaInfo.value.ID_TIPO_RUTA.trim()}` : null)
+
+function saveDraft() {
+    if (!storageKey.value) return
+    const draft = {
+        itemsList: itemsList.value,
+        tiempoEjecucion: tiempoEjecucion.value
+    }
+    localStorage.setItem(storageKey.value, JSON.stringify(draft))
+}
+
+function handleManualSave() {
+    saveDraft()
+    console.log('Borrador guardado manualmente')
+}
+
+// Observar cambios para guardar automáticamente
+watch([itemsList, tiempoEjecucion], () => {
+    saveDraft()
+}, { deep: true })
 
 function cumplirRuta() {
     showConfirmModal.value = true
@@ -111,17 +177,122 @@ function cumplirRuta() {
 function handleConfirmCumplir() {
     console.log('Ruta Cumplida confirmada')
     // Lógica de cumplimiento aquí
+
+    // Limpiar borrador al finalizar
+    if (storageKey.value) {
+        localStorage.removeItem(storageKey.value)
+    }
+
     clearSelectedRuta()
     router.push({ name: 'principal-rutas' })
 }
 
+function siguiente() {
+    if (currentIndex.value < itemsList.value.length - 1) {
+        currentIndex.value++
+    }
+}
 
-onMounted(() => {
-    const data = getSelectedRuta()
-    if (data) {
-        rutas.value = data
+function anterior() {
+    if (currentIndex.value > 0) {
+        currentIndex.value--
+    }
+}
+
+
+async function fetchEjecucionRuta() {
+    if (!rutaInfo.value || !currentItem.value) return
+
+    try {
+        const response = await api.get('/personRouteList/ejecucion-ruta', {
+            params: {
+                idNumero: rutaInfo.value.ID_NUMERICO,
+                idTipoRuta: String(rutaInfo.value.ID_TIPO_RUTA || '').trim(),
+                idEquipo: String(currentItem.value.ID_EQUIPO || '').trim()
+            }
+        })
+        ejecucionData.value = response.data
+        console.log('ejecucionData', ejecucionData.value)
+    } catch (error) {
+        console.error('Error al cargar ejecución de ruta:', error)
+    }
+}
+
+// Observar cambios en el ítem actual para cargar su ejecución
+watch(currentItem, (newItem) => {
+    if (newItem) {
+        fetchEjecucionRuta()
     }
 })
+
+async function loadData() {
+    const data = getSelectedRuta()
+    if (data) {
+        // Resetear estado anterior
+        rutaInfo.value = data
+        itemsList.value = []
+        currentIndex.value = 0
+        tiempoEjecucion.value = 0
+
+        try {
+            const response = await api.get(`/personRouteList/details/${data.ID_TIPO_RUTA}`)
+
+            // Intentar cargar borrador de LocalStorage
+            const savedDraft = localStorage.getItem(storageKey.value)
+            const draftData = savedDraft ? JSON.parse(savedDraft) : null
+
+            // Inicializar campos para cada item de la ruta, mezclando con el borrador si existe
+            itemsList.value = response.data.map(item => {
+                const savedItem = draftData?.itemsList?.find(i => i.ID_MAQUINA === item.ID_MAQUINA)
+                return {
+                    ...item,
+                    TAREAS: savedItem?.TAREAS || '',
+                    OBSERVACIONES: savedItem?.OBSERVACIONES || '',
+                    CUMPLE_CRITERIOS: savedItem?.CUMPLE_CRITERIOS || ''
+                }
+            })
+
+            if (draftData?.tiempoEjecucion) {
+                tiempoEjecucion.value = draftData.tiempoEjecucion
+            }
+
+            console.log('itemsList cargado', itemsList.value)
+        } catch (error) {
+            console.error('Error al cargar detalles de la ruta:', error)
+        }
+    }
+}
+
+onMounted(() => {
+    loadData()
+})
+
+onActivated(() => {
+    loadData()
+})
+
+async function guardarEjecucionRuta() {
+    if (!currentItem.value) return
+
+    try {
+        const data = {
+            ID_NUMERICO: rutaInfo.value.ID_NUMERICO,
+            ID_TIPO_RUTA: String(rutaInfo.value.ID_TIPO_RUTA || '').trim(),
+            ID_EQUIPO: String(currentItem.value.ID_EQUIPO || '').trim(),
+            CUMPLE_REVISION: currentItem.value.CUMPLE_CRITERIOS,
+            OBSERVACION: currentItem.value.OBSERVACIONES
+        }
+        await api.post('/personRouteList/ejecucion-ruta', data)
+        showAlert('success', 'Guardado', 'La ejecución de la ruta se ha guardado correctamente.')
+    } catch (error) {
+        console.error('Error al guardar ejecución de ruta:', error)
+        showAlert('error', 'Error', 'No se pudo guardar la ejecución de la ruta: ' + (error.response?.data?.error || error.message))
+    }
+}
+
+async function guardarRutaIndividual() {
+    await guardarEjecucionRuta()
+}
 </script>
 
 <style scoped>
@@ -205,6 +376,14 @@ td {
     gap: var(--space-sm);
 }
 
+.footer-actions {
+    display: flex;
+    justify-content: center;
+    padding: var(--space-lg) 0;
+    margin-top: var(--space-md);
+    border-top: 1px solid var(--color-surface);
+}
+
 
 
 .data-tiempo-ejecucion {
@@ -229,5 +408,36 @@ textarea {
 textarea:focus {
     outline: none;
     border-color: var(--color-primary);
+}
+
+.alert-container-centered {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+    width: 90%;
+    max-width: 500px;
+    pointer-events: none;
+}
+
+.alert-container-centered>* {
+    pointer-events: auto;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+    transition: all 0.3s ease;
+}
+
+.fade-slide-enter-from {
+    opacity: 0;
+    transform: translate(-50%, -60%);
+}
+
+.fade-slide-leave-to {
+    opacity: 0;
+    transform: translate(-50%, -40%);
 }
 </style>

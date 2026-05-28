@@ -249,19 +249,40 @@
 
 
             <section class="section-card">
-                <h2 class="section-card-title">Aprobación OTM</h2>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="section-card-title">Aprobación OTM</h2>
+                    <UiButton :label="isAddingSupervisor ? 'Cancelar' : 'Seleccionar Supervisor'"
+                        :color="isAddingSupervisor ? 'delete' : 'create'" :icon="isAddingSupervisor ? 'x' : 'plus'"
+                        iconPosition="end" @click="isAddingSupervisor = !isAddingSupervisor" />
+                </div>
 
                 <Transition name="fade-slide">
-                    <div class="mb-6">
+                    <div v-if="isAddingSupervisor" class="mb-6">
                         <UiSearchSelector :items="supervisorList" :searchFields="['nombrePersona']"
                             itemKey="codigoPersona" label="Buscar supervisor"
                             placeholder="Ej: Juan Perez" selectLabel="Seleccionar supervisor"
-                            confirmLabel="Añadir a la lista"
-                            :displayFormat="(s) => `${s.nombrePersona}`" />
+                            confirmLabel="Confirmar"
+                            :displayFormat="(s) => `${s.nombrePersona}`"
+                            @select="confirmarSeleccionSupervisor" />
                     </div>
                 </Transition>
 
-                <UiButton label="Aprobar" color="create" icon="check" iconPosition="end" @click="aprobarOTM()" />
+                <div class="supervisor-asignado mt-4">
+                    <div v-for="sup in addSupervisorList" :key="sup.codigoPersona" class="usuario-item supervisor-item">
+                        <div class="usuario-info">
+                            <span class="text-muted text-xs">Supervisor</span>
+                            <span class="usuario-name text-sm">{{ sup.nombrePersona }}</span>
+                        </div>
+                        <div class="buttons-container-cards">
+                            <UiButton color="delete" icon="trash" @click="eliminarSupervisor(sup.codigoPersona)" />
+                        </div>
+                    </div>
+                    <p v-if="addSupervisorList.length === 0" class="text-muted text-center py-4">
+                        No se ha seleccionado un supervisor para la aprobación.
+                    </p>
+                </div>
+
+                <UiButton v-if="addSupervisorList.length > 0" label="Aprobar" color="create" icon="check" iconPosition="end" @click="aprobarOTM()" />
             </section>
         </div>
 
@@ -279,7 +300,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, computed, watch } from 'vue'
+import { onMounted, ref, computed, watch, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { getSelectedOtm, clearSelectedOtm } from '../../utils/dataTransfer.js'
 import axios from '../../api/axios.js'
@@ -386,16 +407,22 @@ function handleConfirmCumplir() {
     router.push({ name: 'principal-programadas' })
 }
 
-onMounted(async () => {
+async function loadData() {
     const data = getSelectedOtm()
     const idStr = String(props.id)
 
     // Verificamos que los datos correspondan al ID de la URL
     if (data && (String(data.ID_OTM) === idStr || String(data.ID_MAQUINA) === idStr)) {
+        // Resetear estado anterior
         otmData.value = data
+        itemsList.value = []
+        addUsersList.value = []
+        addRepuestosList.value = []
+        addSupervisorList.value = []
+        currentIndex.value = 0
 
         try {
-            // Ejecutamos ambas peticiones en paralelo
+            // Ejecutamos todas las peticiones en paralelo
             const [otmRes, usersRes, tipoRepuestosRes, supervisoresRes, personasAsignadasRes, repuestosAsignadosRes] = await Promise.all([
                 axios.get('otmProgramada/get-datos-otm-programada', { params: { idOtmProgramada: idStr } }),
                 axios.get('users/not-suspended').catch(err => {
@@ -410,21 +437,19 @@ onMounted(async () => {
 
             itemsList.value = Array.isArray(otmRes.data) ? otmRes.data : [otmRes.data]
             usersList.value = Array.isArray(usersRes.data) ? usersRes.data : [usersRes.data]
-            currentIndex.value = 0
             tipoRepuestosList.value = Array.isArray(tipoRepuestosRes.data) ? tipoRepuestosRes.data : [tipoRepuestosRes.data]
             supervisorList.value = Array.isArray(supervisoresRes.data) ? supervisoresRes.data : [supervisoresRes.data]
+            
             if (Array.isArray(personasAsignadasRes.data)) {
                 addUsersList.value = personasAsignadasRes.data.map(u => ({
                     ...u,
                     horaInicio: formatForDateTimeInput(u.horaInicio),
                     horaFin: formatForDateTimeInput(u.horaFin),
-                    // Si el backend ya trae horaTotal, lo usamos, si no el watch lo calculará
                     horaTotal: u.horaTotal || '00:00:00'
                 }))
             }
             if (Array.isArray(repuestosAsignadosRes.data)) {
                 addRepuestosList.value = repuestosAsignadosRes.data
-                console.log('Repuestos asignados:', addRepuestosList.value)
             }
         } catch (error) {
             console.error('Error al cargar datos de la OTM:', error)
@@ -432,15 +457,14 @@ onMounted(async () => {
     } else {
         console.warn('Los datos en sesión no coinciden con el ID de la URL o no existen')
     }
+}
 
-    // eslint-disable-next-line no-console
-    console.log('Carga completada:', {
-        otm: otmData.value,
-        items: itemsList.value.length,
-        users: usersList.value,
-        personasAsignadas: addUsersList.value,
-        repuestosAsignados: addRepuestosList.value
-    })
+onMounted(() => {
+    loadData()
+})
+
+onActivated(() => {
+    loadData()
 })
 
 function agregarUsuario() {
@@ -515,6 +539,21 @@ function confirmarSeleccion(user) {
         }
         isAddingUser.value = false
     }
+}
+
+function confirmarSeleccionSupervisor(supervisor) {
+    if (supervisor) {
+        // En este caso, solo permitimos un supervisor por OTM
+        addSupervisorList.value = [{ ...supervisor }]
+        console.log('Supervisor seleccionado:', addSupervisorList.value)
+        isAddingSupervisor.value = false
+        showAlert('success', 'Supervisor seleccionado', `${supervisor.nombrePersona} ha sido asignado para la aprobación.`)
+    }
+}
+
+function eliminarSupervisor(codigoPersona) {
+    addSupervisorList.value = addSupervisorList.value.filter(s => s.codigoPersona !== codigoPersona)
+    showAlert('info', 'Supervisor removido', 'Se ha quitado el supervisor de la lista.')
 }
 
 function agregarRepuesto() {
@@ -740,6 +779,17 @@ textarea:focus {
     font-size: 1.4rem;
     font-weight: 600;
     color: var(--color-text);
+}
+
+
+.supervisor-item {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.supervisor-item .usuario-info {
+    gap: 4px;
 }
 
 .buttons-container {
