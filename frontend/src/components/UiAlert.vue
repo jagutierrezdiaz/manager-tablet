@@ -72,7 +72,8 @@ function hexToRgba(hex, alpha = 0.08) {
 
 const alertStyle = computed(() => ({
   '--alert-color': resolvedColor.value,
-  '--alert-bg': hexToRgba(resolvedColor.value, 0.12)
+  '--alert-bg': resolvedColor.value,
+  '--alert-text': '#ffffff'
 }));
 
 // Icono por defecto según tipo (nombres de lucide)
@@ -122,18 +123,51 @@ const CloseIcon = Icons['X'] || Icons['XCircle'] || null;
   align-items: center;
   gap: 16px;
   padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius);
+  border-radius: 12px;
   background: var(--alert-bg);
-  border: 1px solid rgba(0,0,0,0.02);
-  color: var(--color-text);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: var(--alert-text);
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+  animation: slide-in-top 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
+
+@keyframes slide-in-top {
+  0% {
+    transform: translateY(-20px) scale(0.95);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.ui-alert::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 100%;
+  background: rgba(255,255,255,0.3);
+}
+
 .ui-alert__icon {
   flex: 0 0 auto;
-  color: var(--alert-color);
+  color: var(--alert-text);
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+  animation: pulse-icon 2s infinite;
+}
+
+@keyframes pulse-icon {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
 }
 .ui-alert__body {
   flex: 1 1 auto;
@@ -142,10 +176,10 @@ const CloseIcon = Icons['X'] || Icons['XCircle'] || null;
   font-weight: 700;
   margin-bottom: 4px;
   font-size: var(--fs-base);
-  color: var(--alert-color);
+  color: var(--alert-text);
 }
 .ui-alert__message {
-  color: var(--color-text);
+  color: var(--alert-text);
   font-size: var(--fs-sm);
   line-height: 1.5;
   font-weight: 500;
@@ -153,7 +187,7 @@ const CloseIcon = Icons['X'] || Icons['XCircle'] || null;
 .ui-alert__close {
   background: transparent;
   border: none;
-  color: var(--alert-color);
+  color: var(--alert-text);
   cursor: pointer;
   padding: 8px;
   border-radius: 50%;
@@ -164,7 +198,7 @@ const CloseIcon = Icons['X'] || Icons['XCircle'] || null;
   transition: background-color 0.2s ease;
 }
 .ui-alert__close:hover {
-  background: rgba(0,0,0,0.05);
+  background: rgba(255,255,255,0.2);
 }
 
 @media (pointer: coarse) {

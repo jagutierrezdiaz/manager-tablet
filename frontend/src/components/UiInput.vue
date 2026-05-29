@@ -23,6 +23,8 @@
         :value="modelValue"
         :disabled="disabled"
         :readonly="readOnly"
+        :min="min"
+        :max="max"
         @input="onInput"
       />
 
@@ -55,7 +57,9 @@ const props = defineProps({
   readOnly: { type: Boolean, default: false },
   // color explícito para el icono (opcional)
   iconColor: { type: String, default: '' },
-  minWidth: { type: String, default: '300px' }
+  minWidth: { type: String, default: '300px' },
+  min: { type: String, default: null },
+  max: { type: String, default: null }
 });
 
 const emit = defineEmits(['update:modelValue']);

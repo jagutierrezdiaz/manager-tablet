@@ -1,10 +1,11 @@
 <script setup>
 import logo from '../assets/manager_logo.png'
 import logo_emp from '../assets/hazlo_software.png'
-import fondo from '../assets/fondo.jpg'
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { SESSION_USER_KEY } from '../utils/authSession.js'
+import { clearSelectedDbProfile, getSelectedDbProfile } from '../utils/dbProfile.js'
+import api from '../api/axios.js'
 import UiInput from '../components/UiInput.vue'
 import UiButton from '../components/UiButton.vue'
 import UiAlert from '../components/UiAlert.vue'
@@ -16,16 +17,16 @@ const alertVisible = ref(false)
 const alertMessage = ref('')
 const alertType = ref('error')
 
-// Al cargar la vista, obtener y mostrar todos los usuarios en consola
+const selectedDbProfile = computed(() => getSelectedDbProfile())
+
 onMounted(async () => {
+  if (!selectedDbProfile.value) {
+    router.replace({ name: 'select-database' })
+    return
+  }
+
   try {
-    const res = await fetch('/api/users')
-    if (!res.ok) {
-      console.error('Error al obtener usuarios:', res.statusText)
-      return
-    }
-    const users = await res.json()
-    // Mostrar en consola todos los usuarios
+    const { data: users } = await api.get('users')
     // eslint-disable-next-line no-console
     console.log('Usuarios:', users)
   } catch (err) {
@@ -33,6 +34,11 @@ onMounted(async () => {
     console.error('Error al conectarse al backend:', err)
   }
 })
+
+function changeDatabase() {
+  clearSelectedDbProfile()
+  router.replace({ name: 'select-database' })
+}
 
 async function onSubmit() {
   alertVisible.value = false
@@ -47,25 +53,18 @@ async function onSubmit() {
   }
 
   try {
-    const res = await fetch(`/api/users/${encodeURIComponent(id)}`)
-    if (res.status === 404) {
+    const { data: user } = await api.get(`users/${encodeURIComponent(id)}`)
+    sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(user))
+    router.push({ name: 'personal-info' })
+  } catch (err) {
+    if (err.response?.status === 404) {
       alertMessage.value = 'Usuario no encontrado'
       alertType.value = 'error'
       alertVisible.value = true
       return
     }
-    if (!res.ok) {
-      alertMessage.value = `Error del servidor: ${res.statusText}`
-      alertType.value = 'error'
-      alertVisible.value = true
-      return
-    }
-    const user = await res.json()
-    // Guardar en sessionStorage para que PersonalInfoView lo lea
-    sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(user))
-    router.push({ name: 'personal-info' })
-  } catch (err) {
-    alertMessage.value = 'Error de conexión con el servidor'
+
+    alertMessage.value = err.response?.data?.message || 'Error de conexión con el servidor'
     alertType.value = 'error'
     alertVisible.value = true
     // eslint-disable-next-line no-console
@@ -90,12 +89,23 @@ async function onSubmit() {
       
       <section class="section-info glass-card">
         <h1>Iniciar sesión</h1>
+        <p v-if="selectedDbProfile" class="db-badge">
+          Base de datos: <strong>{{ selectedDbProfile.label }}</strong>
+        </p>
         <form class="flex flex-col gap-6" @submit.prevent="onSubmit">
           <Transition name="fade-slide">
             <UiAlert v-if="alertVisible" :type="alertType" :message="alertMessage" @close="alertVisible = false" />
           </Transition>
           <UiInput v-model="codigoPersonal" type="text" label="ID Usuario" icon="User" placeholder="Ingresa tu ID" />
           <UiButton type="submit" label="Acceder" color="read" size="lg" icon="LogIn" iconPosition="end" />
+          <UiButton
+            type="button"
+            label="Cambiar base de datos"
+            color="info"
+            outlined
+            icon="Database"
+            @click="changeDatabase"
+          />
         </form>
       </section>
 
@@ -195,6 +205,13 @@ h1 {
   color: #1e293b;
   margin-bottom: var(--space-lg);
   text-align: center;
+}
+
+.db-badge {
+  text-align: center;
+  color: #64748b;
+  margin: calc(var(--space-lg) * -0.5) 0 var(--space-md);
+  font-size: 0.95rem;
 }
 
 .footer-logo {

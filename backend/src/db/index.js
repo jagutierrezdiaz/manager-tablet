@@ -1,32 +1,52 @@
 import Fb from 'node-firebird'
 import dotenv from 'dotenv'
+import { AsyncLocalStorage } from 'async_hooks'
 
 dotenv.config()
 
 const POOL_SIZE = parseInt(process.env.FB_POOL_SIZE || '5', 10)
+const asyncLocalStorage = new AsyncLocalStorage()
 
 const options = {
   host: process.env.FB_HOST || '127.0.0.1',
   port: parseInt(process.env.FB_PORT || '3050', 10),
-  database: process.env.FB_DATABASE || '',
   user: process.env.FB_USER || 'SYSDBA',
   password: process.env.FB_PASSWORD || 'masterkey',
   lowercase_keys: false,
+  blobAsText: true,
   role: null,
   pageSize: 4096
 }
 
-let pool
+const pools = new Map()
 
-function initPool() {
-  if (pool) return pool
-  pool = Fb.pool(POOL_SIZE, options)
+function getPool() {
+  const dbId = asyncLocalStorage.getStore() || 'db1'
+  
+  if (pools.has(dbId)) {
+    return pools.get(dbId)
+  }
+
+  // Buscar la base de datos correspondiente en el .env
+  // db1 -> FB_DATABASE_1 o FB_DATABASE
+  // db2 -> FB_DATABASE_2
+  const envSuffix = dbId.replace('db', '')
+  const dbPath = process.env[`FB_DATABASE_${envSuffix}`] || process.env.FB_DATABASE
+
+  if (!dbPath) {
+    throw new Error(`No se encontró configuración de base de datos para: ${dbId}`)
+  }
+
+  console.log(`Iniciando pool para ${dbId} con base de datos: ${dbPath}`)
+  const poolOptions = { ...options, database: dbPath }
+  const pool = Fb.pool(POOL_SIZE, poolOptions)
+  pools.set(dbId, pool)
   return pool
 }
 
 function getConnection() {
   return new Promise((resolve, reject) => {
-    const p = initPool()
+    const p = getPool()
     p.get((err, db) => {
       if (err) return reject(err)
       resolve(db)
@@ -54,4 +74,4 @@ function query(sql, params = []) {
   })
 }
 
-export default { query, getConnection, initPool }
+export default { query, getConnection, asyncLocalStorage }

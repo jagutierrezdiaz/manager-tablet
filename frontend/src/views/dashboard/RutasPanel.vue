@@ -32,7 +32,7 @@
       idTask: item.ID_NUMERICO,
       nameTask: item.NOMBRE_TIPO_RUTA,
       dateProgrammed: item.FECHA_PROGRAMADA
-    }" />
+    }" @select="(color) => handleClick(item, color)" />
 
     <p v-if="!filteredData.length && data.length" class="empty-hint">
       Ninguna ruta coincide con los filtros seleccionados.
@@ -44,9 +44,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated } from 'vue'
+import { useRouter } from 'vue-router'
 import axios from '../../api/axios.js'
 import { getSessionUser } from '../../utils/authSession.js'
+import { setSelectedRuta } from '../../utils/dataTransfer.js'
+
+const router = useRouter()
 
 /** Alineado con UiCard: rojo=vencida, amarillo=hoy, verde=próxima */
 const DATE_CATEGORY = {
@@ -105,7 +109,7 @@ const filteredData = computed(() =>
   data.value.filter((item) => filters[routeDateCategory(item.FECHA_PROGRAMADA)])
 )
 
-onMounted(async () => {
+async function loadRutas() {
   const user = getSessionUser()
   const codigoPersona = user?.codigoPersona
   if (codigoPersona == null || codigoPersona.trim() === '') {
@@ -123,7 +127,29 @@ onMounted(async () => {
     console.error('personRouteList', e)
     data.value = []
   }
+}
+
+onMounted(() => {
+  loadRutas()
 })
+
+// Al volver a esta vista (p. ej. tras cumplir una ruta con keep-alive)
+// se recarga la lista para reflejar los cambios de estado.
+onActivated(() => {
+  loadRutas()
+})
+
+function handleClick(item, color) {
+  setSelectedRuta({ ...item, COLOR_CARD: color })
+
+  setTimeout(() => {
+    router.push({
+      name: 'rutas-register',
+      params: { id: item.ID_NUMERICO }
+    })
+  }, 0)
+}
+
 </script>
 
 <style scoped>

@@ -1,15 +1,22 @@
 <template>
     <div class="ui-title-view">
         <div class="text-title" :class="[colorCard]">
-            {{ titleOTM?.charAt(0).toUpperCase() || '' }}
+            <h2>{{ String(titleOTM || '').charAt(0).toUpperCase() }}</h2>
+            
         </div>
         <div class="content">
             <h3>{{ titleActivity || 'Sin título' }}</h3>
+            <div>
+                <p>Nro {{ text }}</p>
+                <p>Fecha: {{ formatDate(fechaProgramada) }}</p>
+            </div>
+                
         </div>
     </div>
 </template>
 
 <script setup>
+import { formatDate } from '../utils/formatDate.js'
 const props = defineProps({
     titleOTM: {
         type: String,
@@ -22,6 +29,14 @@ const props = defineProps({
     colorCard: {
         type: String,
         required: true
+    },
+    text: {
+        type: String,
+        required: false
+    },
+    fechaProgramada: {
+        type: String,
+        required: false
     }
 })
 </script>

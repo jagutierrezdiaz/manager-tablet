@@ -17,6 +17,18 @@
             </div>
         </div>
 
+        <!-- Alertas Flotantes -->
+        <Transition name="fade-slide">
+            <div v-if="alertConfig.show" class="alert-container-centered">
+                <UiAlert 
+                    :type="alertConfig.type" 
+                    :title="alertConfig.title" 
+                    :message="alertConfig.message"
+                    @close="alertConfig.show = false" 
+                />
+            </div>
+        </Transition>
+
         <div v-if="otmData && currentDatosOtm" class="data-container">
 
             <section class="section-card data-otm">
@@ -67,34 +79,11 @@
                 </table>
             </section>
 
-            <section class="section-card data-tiempo-ejecucion">
-                <h2 style="margin:0; border:none; padding:0;">Tiempo de ejecución</h2>
-                <div class="flex items-center gap-3">
-                    <UiInput type="number" v-model="tiempoEjecucion" min="0" max="24" size="sm" minWidth="120px" />
-                    <span class="font-bold">Horas</span>
-                </div>
-            </section>
-
-            <section class="data-observaciones">
-                <h2 class="section-card-title">Observaciones</h2>
-                <div class="section-card obs-box">
-                    <h2>Observaciones al crear</h2>
-                    <textarea v-model="currentDatosOtm.OBSERVACION_OTM" readonly />
-                </div>
-
-                <div class="section-card obs-box">
-                    <h2>Observaciones al ejecutar</h2>
-                    <textarea placeholder="Escribe aquí tus observaciones..." />
-                </div>
-
-                <UiButton label="Guardar observaciones" color="create" icon="save" iconPosition="end"
-                    @click="guardarObservaciones()" />
-            </section>
 
             <section class="section-card data-usuarios">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="section-card-title">Usuarios asignados</h2>
-                    <UiButton :label="isAddingUser ? 'Cancelar' : 'Agregar usuario'"
+                    <h2 class="section-card-title">Personal asignado</h2>
+                    <UiButton :label="isAddingUser ? 'Cancelar' : 'Agregar Personal'"
                         :color="isAddingUser ? 'delete' : 'create'" :icon="isAddingUser ? 'x' : 'plus'"
                         iconPosition="end" @click="agregarUsuario()" />
                 </div>
@@ -119,22 +108,24 @@
                                 }}</span>
                             </div>
 
-                            <div class="flex align-center gap-3">
+                            <div class="flex flex-col align-center gap-3">
                                 <div>
                                     <label>Hora de inicio</label>
-                                    <UiInput type="number" v-model="user.horaInicio" size="sm" minWidth="120px"
-                                        placeholder="Hora de inicio" />
+                                    <UiInput type="datetime-local" v-model="user.horaInicio" size="sm" minWidth="120px"
+                                        placeholder="Hora de inicio"
+                                        :min="formatForDateTimeInput(otmData.FECHA_PROGRAMADA)" />
 
                                 </div>
                                 <div>
                                     <label>Hora de fin</label>
-                                    <UiInput type="number" v-model="user.horaFin" size="sm" minWidth="120px"
-                                        placeholder="Hora de fin" />
+                                    <UiInput type="datetime-local" v-model="user.horaFin" size="sm" minWidth="120px"
+                                        placeholder="Hora de fin"
+                                        :min="user.horaInicio || formatForDateTimeInput(otmData.FECHA_PROGRAMADA)" />
                                 </div>
                                 <div>
                                     <label>Tiempo total</label>
-                                    <UiInput type="number" v-model="user.horaTotal" size="sm" minWidth="120px"
-                                        placeholder="Tiempo total" />
+                                    <UiInput type="text" v-model="user.horaTotal" size="sm" minWidth="120px"
+                                        placeholder="00:00" readonly />
                                 </div>
                             </div>
                         </div>
@@ -145,7 +136,7 @@
                         </div>
                     </div>
                     <p v-if="addUsersList.length === 0" class="text-muted text-center py-4">
-                        No hay usuarios adicionales asignados.
+                        No hay personal adicional asignado.
                     </p>
                 </div>
             </section>
@@ -202,18 +193,16 @@
                             <div class="flex justify-between items-center p-3 bg-surface rounded-lg border mb-2">
                                 <div>
                                     <p class="font-bold">{{ rep.NOMBRE_REPUESTO }}</p>
-                                    <p class="text-xs text-muted">Tipo: {{ rep.nombreTipoRepuesto }}</p>
-                                    <p class="text-xs text-muted">Stock: {{ rep.INV_ACTUAL }} </p>
                                     <p class="text-xs text-muted">Unidad de medida: {{ rep.UNIDAD_MEDIDA }}</p>
                                 </div>
                                 <div class="flex items-center gap-4">
                                     <div class="flex items-center gap-2">
                                         <label class="text-xs font-bold">Cant:</label>
-                                        <input type="number" v-model="rep.cantidad" class="w-16 p-1 border rounded text-center" min="1" />
+                                        <input type="number" v-model="rep.UND_REAL" class="w-16 p-1 border rounded text-center" min="1" />
                                     </div>
                                     <div class="flex items-center gap-2">
                                         <UiButton color="create" icon="save" size="sm" @click="guardarRepuesto(rep)" />
-                                        <UiButton color="delete" icon="trash" size="sm" @click="addRepuestosList = addRepuestosList.filter(r => r.ID_REPUESTO !== rep.ID_REPUESTO)" />
+                                        <UiButton color="delete" icon="trash" size="sm" @click="eliminarRepuesto(rep.ID_REPUESTO)" />
                                     </div>
                                 </div>
                             </div>
@@ -234,34 +223,94 @@
             </section>
 
 
+            <section class="data-observaciones">
+                <h2 class="section-card-title">Observaciones</h2>
+                <div class="section-card obs-box">
+                    <h2>Observaciones al crear</h2>
+                    <textarea v-model="currentDatosOtm.OBSERVACION_OTM" readonly />
+                </div>
+
+                <div class="section-card obs-box">
+                    <h2>Observaciones al ejecutar</h2>
+                    <textarea placeholder="Escribe aquí tus observaciones..." />
+                </div>
+
+                <UiButton label="Guardar observaciones" color="create" icon="save" iconPosition="end"
+                    @click="guardarObservaciones()" />
+            </section>
+
+            <section class="section-card data-tiempo-ejecucion">
+                <h2 style="margin:0; border:none; padding:0;">Tiempo de ejecución</h2>
+                <div class="flex items-center gap-3">
+                    <UiInput type="number" v-model="tiempoEjecucion" min="0" max="24" size="sm" minWidth="120px" />
+                    <span class="font-bold">Horas</span>
+                </div>
+            </section>
+
+
             <section class="section-card">
-                <h2 class="section-card-title">Aprobación OTM</h2>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="section-card-title">Aprobación OTM</h2>
+                    <UiButton :label="isAddingSupervisor ? 'Cancelar' : 'Seleccionar Supervisor'"
+                        :color="isAddingSupervisor ? 'delete' : 'create'" :icon="isAddingSupervisor ? 'x' : 'plus'"
+                        iconPosition="end" @click="isAddingSupervisor = !isAddingSupervisor" />
+                </div>
 
                 <Transition name="fade-slide">
-                    <div class="mb-6">
+                    <div v-if="isAddingSupervisor" class="mb-6">
                         <UiSearchSelector :items="supervisorList" :searchFields="['nombrePersona']"
                             itemKey="codigoPersona" label="Buscar supervisor"
                             placeholder="Ej: Juan Perez" selectLabel="Seleccionar supervisor"
-                            confirmLabel="Añadir a la lista"
-                            :displayFormat="(s) => `${s.nombrePersona}`" />
+                            confirmLabel="Confirmar"
+                            :displayFormat="(s) => `${s.nombrePersona}`"
+                            @select="confirmarSeleccionSupervisor" />
                     </div>
                 </Transition>
 
-                <UiButton label="Aprobar" color="create" icon="check" iconPosition="end" @click="aprobarOTM()" />
+                <div class="supervisor-asignado mt-4">
+                    <div v-for="sup in addSupervisorList" :key="sup.codigoPersona" class="usuario-item supervisor-item">
+                        <div class="usuario-info">
+                            <span class="text-muted text-xs">Supervisor</span>
+                            <span class="usuario-name text-sm">{{ sup.nombrePersona }}</span>
+                        </div>
+                        <div class="buttons-container-cards">
+                            <UiButton color="delete" icon="trash" @click="eliminarSupervisor(sup.codigoPersona)" />
+                        </div>
+                    </div>
+                    <p v-if="addSupervisorList.length === 0" class="text-muted text-center py-4">
+                        No se ha seleccionado un supervisor para la aprobación.
+                    </p>
+                </div>
+
+                <UiButton v-if="addSupervisorList.length > 0" label="Aprobar" color="create" icon="check" iconPosition="end" @click="aprobarOTM()" />
             </section>
         </div>
+
+        <!-- Modal de Confirmación -->
+        <UiModal 
+            v-if="otmData && currentDatosOtm"
+            v-model="showConfirmModal"
+            title="Finalizar Orden de Trabajo"
+            :message="`¿Estás seguro de que deseas marcar la OTM #${otmData.ID_OTM} (${currentDatosOtm.NOMBRE_ACTIVIDAD}) como cumplida? Esta acción no se puede deshacer.`"
+            confirmLabel="Sí, finalizar"
+            confirmIcon="Check"
+            @confirm="handleConfirmCumplir"
+        />
     </div>
 </template>
 
 <script setup>
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch, onActivated } from 'vue'
+import { useRouter } from 'vue-router'
 import { getSelectedOtm, clearSelectedOtm } from '../../utils/dataTransfer.js'
 import axios from '../../api/axios.js'
 import UiButton from '../../components/UiButton.vue'
 import UiInput from '../../components/UiInput.vue'
 import UiSearchSelector from '../../components/UiSearchSelector.vue'
 import UiImageUpload from '../../components/UiImageUpload.vue'
-import { formatDate } from '../../utils/formatDate.js'
+import UiModal from '../../components/UiModal.vue'
+import UiAlert from '../../components/UiAlert.vue'
+import { formatDate, formatForDateTimeInput } from '../../utils/formatDate.js'
 
 const props = defineProps({
     id: {
@@ -270,6 +319,7 @@ const props = defineProps({
     }
 })
 
+const router = useRouter()
 const otmData = ref(null)
 const itemsList = ref([])
 const usersList = ref([])
@@ -287,6 +337,48 @@ const selectedTipoRepuesto = ref(null)
 const addRepuestosList = ref([])
 const foto1 = ref(null)
 const foto2 = ref(null)
+const showConfirmModal = ref(false)
+
+// Estado para alertas
+const alertConfig = ref({
+    show: false,
+    type: 'info',
+    title: '',
+    message: ''
+})
+
+function showAlert(type, title, message) {
+    alertConfig.value = { show: true, type, title, message }
+    // Todas las alertas se cierran automáticamente después de 5 segundos
+    setTimeout(() => {
+        alertConfig.value.show = false
+    }, 5000)
+}
+
+// Calcular tiempo total automáticamente para cada usuario
+watch(() => addUsersList.value, (newList) => {
+    newList.forEach(user => {
+        if (user.horaInicio && user.horaFin) {
+            const start = new Date(user.horaInicio)
+            const end = new Date(user.horaFin)
+            
+            const diffMs = end - start
+            if (diffMs > 0) {
+                const totalSeconds = Math.floor(diffMs / 1000)
+                const hours = Math.floor(totalSeconds / 3600)
+                const minutes = Math.floor((totalSeconds % 3600) / 60)
+                
+                user.horaTotal = [hours, minutes]
+                    .map(v => v.toString().padStart(2, '0'))
+                    .join(':')
+            } else {
+                user.horaTotal = '00:00'
+            }
+        } else {
+            user.horaTotal = '00:00'
+        }
+    })
+}, { deep: true })
 
 const currentDatosOtm = computed(() => {
     return itemsList.value.length > 0 ? itemsList.value[currentIndex.value] : null
@@ -305,20 +397,33 @@ function anterior() {
 }
 
 function cumplir() {
-    console.log('Cumplir')
+    showConfirmModal.value = true
 }
 
-onMounted(async () => {
+function handleConfirmCumplir() {
+    console.log('OTM Cumplida confirmada')
+    // Aquí iría la lógica de guardado final
+    clearSelectedOtm()
+    router.push({ name: 'principal-programadas' })
+}
+
+async function loadData() {
     const data = getSelectedOtm()
     const idStr = String(props.id)
 
     // Verificamos que los datos correspondan al ID de la URL
     if (data && (String(data.ID_OTM) === idStr || String(data.ID_MAQUINA) === idStr)) {
+        // Resetear estado anterior
         otmData.value = data
+        itemsList.value = []
+        addUsersList.value = []
+        addRepuestosList.value = []
+        addSupervisorList.value = []
+        currentIndex.value = 0
 
         try {
-            // Ejecutamos ambas peticiones en paralelo
-            const [otmRes, usersRes, tipoRepuestosRes, supervisoresRes] = await Promise.all([
+            // Ejecutamos todas las peticiones en paralelo
+            const [otmRes, usersRes, tipoRepuestosRes, supervisoresRes, personasAsignadasRes, repuestosAsignadosRes] = await Promise.all([
                 axios.get('otmProgramada/get-datos-otm-programada', { params: { idOtmProgramada: idStr } }),
                 axios.get('users/not-suspended').catch(err => {
                     console.error('Error al cargar datos de los usuarios:', err)
@@ -326,31 +431,103 @@ onMounted(async () => {
                 }),
                 axios.get('otmProgramada/get-tipo-repuestos'),
                 axios.get('users/get-supervisores'),
+                axios.get('users/personas-asignadas', { params: { idOtm: idStr } }),
+                axios.get('otmProgramada/get-repuestos-asignados-otm', { params: { idOtm: idStr } }),
             ])
 
             itemsList.value = Array.isArray(otmRes.data) ? otmRes.data : [otmRes.data]
             usersList.value = Array.isArray(usersRes.data) ? usersRes.data : [usersRes.data]
-            currentIndex.value = 0
             tipoRepuestosList.value = Array.isArray(tipoRepuestosRes.data) ? tipoRepuestosRes.data : [tipoRepuestosRes.data]
             supervisorList.value = Array.isArray(supervisoresRes.data) ? supervisoresRes.data : [supervisoresRes.data]
-
+            
+            if (Array.isArray(personasAsignadasRes.data)) {
+                addUsersList.value = personasAsignadasRes.data.map(u => ({
+                    ...u,
+                    horaInicio: formatForDateTimeInput(u.horaInicio),
+                    horaFin: formatForDateTimeInput(u.horaFin),
+                    horaTotal: u.horaTotal || '00:00:00'
+                }))
+            }
+            if (Array.isArray(repuestosAsignadosRes.data)) {
+                addRepuestosList.value = repuestosAsignadosRes.data
+            }
         } catch (error) {
             console.error('Error al cargar datos de la OTM:', error)
         }
     } else {
         console.warn('Los datos en sesión no coinciden con el ID de la URL o no existen')
     }
+}
 
-    // eslint-disable-next-line no-console
-    console.log('Carga completada:', {
-        otm: otmData.value,
-        items: itemsList.value.length,
-        users: usersList.value
-    })
+onMounted(() => {
+    loadData()
+})
+
+onActivated(() => {
+    loadData()
 })
 
 function agregarUsuario() {
     isAddingUser.value = !isAddingUser.value
+}
+
+
+async function eliminarUsuario(codigoPersona) {
+    try {
+        await axios.delete('otmProgramada/delete-persona-asignada-otm', {
+            params: {
+                idOtm: otmData.value.ID_OTM,
+                codigoPersona: codigoPersona
+            }
+        })
+        addUsersList.value = addUsersList.value.filter(u => u.codigoPersona !== codigoPersona)
+        showAlert('success', 'Eliminado', 'El personal ha sido eliminado correctamente')
+    } catch (error) {
+        console.error('Error al eliminar personal:', error)
+        showAlert('error', 'Error', 'No se pudo eliminar el personal: ' + (error.response?.data?.error || error.message))
+    }
+}
+
+async function guardarUsuario(codigoPersona) {
+    const user = addUsersList.value.find(u => u.codigoPersona === codigoPersona)
+    if (!user) return
+
+    if (!user.horaInicio || !user.horaFin) {
+        showAlert('warning', 'Datos incompletos', 'Debe ingresar hora de inicio y fin')
+        return
+    }
+
+    const inicio = new Date(user.horaInicio)
+    const fin = new Date(user.horaFin)
+    const fechaProgramada = new Date(otmData.value.FECHA_PROGRAMADA)
+
+    // Validaciones
+    if (inicio >= fin) {
+        showAlert('error', 'Fechas incorrectas', 'La fecha de inicio debe ser menor a la fecha de fin y no pueden ser iguales')
+        return
+    }
+
+    if (inicio < fechaProgramada) {
+        showAlert('error', 'Fecha inválida', `La fecha de inicio no puede ser menor a la fecha programada (${formatDate(otmData.value.FECHA_PROGRAMADA)})`)
+        return
+    }
+
+    try {
+        const payload = {
+            codigoPersona: user.codigoPersona,
+            horaInicio: user.horaInicio,
+            horaFin: user.horaFin,
+            horaTotal: user.horaTotal,
+            ano: inicio.getFullYear(),
+            mes: inicio.getMonth() + 1
+        }
+
+        await axios.post(`otmProgramada/save-persona-asignada-otm/${otmData.value.ID_OTM}`, payload)
+        showAlert('success', 'Guardado en Base de Datos', 'El personal ha sido registrado correctamente en la base de datos.')
+    } catch (error) {
+        console.error('Error al guardar personal:', error)
+        showAlert('error', 'Error de guardado', 'No se pudo guardar el personal: ' + (error.response?.data?.error || error.message))
+    }
 }
 
 function confirmarSeleccion(user) {
@@ -364,10 +541,69 @@ function confirmarSeleccion(user) {
     }
 }
 
+function confirmarSeleccionSupervisor(supervisor) {
+    if (supervisor) {
+        // En este caso, solo permitimos un supervisor por OTM
+        addSupervisorList.value = [{ ...supervisor }]
+        console.log('Supervisor seleccionado:', addSupervisorList.value)
+        isAddingSupervisor.value = false
+        showAlert('success', 'Supervisor seleccionado', `${supervisor.nombrePersona} ha sido asignado para la aprobación.`)
+    }
+}
+
+function eliminarSupervisor(codigoPersona) {
+    addSupervisorList.value = addSupervisorList.value.filter(s => s.codigoPersona !== codigoPersona)
+    showAlert('info', 'Supervisor removido', 'Se ha quitado el supervisor de la lista.')
+}
+
 function agregarRepuesto() {
     isAddingRepuesto.value = !isAddingRepuesto.value
     selectedTipoRepuesto.value = null
     repuestosList.value = []
+}
+
+
+async function guardarRepuesto(repuesto) {
+    if (!repuesto.UND_REAL || repuesto.UND_REAL <= 0) {
+        showAlert('warning', 'Cantidad inválida', 'La cantidad ingresada debe ser mayor a 0')
+        return
+    }
+
+    try {
+        const now = new Date()
+        const payload = {
+            ID_REPUESTO: repuesto.ID_REPUESTO,
+            UND_REAL: repuesto.UND_REAL,
+            ano: now.getFullYear(),
+            mes: now.getMonth() + 1
+        }
+
+        await axios.post('otmProgramada/save-repuestos-asignados-otm', payload, {
+            params: { idOtm: otmData.value.ID_OTM }
+        })
+        
+        showAlert('success', 'Repuesto guardado', `El repuesto ${repuesto.NOMBRE_REPUESTO} ha sido guardado correctamente`)
+    } catch (error) {
+        console.error('Error al guardar repuesto:', error)
+        showAlert('error', 'Error de guardado', 'No se pudo guardar el repuesto: ' + (error.response?.data?.error || error.message))
+    }
+}
+
+
+async function eliminarRepuesto(idRepuesto) {
+    try {
+        await axios.delete('otmProgramada/delete-repuestos-asignados-otm', {
+            params: {
+                idOtm: otmData.value.ID_OTM,
+                idRepuesto: idRepuesto
+            }
+        })
+        addRepuestosList.value = addRepuestosList.value.filter(r => r.ID_REPUESTO !== idRepuesto)
+        showAlert('success', 'Eliminado', 'El repuesto ha sido eliminado correctamente')
+    } catch (error) {
+        console.error('Error al eliminar repuesto:', error)
+        showAlert('error', 'Error', 'No se pudo eliminar el repuesto: ' + (error.response?.data?.error || error.message))
+    }
 }
 
 async function confirmarSeleccionTipoRepuesto(tipo) {
@@ -399,21 +635,6 @@ function confirmarSeleccionRepuesto(repuesto) {
         selectedTipoRepuesto.value = null
         repuestosList.value = []
     }
-}
-function eliminarUsuario(codigoPersona) {
-    addUsersList.value = addUsersList.value.filter(u => u.codigoPersona !== codigoPersona)
-}
-
-function guardarUsuario(codigoPersona) {
-    const user = addUsersList.value.find(u => u.codigoPersona === codigoPersona)
-    if (user) {
-        // eslint-disable-next-line no-console
-        console.log('Guardar usuario:', user)
-    }
-}
-
-function guardarRepuesto(repuesto) {
-    console.log('Guardar repuesto:', repuesto)
 }
 
 function aprobarOTM() {
@@ -539,8 +760,7 @@ textarea:focus {
 
 .usuario-item {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
+    flex-direction: column;
     padding: var(--space-sm) var(--space-md);
     background: var(--color-surface);
     border-radius: 8px;
@@ -561,6 +781,17 @@ textarea:focus {
     color: var(--color-text);
 }
 
+
+.supervisor-item {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.supervisor-item .usuario-info {
+    gap: 4px;
+}
+
 .buttons-container {
     display: flex;
     justify-content: space-between;
@@ -574,6 +805,22 @@ textarea:focus {
 .pagination-info {
     font-weight: 700;
     color: var(--color-muted);
+}
+
+.alert-container-centered {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+    width: 90%;
+    max-width: 500px;
+    pointer-events: none;
+}
+
+.alert-container-centered > * {
+    pointer-events: auto;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
 }
 
 @media (max-width: 768px) {
