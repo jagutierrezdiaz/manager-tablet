@@ -11,7 +11,11 @@
         </div>
 
         <div v-if="rutaInfo" class="data-container">
-            <UiTitleView :titleOTM="rutaInfo.ID_TIPO_RUTA" :titleActivity="rutaInfo.NOMBRE_TIPO_RUTA" :idOTM="rutaInfo.ID_NUMERICO"
+            <UiTitleView 
+            :titleOTM="rutaInfo.ID_TIPO_RUTA" 
+            :titleActivity="rutaInfo.NOMBRE_TIPO_RUTA" 
+            :text="`Ruta: ${String(rutaInfo.ID_NUMERICO || '').trim()}`"
+            :fechaProgramada="rutaInfo.FECHA_PROGRAMADA"
                 :colorCard="rutaInfo.COLOR_CARD || 'bg-primary'" />
         </div>
 
@@ -58,7 +62,7 @@
         <section class="section-card data-observaciones" v-if="currentItem">
             <h2 class="section-card-title">Observaciones</h2>
 
-            <textarea v-model="currentItem.OBSERVACIONES" placeholder="Escribe aquí tus observaciones..." />
+            <textarea v-model="currentItem.OBSERVACION" placeholder="Escribe aquí tus observaciones..." />
         </section>
 
 
@@ -67,9 +71,9 @@
             <div class="flex flex-col gap-4">
                 <h3>¿Cumple con los criterios de aceptación?</h3>
                 <div class="flex gap-6">
-                    <UiRadio label="Si cumple" v-model="currentItem.CUMPLE_CRITERIOS" value="si" color="create"
+                    <UiRadio label="Si cumple" v-model="currentItem.CUMPLE_REVISION" value="SI" color="create"
                         name="criterios" />
-                    <UiRadio label="No cumple" v-model="currentItem.CUMPLE_CRITERIOS" value="no" color="delete"
+                    <UiRadio label="No cumple" v-model="currentItem.CUMPLE_REVISION" value="NO" color="delete"
                         name="criterios" />
                     <UiButton color="create" icon="Save" label="Guardar" @click="guardarRutaIndividual" />
                 </div>
@@ -88,8 +92,8 @@
         </section>
 
         <div class="footer-actions" v-if="itemsList.length > 0">
-            <UiButton v-if="currentIndex === itemsList.length - 1" label="Cumplir" color="create" icon="Check"
-                @click="guardarEjecucionRuta" />
+            <UiButton label="Cumplir" color="create" icon="Check" :disabled="!isUltimoRegistro"
+                @click="cumplirRuta" />
         </div>
 
         <!-- Modal de Confirmación -->
@@ -124,7 +128,6 @@ const router = useRouter()
 const rutaInfo = ref(null)
 const itemsList = ref([])
 const currentIndex = ref(0)
-const ejecucionData = ref([])
 
 // Estado para alertas
 const alertConfig = ref({
@@ -143,6 +146,10 @@ function showAlert(type, title, message) {
 
 const currentItem = computed(() => {
     return itemsList.value.length > 0 ? itemsList.value[currentIndex.value] : null
+})
+
+const isUltimoRegistro = computed(() => {
+    return itemsList.value.length > 0 && currentIndex.value === itemsList.value.length - 1
 })
 
 const tiempoEjecucion = ref(0)
@@ -170,60 +177,125 @@ watch([itemsList, tiempoEjecucion], () => {
     saveDraft()
 }, { deep: true })
 
-function cumplirRuta() {
-    showConfirmModal.value = true
-}
+async function cumplirRuta() {
+    if (!rutaInfo.value) return
 
-function handleConfirmCumplir() {
-    console.log('Ruta Cumplida confirmada')
-    // Lógica de cumplimiento aquí
-
-    // Limpiar borrador al finalizar
-    if (storageKey.value) {
-        localStorage.removeItem(storageKey.value)
+    if (Number(tiempoEjecucion.value) <= 0) {
+        showAlert('warning', 'Tiempo requerido', 'El tiempo real de ejecución debe ser mayor a 0. Corrígelo antes de cumplir la ruta.')
+        return
     }
 
-    clearSelectedRuta()
-    router.push({ name: 'principal-rutas' })
+    try {
+        // Validar contra la BD que todos los registros tengan OBSERVACION y CUMPLE_REVISION
+        const response = await api.get('/personRouteList/all-routes-details', {
+            params: {
+                idNumerico: rutaInfo.value.ID_NUMERICO,
+                idTipoRuta: String(rutaInfo.value.ID_TIPO_RUTA || '').trim()
+            }
+        })
+        const detalles = Array.isArray(response.data) ? response.data : []
+        const hayIncompletos = detalles.some(item =>
+            String(item.OBSERVACION || '').trim() === '' ||
+            String(item.CUMPLE_REVISION || '').trim() === ''
+        )
+
+        console.log('detalles', detalles)
+
+        if (detalles.length === 0 || hayIncompletos) {
+            showAlert('warning', 'Registros incompletos', 'Es necesario que todos los registros tengan observación y resultado de revisión (cumple / no cumple) antes de cumplir la ruta.')
+            return
+        }
+
+        showConfirmModal.value = true
+    } catch (error) {
+        console.error('Error al validar los registros de la ruta:', error)
+        showAlert('error', 'Error', 'No se pudieron validar los registros de la ruta: ' + (error.response?.data?.error || error.message))
+    }
 }
 
-function siguiente() {
+async function handleConfirmCumplir() {
+    if (!rutaInfo.value) return
+
+    try {
+        const now = new Date()
+        const fechaCumplida = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+
+        const data = {
+            ID_NUMERICO: rutaInfo.value.ID_NUMERICO,
+            FECHA_CUMPLIDA: fechaCumplida,
+            TIEMPO_REAL: tiempoEjecucion.value
+        }
+        console.log('cumplir-ruta data', data)
+        await api.post('/personRouteList/cumplir-ruta', data)
+
+        // Limpiar borrador al finalizar
+        if (storageKey.value) {
+            localStorage.removeItem(storageKey.value)
+        }
+
+        clearSelectedRuta()
+        router.push({ name: 'principal-rutas' })
+    } catch (error) {
+        console.error('Error al cumplir la ruta:', error)
+        showAlert('error', 'Error', 'No se pudo cumplir la ruta: ' + (error.response?.data?.error || error.message))
+    }
+}
+
+async function siguiente() {
+    console.log('[siguiente] index actual:', currentIndex.value, 'total:', itemsList.value.length)
     if (currentIndex.value < itemsList.value.length - 1) {
         currentIndex.value++
+        console.log('[siguiente] nuevo index:', currentIndex.value)
+        await fetchEjecucionRuta()
     }
 }
 
-function anterior() {
+async function anterior() {
+    console.log('[anterior] index actual:', currentIndex.value, 'total:', itemsList.value.length)
     if (currentIndex.value > 0) {
         currentIndex.value--
+        console.log('[anterior] nuevo index:', currentIndex.value)
+        await fetchEjecucionRuta()
     }
 }
 
 
 async function fetchEjecucionRuta() {
-    if (!rutaInfo.value || !currentItem.value) return
+    if (!rutaInfo.value || !currentItem.value) {
+        console.warn('[fetchEjecucionRuta] cancelado: rutaInfo o currentItem es null', {
+            rutaInfo: rutaInfo.value,
+            currentItem: currentItem.value
+        })
+        return
+    }
+
+    const params = {
+        idNumero: rutaInfo.value.ID_NUMERICO,
+        idTipoRuta: String(rutaInfo.value.ID_TIPO_RUTA || '').trim(),
+        idEquipo: String(currentItem.value.ID_EQUIPO || '').trim()
+    }
 
     try {
-        const response = await api.get('/personRouteList/ejecucion-ruta', {
-            params: {
-                idNumero: rutaInfo.value.ID_NUMERICO,
-                idTipoRuta: String(rutaInfo.value.ID_TIPO_RUTA || '').trim(),
-                idEquipo: String(currentItem.value.ID_EQUIPO || '').trim()
+        const response = await api.get('/personRouteList/ejecucion-ruta', { params })
+        const data = response.data
+        console.log("data fetchEjecucionRuta", data)
+        if (Array.isArray(data) && data.length > 0) {
+            const ejecucion = data[0]
+            if (currentItem.value) {
+                currentItem.value.CUMPLE_REVISION = String(ejecucion.CUMPLE_REVISION || '').trim().toUpperCase()
+                currentItem.value.OBSERVACION = ejecucion.OBSERVACION || ''
             }
-        })
-        ejecucionData.value = response.data
-        console.log('ejecucionData', ejecucionData.value)
+        } else {
+            // Si no hay datos en la base de datos, limpiamos los campos para este ítem
+            if (currentItem.value) {
+                currentItem.value.CUMPLE_REVISION = ''
+                currentItem.value.OBSERVACION = ''
+            }
+        }
     } catch (error) {
-        console.error('Error al cargar ejecución de ruta:', error)
+        console.error('[fetchEjecucionRuta] error:', error)
     }
 }
-
-// Observar cambios en el ítem actual para cargar su ejecución
-watch(currentItem, (newItem) => {
-    if (newItem) {
-        fetchEjecucionRuta()
-    }
-})
 
 async function loadData() {
     const data = getSelectedRuta()
@@ -235,26 +307,34 @@ async function loadData() {
         tiempoEjecucion.value = 0
 
         try {
-            const response = await api.get(`/personRouteList/details/${data.ID_TIPO_RUTA}`)
+            const response = await api.get(`/personRouteList/details`, {
+                params: { idTipoRuta: String(data.ID_TIPO_RUTA || '').trim() }
+            })
+
+            console.log("response loadData", response.data)
 
             // Intentar cargar borrador de LocalStorage
             const savedDraft = localStorage.getItem(storageKey.value)
             const draftData = savedDraft ? JSON.parse(savedDraft) : null
 
-            // Inicializar campos para cada item de la ruta, mezclando con el borrador si existe
+            // Inicializar los campos de cada ítem. Las tareas (borrador local) se conservan,
+            // pero CUMPLE_REVISION y OBSERVACION se llenan desde la BD con getEjecucionRuta.
             itemsList.value = response.data.map(item => {
-                const savedItem = draftData?.itemsList?.find(i => i.ID_MAQUINA === item.ID_MAQUINA)
+                const savedItem = draftData?.itemsList?.find(i => i.ID_EQUIPO === item.ID_EQUIPO)
                 return {
                     ...item,
-                    TAREAS: savedItem?.TAREAS || '',
-                    OBSERVACIONES: savedItem?.OBSERVACIONES || '',
-                    CUMPLE_CRITERIOS: savedItem?.CUMPLE_CRITERIOS || ''
+                    INDICACIONES_ESPECIFICAS: savedItem?.INDICACIONES_ESPECIFICAS ?? item.INDICACIONES_ESPECIFICAS,
+                    CUMPLE_REVISION: '',
+                    OBSERVACION: ''
                 }
             })
 
             if (draftData?.tiempoEjecucion) {
                 tiempoEjecucion.value = draftData.tiempoEjecucion
             }
+
+            // Cargar desde la BD la ejecución (OBSERVACION y CUMPLE_REVISION) del primer ítem
+            await fetchEjecucionRuta()
 
             console.log('itemsList cargado', itemsList.value)
         } catch (error) {
@@ -279,9 +359,10 @@ async function guardarEjecucionRuta() {
             ID_NUMERICO: rutaInfo.value.ID_NUMERICO,
             ID_TIPO_RUTA: String(rutaInfo.value.ID_TIPO_RUTA || '').trim(),
             ID_EQUIPO: String(currentItem.value.ID_EQUIPO || '').trim(),
-            CUMPLE_REVISION: currentItem.value.CUMPLE_CRITERIOS,
-            OBSERVACION: currentItem.value.OBSERVACIONES
+            CUMPLE_REVISION: currentItem.value.CUMPLE_REVISION,
+            OBSERVACION: currentItem.value.OBSERVACION
         }
+        console.log('data', data)
         await api.post('/personRouteList/ejecucion-ruta', data)
         showAlert('success', 'Guardado', 'La ejecución de la ruta se ha guardado correctamente.')
     } catch (error) {
@@ -379,8 +460,7 @@ td {
 .footer-actions {
     display: flex;
     justify-content: center;
-    padding: var(--space-lg) 0;
-    margin-top: var(--space-md);
+    margin-bottom: var(--space-xl);
     border-top: 1px solid var(--color-surface);
 }
 

@@ -44,7 +44,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from '../../api/axios.js'
 import { getSessionUser } from '../../utils/authSession.js'
@@ -109,7 +109,7 @@ const filteredData = computed(() =>
   data.value.filter((item) => filters[routeDateCategory(item.FECHA_PROGRAMADA)])
 )
 
-onMounted(async () => {
+async function loadRutas() {
   const user = getSessionUser()
   const codigoPersona = user?.codigoPersona
   if (codigoPersona == null || codigoPersona.trim() === '') {
@@ -127,6 +127,16 @@ onMounted(async () => {
     console.error('personRouteList', e)
     data.value = []
   }
+}
+
+onMounted(() => {
+  loadRutas()
+})
+
+// Al volver a esta vista (p. ej. tras cumplir una ruta con keep-alive)
+// se recarga la lista para reflejar los cambios de estado.
+onActivated(() => {
+  loadRutas()
 })
 
 function handleClick(item, color) {

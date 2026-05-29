@@ -7,8 +7,8 @@
         <div class="content">
             <h3>{{ titleActivity || 'Sin título' }}</h3>
             <div>
-                <p>ID: {{ idOTM }}</p>
-                <p>Fecha: {{ fechaProgramada }}</p>
+                <p>Nro {{ text }}</p>
+                <p>Fecha: {{ formatDate(fechaProgramada) }}</p>
             </div>
                 
         </div>
@@ -16,6 +16,7 @@
 </template>
 
 <script setup>
+import { formatDate } from '../utils/formatDate.js'
 const props = defineProps({
     titleOTM: {
         type: String,
@@ -29,7 +30,7 @@ const props = defineProps({
         type: String,
         required: true
     },
-    idOTM: {
+    text: {
         type: String,
         required: false
     },
