@@ -14,8 +14,8 @@
             <UiTitleView 
             :titleOTM="rutaInfo.ID_TIPO_RUTA" 
             :titleActivity="rutaInfo.NOMBRE_TIPO_RUTA" 
-            :text="`Ruta: ${String(rutaInfo.ID_NUMERICO || '').trim()}`"
-            :fechaProgramada="rutaInfo.FECHA_PROGRAMADA"
+            :text1="`Nro Ruta: ${String(rutaInfo.ID_NUMERICO || '').trim()}`"
+            :text2="`Fecha: ${formatDate(rutaInfo.FECHA_PROGRAMADA || '')}`"
                 :colorCard="rutaInfo.COLOR_CARD || 'bg-primary'" />
         </div>
 
@@ -47,9 +47,6 @@
                 </tbody>
             </table>
         </section>
-
-
-
 
 
         <section class="section-card data-tarea" v-if="currentItem">
@@ -122,6 +119,7 @@ import UiModal from '../../components/UiModal.vue'
 import UiAlert from '../../components/UiAlert.vue'
 import { getSelectedRuta, clearSelectedRuta } from '../../utils/dataTransfer.js'
 import api from '../../api/axios.js'
+import { formatDate } from '../../utils/formatDate.js'
 
 const router = useRouter()
 

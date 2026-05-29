@@ -1,44 +1,35 @@
 <template>
   <div class="ui-search-selector">
-    <div class="flex flex-col gap-4">
-      <!-- Campo de búsqueda -->
-      <UiInput
-        v-model="searchQuery"
-        :label="label"
-        :placeholder="placeholder"
-        icon="search"
-      />
+    <!-- Campo de búsqueda -->
+    <UiInput
+      v-model="searchQuery"
+      :label="label"
+      :placeholder="placeholder"
+      icon="search"
+      minWidth="100%"
+    />
 
-      <!-- Selector de resultados -->
-      <div class="flex flex-col gap-2">
-        <label v-if="selectLabel" class="text-sm font-bold text-muted">{{ selectLabel }}</label>
-        <select v-model="selectedItem" class="ui-select">
-          <option :value="null" disabled>{{ emptyOptionText }}</option>
-          <option v-for="item in filteredItems" :key="item[itemKey]" :value="item">
-            {{ displayFormat(item) }}
-          </option>
-        </select>
-        <p v-if="filteredItems.length === 0" class="text-xs text-error mt-1">
-          {{ noResultsText }}
-        </p>
-      </div>
-
-      <!-- Botón de acción -->
-      <UiButton
-        :label="confirmLabel"
-        color="create"
-        icon="check"
-        :disabled="!selectedItem"
-        @click="confirm"
-      />
+    <!-- Resultados: se seleccionan directamente al tocar (más táctil/compacto) -->
+    <div v-if="filteredItems.length" class="uss-results">
+      <button
+        v-for="item in filteredItems"
+        :key="item[itemKey]"
+        type="button"
+        class="uss-result"
+        @click="select(item)"
+      >
+        <span class="uss-result__text">{{ displayFormat(item) }}</span>
+        <Plus class="uss-result__icon" :size="18" :stroke-width="2.5" />
+      </button>
     </div>
+    <p v-else class="uss-empty">{{ noResultsText }}</p>
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
+import { Plus } from 'lucide-vue-next'
 import UiInput from './UiInput.vue'
-import UiButton from './UiButton.vue'
 
 const props = defineProps({
   // Lista total de elementos
@@ -50,27 +41,27 @@ const props = defineProps({
   // Etiquetas y textos personalizables
   label: { type: String, default: 'Buscar...' },
   placeholder: { type: String, default: 'Escribe para filtrar...' },
-  selectLabel: { type: String, default: 'Resultados' },
-  emptyOptionText: { type: String, default: 'Selecciona una opción...' },
   noResultsText: { type: String, default: 'No se encontraron resultados.' },
-  confirmLabel: { type: String, default: 'Confirmar' },
-  // Función para personalizar cómo se ve cada opción en el select
-  displayFormat: { 
-    type: Function, 
-    default: (item) => item.nombre || item.label || String(item) 
+  // Compatibilidad hacia atrás (ya no se usan: la selección es directa al tocar)
+  selectLabel: { type: String, default: '' },
+  emptyOptionText: { type: String, default: '' },
+  confirmLabel: { type: String, default: '' },
+  // Función para personalizar cómo se ve cada opción
+  displayFormat: {
+    type: Function,
+    default: (item) => item.nombre || item.label || String(item)
   }
 })
 
 const emit = defineEmits(['select'])
 
 const searchQuery = ref('')
-const selectedItem = ref(null)
 
 // Filtrado reactivo basado en los campos especificados
 const filteredItems = computed(() => {
   const query = searchQuery.value.toLowerCase().trim()
   if (!query) return props.items
-  
+
   return props.items.filter(item => {
     return props.searchFields.some(field => {
       const value = String(item[field] || '').toLowerCase()
@@ -79,38 +70,77 @@ const filteredItems = computed(() => {
   })
 })
 
-function confirm() {
-  if (selectedItem.value) {
-    emit('select', selectedItem.value)
-    // Limpiar selección después de emitir
-    selectedItem.value = null
-    searchQuery.value = ''
-  }
+function select(item) {
+  emit('select', item)
+  searchQuery.value = ''
 }
 </script>
 
 <style scoped>
-.ui-select {
-    width: 100%;
-    padding: var(--space-sm) var(--space-md);
-    border-radius: 8px;
-    border: 2px solid rgba(0, 0, 0, 0.05);
-    background: var(--color-background);
-    font-size: 1rem;
-    font-family: inherit;
-    color: var(--color-text);
-    outline: none;
-    transition: border-color 0.2s ease;
-}
-
-.ui-select:focus {
-    border-color: var(--color-primary);
-}
-
 .ui-search-selector {
-    padding: var(--space-md);
-    background: var(--color-surface);
-    border-radius: var(--radius-lg);
-    border: 2px solid rgba(37, 99, 235, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.uss-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.uss-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  width: 100%;
+  text-align: left;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-background);
+  border: 2px solid rgba(15, 23, 42, 0.06);
+  border-radius: 10px;
+  color: var(--color-text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.uss-result:hover {
+  border-color: var(--color-primary);
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.uss-result:active {
+  transform: scale(0.99);
+}
+
+.uss-result__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.uss-result__icon {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.uss-empty {
+  font-size: var(--fs-sm);
+  color: var(--color-muted);
+  text-align: center;
+  padding: var(--space-md);
+  margin: 0;
+}
+
+@media (pointer: coarse) {
+  .uss-result {
+    min-height: 48px;
+  }
 }
 </style>

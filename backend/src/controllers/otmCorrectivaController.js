@@ -39,3 +39,13 @@ export async function getListActividadesController(req, res, next) {
         next(err)
     }
 }
+
+export async function saveOTMCorrectivaController(req, res, next) {
+    try {
+        const data = req.body
+        const result = await otmCorrectivaService.saveOTMCorrectiva(data)
+        res.json(result)
+    } catch (err) {
+        next(err)
+    }
+}

@@ -2,38 +2,22 @@
     <div class="register-container">
         <div class="buttons-container">
             <UiButton label="Regresar" color="info" icon="ArrowLeft" @click="$router.back()" />
-            <UiButton label="Crear OTM" color="create" icon="Check" @click="crearOTM" />
         </div>
 
         <div v-if="otmData" class="data-container">
+
+
+
             <UiTitleView :titleOTM="otmData.NOMBRE_PROCESO" :titleActivity="otmData.NOMBRE_MAQUINA"
-                :colorCard="otmData.COLOR_CARD" />
+                :colorCard="otmData.COLOR_CARD" :text1="`Proceso: ${otmData.NOMBRE_PROCESO}`"
+                :text2="`Máquina: ${otmData.NOMBRE_MAQUINA}`" />
 
-
-            <section class="section-card data-machine" v-if="dataMachine">
-                <h2 class="section-card-title">Referencia de la Maquina</h2>
-                <table>
-                    <tbody>
-                        <tr>
-                            <th>Proceso</th>
-                            <td>{{ dataMachine.NOMBRE_PROCESO }}</td>
-                        </tr>
-                        <tr>
-                            <th>Etapa</th>
-                            <td>{{ dataMachine.NOMBRE_ETAPA }}</td>
-                        </tr>
-                        <tr>
-                            <th>Máquina</th>
-                            <td>{{ dataMachine.NOMBRE_MAQUINA }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </section>
 
             <section class="section-card">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="section-card-title">Equipo afectado</h2>
-                    <UiButton :label="isAddingEquipo ? 'Cancelar' : 'Seleccionar Equipo'"
+                    <h2 class="section-card-title">Equipo Seleccionado</h2>
+                    <UiButton v-if="addEquiposList.length === 0"
+                        :label="isAddingEquipo ? 'Cancelar' : 'Seleccionar Equipo'"
                         :color="isAddingEquipo ? 'delete' : 'create'" :icon="isAddingEquipo ? 'x' : 'plus'"
                         iconPosition="end" @click="isAddingEquipo = !isAddingEquipo" />
                 </div>
@@ -65,56 +49,82 @@
             </section>
 
             <section class="section-card data-actividades">
-                <div class="flex justify-between items-center mb-4">
+                <div class="section-head">
                     <h2 class="section-card-title">Actividades de mantenimiento</h2>
                     <UiButton :label="isAddingActividad ? 'Cancelar' : 'Agregar actividad'"
                         :color="isAddingActividad ? 'delete' : 'create'" :icon="isAddingActividad ? 'x' : 'plus'"
                         iconPosition="end" @click="agregaActividad()" />
                 </div>
 
-                <!-- Buscador y Selector de Usuarios (Componente Abstraído) -->
+                <!-- Panel para agregar actividades -->
                 <Transition name="fade-slide">
-                    <div v-if="isAddingActividad" class="mb-6">
+                    <div v-if="isAddingActividad" class="add-panel">
+                        <div class="add-panel__field">
+                            <label class="field-label">Clase de actividad</label>
+                            <select v-model="claseActividadSeleccionada" class="clase-select"
+                                @change="fetchActividades">
+                                <option v-for="clase in clasesActividad" :key="clase" :value="clase">{{ clase }}
+                                </option>
+                            </select>
+                        </div>
+
                         <UiSearchSelector :items="actividadesList"
-                            :searchFields="['nombreActividad', 'codigoActividad']" itemKey="codigoActividad"
-                            label="Buscar actividad (Nombre o Código)" placeholder="Ej: Actividad 1 o 12345"
-                            selectLabel="Seleccionar actividad" confirmLabel="Añadir a la lista"
-                            :displayFormat="(a) => `Id: ${a.codigoActividad}  ${a.nombreActividad}`"
+                            :searchFields="['NOMBRE_ACTIVIDAD', 'CLASE_ACTIVIDAD']" itemKey="NOMBRE_ACTIVIDAD"
+                            label="Buscar actividad" placeholder="Ej: Lubricar o Revisar"
+                            :displayFormat="(a) => `${a.NOMBRE_ACTIVIDAD} (${a.CLASE_ACTIVIDAD})`"
                             @select="confirmarSeleccion" />
                     </div>
-
                 </Transition>
-                <UiInput type="text" v-model="prioridadActividad" placeholder="Prioridad" />
 
                 <div class="actividades-list">
-                    <div class="actividad-item" v-for="actividad in addActividadesList"
-                        :key="actividad.codigoActividad">
-                        <div class="actividad-info">
-                            <div class="flex align-center gap-3">
-                                <span class="actividad-name">Nombre: {{ actividad.nombreActividad }} - Id: {{
-                                    actividad.codigoActividad
-                                    }}</span>
-                            </div>
+                    <div class="actividad-chip" v-for="actividad in addActividadesList"
+                        :key="actividad.NOMBRE_ACTIVIDAD">
+                        <div class="actividad-chip__info">
+                            <span class="actividad-chip__name">{{ actividad.NOMBRE_ACTIVIDAD }}</span>
+                            <span class="actividad-chip__badge">{{ actividad.CLASE_ACTIVIDAD }}</span>
                         </div>
+                        <UiButton color="delete" icon="trash" @click="eliminarActividad(actividad.NOMBRE_ACTIVIDAD)" />
                     </div>
-                    <p v-if="addActividadesList.length === 0" class="text-muted text-center py-4">
-                        No hay actividades adicionales asignadas.
+                    <p v-if="addActividadesList.length === 0" class="empty-text">
+                        No hay actividades asignadas.
                     </p>
                 </div>
             </section>
 
+            <section class="section-card">
+                <h2 class="section-card-title mb-4">Parada de Máquina</h2>
+                <div class="flex flex-col gap-4">
+                    <h3>¿Causó parada de máquina?</h3>
+                    <div class="flex gap-6 justify-center">
+                        <UiRadio label="No" v-model="causoParada" value="NO" color="create" name="parada" />
+                        <UiRadio label="Sí" v-model="causoParada" value="SI" color="delete" name="parada" />
+                    </div>
+                </div>
+            </section>
 
             <section class="section-card">
                 <h2 class="section-card-title">Observaciones</h2>
 
-                <textarea placeholder="Escribe aquí tus observaciones..." />
+                <textarea v-model="observacionesOTM" placeholder="Escribe aquí tus observaciones..." />
             </section>
+
+        </div>
+        <div class="flex justify-center mt-6 mb-16">
+            <UiButton label="Crear OTM" color="create" icon="Check" @click="crearOTM" />
         </div>
     </div>
 
     <!-- Modal de Confirmación -->
     <UiModal v-model="showConfirmModal" title="Crear Nueva OTM" :message="confirmMessage" confirmLabel="Sí, crear"
         confirmIcon="Check" @confirm="handleConfirmCrear" />
+
+    <!-- Alertas Flotantes Centradas -->
+    <Transition name="fade-slide">
+        <div v-if="alertConfig.show" class="alert-container-centered">
+            <UiAlert :type="alertConfig.type" :title="alertConfig.title" :message="alertConfig.message"
+                @close="alertConfig.show = false" />
+        </div>
+    </Transition>
 </template>
 
 <script setup>
@@ -123,10 +133,14 @@ import { useRouter } from 'vue-router'
 import { getSelectedOtm, clearSelectedOtm } from '../../utils/dataTransfer.js'
 import UiTitleView from '../../components/UiTitleView.vue'
 import UiButton from '../../components/UiButton.vue'
-import UiInput from '../../components/UiInput.vue'
+import UiRadio from '../../components/UiRadio.vue'
 import UiSearchSelector from '../../components/UiSearchSelector.vue'
 import UiModal from '../../components/UiModal.vue'
+import UiAlert from '../../components/UiAlert.vue'
 import axios from '../../api/axios.js'
+const causoParada = ref('NO')
+
+const emit = defineEmits(['logout', 'continue'])
 
 const props = defineProps({
     id: {
@@ -139,14 +153,31 @@ const router = useRouter()
 const otmData = ref(null)
 const actividadesList = ref([])
 const addActividadesList = ref([])
-const prioridadActividad = ref('')
+const prioridadActividad = ref('Alta')
+const observacionesOTM = ref('')
 const showConfirmModal = ref(false)
 const dataMachine = ref(null)
 const listEquipos = ref([])
 const addEquiposList = ref([])
 const isAddingEquipo = ref(false)
-const listActividades = ref([])
 const isAddingActividad = ref(false)
+
+const alertConfig = ref({
+    show: false,
+    type: 'info',
+    title: '',
+    message: ''
+})
+
+function showAlert(type, title, message) {
+    alertConfig.value = { show: true, type, title, message }
+    setTimeout(() => {
+        alertConfig.value.show = false
+    }, 5000)
+}
+
+const clasesActividad = ['TODOS', 'LUBRICACION', 'ELECTRICO', 'MECANICO', 'INSTRUMENTACION']
+const claseActividadSeleccionada = ref('TODOS')
 
 
 const confirmMessage = computed(() => {
@@ -165,10 +196,8 @@ function agregaActividad() {
 
 function confirmarSeleccionEquipo(equipo) {
     if (equipo) {
-        const exists = addEquiposList.value.some(e => e.ID_EQUIPO === equipo.ID_EQUIPO)
-        if (!exists) {
-            addEquiposList.value.push({ ...equipo })
-        }
+        // Solo se permite un único equipo: la nueva selección reemplaza a la anterior
+        addEquiposList.value = [{ ...equipo }]
         isAddingEquipo.value = false
     }
 }
@@ -181,18 +210,65 @@ function crearOTM() {
     showConfirmModal.value = true
 }
 
-function handleConfirmCrear() {
-    clearSelectedOtm()
-    showConfirmModal.value = false
+async function handleConfirmCrear() {
+    if (addEquiposList.value.length === 0 || addActividadesList.value.length === 0) {
+        showAlert('warning', 'Campos incompletos', 'Por favor seleccione un equipo y al menos una actividad.')
+        return
+    }
 
-    setTimeout(() => {
-        router.push({ name: 'principal-correctivas' }).catch(() => { })
-    }, 0)
+    try {
+        const equipo = addEquiposList.value[0]
+        const actividad = addActividadesList.value[0] // Tomamos la primera actividad seleccionada
+
+        const data = {
+            ID_EQUIPO: equipo.ID_EQUIPO,
+            ID_ACTIVIDAD: actividad.ID_ACTIVIDAD,
+            CAUSO_PARADA: causoParada.value,
+            OBSERVACION_OTM: observacionesOTM.value,
+            PRIORIDAD: prioridadActividad.value
+        }
+
+        console.log('Enviando datos OTM:', data)
+        await axios.post('/otmCorrectiva/save-otm', data)
+
+        showAlert('success', '¡Éxito!', 'La OTM Correctiva ha sido creada correctamente.')
+        showConfirmModal.value = false
+        clearSelectedOtm()
+
+        setTimeout(() => {
+            router.push({ name: 'principal-correctivas' }).catch(() => { })
+        }, 2000)
+    } catch (error) {
+        console.error('Error al crear la OTM:', error)
+        const errorMsg = error.response?.data?.error || 'Hubo un error al crear la OTM. Por favor intente de nuevo.'
+        showAlert('error', 'Error al crear', errorMsg)
+    }
 }
 
 function confirmarSeleccion(actividad) {
-    addActividadesList.value.push(actividad)
+    const exists = addActividadesList.value.some(a => a.NOMBRE_ACTIVIDAD === actividad.NOMBRE_ACTIVIDAD)
+    if (!exists) {
+        addActividadesList.value.push({ ...actividad })
+    }
     isAddingActividad.value = false
+}
+
+function eliminarActividad(nombreActividad) {
+    addActividadesList.value = addActividadesList.value.filter(a => a.NOMBRE_ACTIVIDAD !== nombreActividad)
+}
+
+async function fetchActividades() {
+    try {
+        const clase = claseActividadSeleccionada.value
+        const url = clase && clase !== 'TODOS'
+            ? `/otmCorrectiva/get-list-actividades/${clase}`
+            : '/otmCorrectiva/get-list-actividades'
+        const response = await axios.get(url)
+        actividadesList.value = Array.isArray(response.data) ? response.data : []
+    } catch (error) {
+        console.error('Error al cargar actividades:', error)
+        actividadesList.value = []
+    }
 }
 
 async function loadData() {
@@ -205,22 +281,22 @@ async function loadData() {
         addActividadesList.value = []
         addEquiposList.value = []
         isAddingEquipo.value = false
-        listActividades.value = []
+        actividadesList.value = []
+        claseActividadSeleccionada.value = 'TODOS'
         isAddingActividad.value = false
         try {
             const responseMachine = await axios.get(`/otmCorrectiva/get-detail-machine/${data.ID_MAQUINA}`)
             // La consulta devuelve un array, tomamos el primer elemento
             dataMachine.value = Array.isArray(responseMachine.data) ? responseMachine.data[0] : responseMachine.data
-            
+
             const responseEquipos = await axios.get(`/otmCorrectiva/get-list-equipos/${data.ID_MAQUINA}`)
             listEquipos.value = responseEquipos.data
 
-            const responseActividades = await axios.get(`/otmCorrectiva/get-list-actividades/CORRECTIVO`)
-            listActividades.value = responseActividades.data
+            await fetchActividades()
 
             console.log('dataMachine', dataMachine.value)
             console.log('listEquipos', listEquipos.value)
-            console.log('listActividades', listActividades.value)
+            console.log('actividadesList', actividadesList.value)
         } catch (error) {
             console.error('Error al cargar datos de la OTM Correctiva:', error)
         }
@@ -349,5 +425,150 @@ textarea:focus {
 
 .equipo-item {
     border-left: 4px solid var(--color-primary);
+}
+
+/* ===== Sección Actividades ===== */
+.section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.data-actividades {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.add-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    background: var(--color-surface);
+    border: 2px solid rgba(37, 99, 235, 0.12);
+    border-radius: var(--radius);
+}
+
+.add-panel__field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xxs);
+}
+
+.field-label {
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.clase-select {
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: 8px;
+    border: 2px solid rgba(15, 23, 42, 0.08);
+    background: var(--color-background);
+    font-size: var(--fs-base);
+    font-family: inherit;
+    font-weight: 500;
+    color: var(--color-text);
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.clase-select:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.actividades-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.actividad-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-sm) var(--space-xs) var(--space-md);
+    background: var(--color-surface);
+    border-radius: 10px;
+    border-left: 4px solid var(--color-secondary);
+}
+
+.actividad-chip__info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.actividad-chip__name {
+    font-size: var(--fs-base);
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.actividad-chip__badge {
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--color-secondary);
+    background: rgba(124, 58, 237, 0.1);
+    padding: 2px 10px;
+    border-radius: 100px;
+}
+
+.empty-text {
+    text-align: center;
+    color: var(--color-muted);
+    font-size: var(--fs-sm);
+    padding: var(--space-md);
+    margin: 0;
+}
+
+@media (pointer: coarse) {
+    .clase-select {
+        min-height: 48px;
+    }
+}
+
+.alert-container-centered {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+    width: 90%;
+    max-width: 500px;
+    pointer-events: none;
+}
+
+.alert-container-centered>* {
+    pointer-events: auto;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+    transition: all 0.3s ease;
+}
+
+.fade-slide-enter-from {
+    opacity: 0;
+    transform: translate(-50%, -60%);
+}
+
+.fade-slide-leave-to {
+    opacity: 0;
+    transform: translate(-50%, -40%);
 }
 </style>
