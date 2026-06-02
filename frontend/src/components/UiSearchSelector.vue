@@ -81,6 +81,9 @@ function select(item) {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+  background-color: var(--color-surface);
+  border-radius: var(--radius);
+  padding: var(--space-md);
 }
 
 .uss-results {

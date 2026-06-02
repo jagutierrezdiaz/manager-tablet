@@ -181,6 +181,7 @@ const claseActividadSeleccionada = ref('TODOS')
 
 
 const confirmMessage = computed(() => {
+    console.log(otmData.value)
     if (!otmData.value) {
         return `¿Estás seguro de que deseas crear esta OTM Correctiva (ID: ${props.id})?`
     }

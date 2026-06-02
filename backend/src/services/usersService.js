@@ -79,10 +79,12 @@ export async function getPersonasAsignadas(idOtm) {
       MO.CODIGO_PERSONA,
       CM.FECHA_INICIO AS HORA_INICIO, 
       CM.FECHA_FIN AS HORA_FIN, 
-      CM.HORAS_TRABAJO AS HORA_TOTAL
-    FROM CIERRE_MOD CM, MOD MO
-    WHERE CM.CODIGO_PERSONA = MO.CODIGO_PERSONA
-      AND CM.ID_OTM = ?
+      CM.HORAS_TRABAJO AS HORA_TOTAL,
+      FP.URL_FIRMA AS FIRMA
+    FROM CIERRE_MOD CM
+    JOIN MOD MO ON CM.CODIGO_PERSONA = MO.CODIGO_PERSONA
+    LEFT JOIN FIRMA_PERSONAL FP ON CM.ID_OTM = FP.ID_OTM AND CM.CODIGO_PERSONA = FP.CODIGO_PERSONAL
+    WHERE CM.ID_OTM = ?
     ORDER BY MO.NOMBRE_PERSONA
   `
 
@@ -92,4 +94,21 @@ export async function getPersonasAsignadas(idOtm) {
   const params = [idOtm]
   const rows = await db.query(sql, params)
   return rows.map(convertUserRowToDto)
+}
+
+export async function getSupervisorAsignado(idOtm) {
+  const sql = `
+    SELECT 
+      MO.NOMBRE_PERSONA, 
+      MO.CODIGO_PERSONA,
+      FP.URL_FIRMA AS FIRMA
+    FROM FIRMA_PERSONAL FP
+    JOIN MOD MO ON FP.CODIGO_PERSONAL = MO.CODIGO_PERSONA
+    JOIN CARGO_MOD CA ON MO.ID_CARGO = CA.ID_CARGO
+    WHERE FP.ID_OTM = ?
+      AND UPPER(TRIM(CA.NOMBRE_CARGO)) = 'SUPERVISOR MANTENIMIENTO'
+  `
+  const rows = await db.query(sql, [idOtm])
+  if (!rows || rows.length === 0) return null
+  return convertUserRowToDto(rows[0])
 }

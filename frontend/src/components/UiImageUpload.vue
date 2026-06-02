@@ -22,27 +22,37 @@
       
       <div v-else class="ui-image-upload__preview">
         <img :src="previewUrl" alt="Vista previa" class="ui-image-upload__img" />
-        <div class="ui-image-upload__overlay">
-          <UiButton 
-            size="sm" 
-            color="delete" 
-            icon="trash" 
-            @click.stop="removeImage"
-          />
-          <UiButton 
-            size="sm" 
-            color="edit" 
-            icon="refresh-cw" 
-            @click.stop="triggerFileInput"
-          />
-        </div>
       </div>
+    </div>
+
+    <div class="ui-image-upload__footer">
+      <UiButton 
+        v-if="previewUrl"
+        size="sm" 
+        color="delete" 
+        icon="trash" 
+        @click.stop="removeImage"
+      />
+      <UiButton 
+        size="sm" 
+        color="edit" 
+        icon="refresh-cw" 
+        @click.stop="triggerFileInput"
+      />
+      <UiButton 
+        v-if="previewUrl && isNewImage"
+        size="sm" 
+        color="create" 
+        icon="save" 
+        label="Guardar"
+        @click.stop="saveImage"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { Camera, Trash, RefreshCw } from 'lucide-vue-next'
 import UiButton from './UiButton.vue'
 
@@ -52,10 +62,11 @@ const props = defineProps({
   modelValue: { type: [File, String], default: null }
 })
 
-const emit = defineEmits(['update:modelValue', 'change'])
+const emit = defineEmits(['update:modelValue', 'change', 'save'])
 
 const fileInput = ref(null)
 const previewUrl = ref(null)
+const isNewImage = ref(false)
 
 const CameraIcon = Camera
 const TrashIcon = Trash
@@ -65,8 +76,10 @@ const RefreshIcon = RefreshCw
 watch(() => props.modelValue, (newVal) => {
   if (typeof newVal === 'string') {
     previewUrl.value = newVal
+    isNewImage.value = newVal.startsWith('data:image/')
   } else if (!newVal) {
     previewUrl.value = null
+    isNewImage.value = false
   }
 }, { immediate: true })
 
@@ -82,18 +95,25 @@ function handleFileChange(event) {
   const reader = new FileReader()
   reader.onload = (e) => {
     previewUrl.value = e.target.result
+    isNewImage.value = true
+    emit('update:modelValue', e.target.result)
+    emit('change', e.target.result)
   }
   reader.readAsDataURL(file)
-
-  emit('update:modelValue', file)
-  emit('change', file)
 }
 
 function removeImage() {
   previewUrl.value = null
+  isNewImage.value = false
   if (fileInput.value) fileInput.value.value = ''
   emit('update:modelValue', null)
   emit('change', null)
+}
+
+function saveImage() {
+  if (previewUrl.value && isNewImage.value) {
+    emit('save', previewUrl.value)
+  }
 }
 </script>
 
@@ -168,22 +188,10 @@ function removeImage() {
   object-fit: cover;
 }
 
-.ui-image-upload__overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(15, 23, 42, 0.4);
+.ui-image-upload__footer {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.ui-image-upload__preview:hover .ui-image-upload__overlay {
-  opacity: 1;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 4px;
 }
 </style>

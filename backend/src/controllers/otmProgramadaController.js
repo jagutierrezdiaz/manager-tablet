@@ -120,3 +120,25 @@ export async function deleteRepuestosAsignadosOtmController(req, res, next) {
         next(err)
     }
 }
+
+export async function aprobarOtmController(req, res, next) {
+    try {
+        const idOtm = String(req.params.idOtm || '').trim()
+        const supervisorData = req.body
+        const result = await otmProgramadaService.aprobarOtm(idOtm, supervisorData)
+        res.json(result)
+    } catch (err) {
+        next(err)
+    }
+}
+
+export async function saveOtmPhotoController(req, res, next) {
+    try {
+        const idOtm = String(req.params.idOtm || '').trim()
+        const { photoNumber, image } = req.body
+        const result = await otmProgramadaService.saveOtmPhoto(idOtm, photoNumber, image)
+        res.json(result)
+    } catch (err) {
+        next(err)
+    }
+}

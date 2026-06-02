@@ -1,0 +1,160 @@
+<template>
+  <div class="signature-container">
+    <div v-if="label" class="signature-label">
+      <label>{{ label }}</label>
+    </div>
+    <canvas
+      ref="canvasRef"
+      class="signature-canvas"
+      @mousedown="startDrawing"
+      @mousemove="draw"
+      @mouseup="stopDrawing"
+      @mouseleave="stopDrawing"
+      @touchstart="handleTouchStart"
+      @touchmove="handleTouchMove"
+      @touchend="stopDrawing"
+    ></canvas>
+    <div class="signature-footer">
+      <UiButton label="Limpiar firma" color="delete" icon="trash" size="sm" @click="clear" />
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted, watch } from 'vue'
+import UiButton from './UiButton.vue'
+
+const props = defineProps({
+  modelValue: String,
+  label: String,
+  width: { type: Number, default: 400 },
+  height: { type: Number, default: 200 }
+})
+
+const emit = defineEmits(['update:modelValue'])
+
+const canvasRef = ref(null)
+const isDrawing = ref(false)
+let ctx = null
+
+onMounted(() => {
+  initCanvas()
+})
+
+function initCanvas() {
+  const canvas = canvasRef.value
+  ctx = canvas.getContext('2d')
+  
+  // Ajustar tamaño del canvas al contenedor
+  const container = canvas.parentElement
+  canvas.width = container.clientWidth || props.width
+  canvas.height = props.height
+  
+  ctx.strokeStyle = '#000'
+  ctx.lineWidth = 2
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+
+  if (props.modelValue) {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => ctx.drawImage(img, 0, 0)
+    img.src = props.modelValue
+  }
+}
+
+function startDrawing(e) {
+  isDrawing.value = true
+  const { x, y } = getCoordinates(e)
+  ctx.beginPath()
+  ctx.moveTo(x, y)
+}
+
+function draw(e) {
+  if (!isDrawing.value) return
+  const { x, y } = getCoordinates(e)
+  ctx.lineTo(x, y)
+  ctx.stroke()
+}
+
+function stopDrawing() {
+  if (!isDrawing.value) return
+  isDrawing.value = false
+  saveSignature()
+}
+
+function handleTouchStart(e) {
+  e.preventDefault()
+  const touch = e.touches[0]
+  startDrawing(touch)
+}
+
+function handleTouchMove(e) {
+  e.preventDefault()
+  const touch = e.touches[0]
+  draw(touch)
+}
+
+function getCoordinates(e) {
+  const rect = canvasRef.value.getBoundingClientRect()
+  return {
+    x: (e.clientX || e.pageX) - rect.left,
+    y: (e.clientY || e.pageY) - rect.top
+  }
+}
+
+function clear() {
+  ctx.clearRect(0, 0, canvasRef.value.width, canvasRef.value.height)
+  emit('update:modelValue', null)
+}
+
+function saveSignature() {
+  const dataUrl = canvasRef.value.toDataURL('image/png')
+  emit('update:modelValue', dataUrl)
+}
+
+// Re-inicializar si el contenedor cambia de tamaño (opcional)
+window.addEventListener('resize', () => {
+  if (canvasRef.value) {
+    try {
+      const temp = canvasRef.value.toDataURL()
+      initCanvas()
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => ctx.drawImage(img, 0, 0)
+      img.src = temp
+    } catch (e) {
+      console.error('Error during canvas resize:', e)
+    }
+  }
+})
+</script>
+
+<style scoped>
+.signature-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.signature-label label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.signature-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.signature-canvas {
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  background: #fff;
+  cursor: crosshair;
+  touch-action: none;
+  width: 100%;
+}
+</style>
