@@ -27,36 +27,54 @@ export async function getOtmProgramadas(codigoPersona) {
 
 export async function getDatosOtmById(idOtmProgramada) {
     const sql = `
-        SELECT 
+        SELECT
             OTM.ID_NUMERICO,
-            OTM.ID_OTM, 
+            OTM.ID_OTM,
             OTM.FECHA_PROGRAMADA,
             OTM.FECHA_CIERRE,
             OTM.LIMITE_CIERRE,
-            CAST(OTM.OBSERVACION_OTM AS VARCHAR(2000)) AS OBSERVACION_OTM, 
+            CAST(OTM.OBSERVACION_OTM AS VARCHAR(2000)) AS OBSERVACION_OTM,
             CAST(OTM.COMENTARIOS_DE_CIERRE AS VARCHAR(2000)) AS COMENTARIOS_DE_CIERRE,
-            OTM.FOTO_1, 
-            OTM.FOTO_2,
+            CAST(OTM.FOTO_1 AS VARCHAR(255)) AS FOTO_1,
+            CAST(OTM.FOTO_2 AS VARCHAR(255)) AS FOTO_2,
             OTM.TIEMPO_REAL,
             OTM.TIEMPO_PROGRAMADO,
+
             AC.ID_ACTIVIDAD,
             AC.NOMBRE_ACTIVIDAD,
             AC.CLASE_ACTIVIDAD,
             AC.TIPO_MANTENIMIENTO,
-            AC.PROGRAMABLE,AC.TIPO_PROGRAMA,
-            BL.ID_PROCESO, 
-            BL.NOMBRE_PROCESO, 
+            AC.PROGRAMABLE,
+            AC.TIPO_PROGRAMA,
+
+            BL.ID_PROCESO,
+            BL.NOMBRE_PROCESO,
             BL.ID_ETAPA,
-            BL.NOMBRE_ETAPA, 
-            BL.ID_MAQUINA, 
+            BL.NOMBRE_ETAPA,
+            BL.ID_MAQUINA,
             BL.NOMBRE_MAQUINA,
-            BL.ID_EQUIPO, 
-            BL.NOMBRE_EQUIPO
-        FROM OTM, ACTIVIDAD AC, QRBASE_LAYOUT BL
-        WHERE OTM.ID_EQUIPO = BL.ID_EQUIPO
-           AND OTM.ID_ACTIVIDAD = AC.ID_ACTIVIDAD
-           AND OTM.ID_OTM =  ?
+            BL.ID_EQUIPO,
+            BL.NOMBRE_EQUIPO,
+
+            AE.TIEMPO_MANTENIMIENTO,
+            AE.VALOR_VARIABLE_MTTO AS TIEMPO_ESTIMADO_ACTIVIDAD,
+            AE.VALOR_MINIMO,
+            AE.VALOR_MAXIMO
+
+        FROM OTM
+        INNER JOIN ACTIVIDAD AC
+                ON OTM.ID_ACTIVIDAD = AC.ID_ACTIVIDAD
+
+        INNER JOIN QRBASE_LAYOUT BL
+                ON OTM.ID_EQUIPO = BL.ID_EQUIPO
+
+        INNER JOIN ACTIVIDAD_EQUIPO AE
+                ON OTM.ID_EQUIPO = AE.ID_EQUIPO
+            AND OTM.ID_ACTIVIDAD = AE.ID_ACTIVIDAD
+
+        WHERE OTM.ID_OTM = ?
     `
+
     const rows = await db.query(sql, [idOtmProgramada])
     return rows
 }
@@ -158,7 +176,7 @@ async function saveSignatureFile(idOtm, personaAsignada) {
         // Definir la ruta relativa a la raíz del backend (2 niveles arriba de src/services)
         const backendRoot = path.resolve(__dirname, '..', '..')
         const uploadDir = path.join(backendRoot, 'uploads', 'Firma_Personal')
-        
+
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true })
         }
@@ -166,12 +184,12 @@ async function saveSignatureFile(idOtm, personaAsignada) {
         const cleanNombre = personaAsignada.nombrePersona.replace(/[\\/:*?"<>|]/g, "")
         const fileName = `${idOtm}_${personaAsignada.codigoPersona}_${cleanNombre}.png`
         const filePath = path.join(uploadDir, fileName)
-        
+
         fs.writeFileSync(filePath, base64Data, 'base64')
 
         // Guardar en la tabla FIRMA_PERSONAL
         const urlFirma = `uploads/Firma_Personal/${fileName}`
-        
+
         // Verificar si ya existe la firma para esta OTM y persona
         const sqlCheck = 'SELECT ID_NUMERICO FROM FIRMA_PERSONAL WHERE ID_OTM = ? AND CODIGO_PERSONAL = ?'
         const rows = await db.query(sqlCheck, [idOtm, personaAsignada.codigoPersona])
@@ -292,25 +310,75 @@ export async function saveOtmPhoto(idOtm, photoNumber, base64Data) {
         const cleanData = base64Data.replace(/^data:image\/\w+;base64,/, "")
         const backendRoot = path.resolve(__dirname, '..', '..')
         const uploadDir = path.join(backendRoot, 'uploads', 'Fotos_OTM')
-        
+
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true })
         }
 
         const fileName = `${idOtm}_foto_${photoNumber}.png`
         const filePath = path.join(uploadDir, fileName)
-        
+
         fs.writeFileSync(filePath, cleanData, 'base64')
 
         const urlFoto = `uploads/Fotos_OTM/${fileName}`
         const fieldName = `FOTO_${photoNumber}`
-        
+
         const sql = `UPDATE OTM SET ${fieldName} = ? WHERE ID_OTM = ?`
         await db.query(sql, [urlFoto, idOtm])
 
         return { success: true, url: urlFoto }
     } catch (error) {
         console.error('Error saving OTM photo:', error)
+        throw error
+    }
+}
+
+export async function deleteOtmPhoto(idOtm, photoNumber) {
+    try {
+        const fieldName = `FOTO_${photoNumber}`
+
+        // 1. Obtener la ruta actual del archivo
+        const sqlGet = `SELECT CAST(${fieldName} AS VARCHAR(255)) AS RUTA FROM OTM WHERE ID_OTM = ?`
+        const rows = await db.query(sqlGet, [idOtm])
+        const currentPath = rows[0]?.RUTA
+
+        // 2. Eliminar el archivo físico si existe
+        if (currentPath) {
+            const backendRoot = path.resolve(__dirname, '..', '..')
+            const fullPath = path.join(backendRoot, currentPath)
+
+            if (fs.existsSync(fullPath)) {
+                fs.unlinkSync(fullPath)
+            }
+        }
+
+        // 3. Limpiar el campo en la base de datos
+        const sqlUpdate = `UPDATE OTM SET ${fieldName} = NULL WHERE ID_OTM = ?`
+        await db.query(sqlUpdate, [idOtm])
+
+        return { success: true, message: 'Foto eliminada correctamente' }
+    } catch (error) {
+        console.error('Error deleting OTM photo:', error)
+        throw error
+    }
+}
+
+
+export async function saveCumplimientoOtm(tiempoReal, indiceCumplimiento, efectividadCumplimiento, comentariosCierre, tiempoMod, idOtm) {
+    try {
+        const sql = `
+            UPDATE OTM
+            SET TIEMPO_REAL = ?,
+                INDICE_CUMPLIMIENTO = ?,
+                EFECTIVIDAD_CUMPLIMIENTO = ?,
+                COMENTARIOS_DE_CIERRE = ?,
+                TIEMPO_MOD = ?
+            WHERE ID_OTM = ?
+        `
+        await db.query(sql, [tiempoReal, indiceCumplimiento, efectividadCumplimiento, comentariosCierre, tiempoMod, idOtm])
+        return { success: true, message: 'Cumplimiento de la OTM guardado correctamente' }
+    } catch (error) {
+        console.error('Error saving OTM cumplimiento:', error)
         throw error
     }
 }

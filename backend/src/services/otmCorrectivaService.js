@@ -83,14 +83,14 @@ export async function saveOTMCorrectiva(data) {
     // 0. Verificar si existe la actividadEquipo, si no, crearla
     const exists = await checkActividadEquipoExists(data.ID_EQUIPO, data.ID_ACTIVIDAD)
     if (!exists) {
-        await insertActividadEquipoOtm(data.ID_EQUIPO, data.ID_ACTIVIDAD)
+        await insertActividadEquipoOtm(data.ID_EQUIPO, data.ID_ACTIVIDAD, data.TIEMPO_ACTIVIDAD)
     }
 
     // 1. Obtener el siguiente ID_OTM
     const maxId = await getMaxIdNumerico()
     const nextId = Number(maxId) + 1
 
-    console.log('idOTM: ', nextId)
+    console.log('data: ', data)
 
     // 2. Obtener parámetros para el límite de cierre
     const paramsCierre = await getParametroLimiteCierre()
@@ -144,9 +144,11 @@ export async function saveOTMCorrectiva(data) {
 
     await db.query(sql, params)
     await saveActividadEquipoOtm(data.ID_EQUIPO, data.ID_ACTIVIDAD)
+    await insertModActividad(data.ID_ACTIVIDAD, data.CODIGO_PERSONA)
 
     // Obtener personas asociadas a la actividad e insertar en CIERRE_MOD
     const personas = await getPersonaActividad(data.ID_ACTIVIDAD)
+    console.log('personas: ', personas)
     for (const persona of personas) {
         await insertCierreMod(nextId, persona.CODIGO_PERSONA)
     }
@@ -155,7 +157,7 @@ export async function saveOTMCorrectiva(data) {
 }
 
 
-export async function insertActividadEquipoOtm(idEquipo, idActividad) {
+export async function insertActividadEquipoOtm(idEquipo, idActividad, tiempoActividad) {
     const sql = `
         INSERT INTO ACTIVIDAD_EQUIPO(
             ID_EQUIPO,
@@ -183,7 +185,7 @@ export async function insertActividadEquipoOtm(idEquipo, idActividad) {
             ?,                
             ?,              
             0,                     
-            0,              
+            ?,              
             0,                     
             0,                     
             'No Aplica',                 
@@ -201,7 +203,7 @@ export async function insertActividadEquipoOtm(idEquipo, idActividad) {
             null                    
         )
     `
-    const params = [idEquipo, idActividad]
+    const params = [idEquipo, idActividad, tiempoActividad]
     await db.query(sql, params)
     return { success: true }
 }
@@ -237,6 +239,18 @@ export async function getParametroLimiteCierre() {
     `
     const rows = await db.query(sql, [])
     return rows
+}
+
+export async function insertModActividad(idActividad, codigoPersona){
+    const sql = `
+        INSERT INTO MOD_ACTIVIDAD(
+            ID_ACTIVIDAD,
+            CODIGO_PERSONA
+        )
+        VALUES (?, ?)
+    `
+    const params = [idActividad, codigoPersona]
+    await db.query(sql, params)
 }
 
 

@@ -108,6 +108,7 @@ function removeImage() {
   if (fileInput.value) fileInput.value.value = ''
   emit('update:modelValue', null)
   emit('change', null)
+  emit('remove')
 }
 
 function saveImage() {

@@ -77,14 +77,25 @@
                 </Transition>
 
                 <div class="actividades-list">
-                    <div class="actividad-chip" v-for="actividad in addActividadesList"
-                        :key="actividad.NOMBRE_ACTIVIDAD">
-                        <div class="actividad-chip__info">
-                            <span class="actividad-chip__name">{{ actividad.NOMBRE_ACTIVIDAD }}</span>
-                            <span class="actividad-chip__badge">{{ actividad.CLASE_ACTIVIDAD }}</span>
+                    <div v-for="actividad in addActividadesList" :key="actividad.NOMBRE_ACTIVIDAD">
+                        <div class="actividad-chip">
+                            <div class="actividad-chip__info">
+                                <span class="actividad-chip__name">{{ actividad.NOMBRE_ACTIVIDAD }}</span>
+                                <span class="actividad-chip__badge">{{ actividad.CLASE_ACTIVIDAD }}</span>
+                            </div>
+                            <UiButton color="delete" icon="trash"
+                                @click="eliminarActividad(actividad.NOMBRE_ACTIVIDAD)" />
+
+
                         </div>
-                        <UiButton color="delete" icon="trash" @click="eliminarActividad(actividad.NOMBRE_ACTIVIDAD)" />
+                        <div class="flex gap-2">
+                            <UiInput label="Tiempo estimado de la actividad" type="number" min="0" v-model="tiempoActividad"
+                                placeholder="Tiempo estimado en horas" />
+                            <p class="text-horas"> Horas </p>
+                        </div>
                     </div>
+
+
                     <p v-if="addActividadesList.length === 0" class="empty-text">
                         No hay actividades asignadas.
                     </p>
@@ -139,6 +150,7 @@ import UiModal from '../../components/UiModal.vue'
 import UiAlert from '../../components/UiAlert.vue'
 import axios from '../../api/axios.js'
 const causoParada = ref('NO')
+import { getSessionUser } from '../../utils/authSession.js'
 
 const emit = defineEmits(['logout', 'continue'])
 
@@ -153,6 +165,7 @@ const router = useRouter()
 const otmData = ref(null)
 const actividadesList = ref([])
 const addActividadesList = ref([])
+const tiempoActividad = ref(0)
 const prioridadActividad = ref('Alta')
 const observacionesOTM = ref('')
 const showConfirmModal = ref(false)
@@ -212,6 +225,11 @@ function crearOTM() {
 }
 
 async function handleConfirmCrear() {
+    if (tiempoActividad.value <= 0) {
+        showAlert('warning', 'Tiempo inválido', 'El tiempo estimado de la actividad debe ser mayor a 0')
+        return
+    }
+
     if (addEquiposList.value.length === 0 || addActividadesList.value.length === 0) {
         showAlert('warning', 'Campos incompletos', 'Por favor seleccione un equipo y al menos una actividad.')
         return
@@ -220,10 +238,13 @@ async function handleConfirmCrear() {
     try {
         const equipo = addEquiposList.value[0]
         const actividad = addActividadesList.value[0] // Tomamos la primera actividad seleccionada
+        const user = getSessionUser() // Obtener usuario de la sesión
 
         const data = {
+            CODIGO_PERSONA: user?.codigoPersona || '', // Asignar el código del usuario
             ID_EQUIPO: equipo.ID_EQUIPO,
             ID_ACTIVIDAD: actividad.ID_ACTIVIDAD,
+            TIEMPO_ACTIVIDAD: tiempoActividad.value,
             CAUSO_PARADA: causoParada.value,
             OBSERVACION_OTM: observacionesOTM.value,
             PRIORIDAD: prioridadActividad.value
@@ -501,6 +522,7 @@ textarea:focus {
     background: var(--color-surface);
     border-radius: 10px;
     border-left: 4px solid var(--color-secondary);
+    margin-bottom: var(--space-xs);
 }
 
 .actividad-chip__info {
@@ -571,5 +593,13 @@ textarea:focus {
 .fade-slide-leave-to {
     opacity: 0;
     transform: translate(-50%, -40%);
+}
+
+.text-horas {
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    color: var(--color-muted);
+    align-self: end;
+    margin-bottom: 20px;
 }
 </style>
