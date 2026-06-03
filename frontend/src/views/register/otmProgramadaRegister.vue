@@ -5,7 +5,7 @@
             <UiButton label="Regresar" color="info" icon="arrow-left" @click="$router.back()" />
             <div v-if="itemsList.length > 0">
                 <span v-if="itemsList.length > 1" class="pagination-info">{{ currentIndex + 1 }} de {{ itemsList.length
-                    }}</span>
+                }}</span>
                 <UiButton v-if="itemsList.length > 1" label="Anterior" color="edit" icon="arrow-left"
                     :disabled="currentIndex === 0" @click="anterior()" />
 
@@ -20,12 +20,8 @@
         <!-- Alertas Flotantes -->
         <Transition name="fade-slide">
             <div v-if="alertConfig.show" class="alert-container-centered">
-                <UiAlert 
-                    :type="alertConfig.type" 
-                    :title="alertConfig.title" 
-                    :message="alertConfig.message"
-                    @close="alertConfig.show = false" 
-                />
+                <UiAlert :type="alertConfig.type" :title="alertConfig.title" :message="alertConfig.message"
+                    @close="alertConfig.show = false" />
             </div>
         </Transition>
 
@@ -102,10 +98,17 @@
 
                 <div class="usuarios-list">
                     <div class="usuario-item" v-for="user in addUsersList" :key="user.codigoPersona">
+                        <div class="buttons-container-cards">
+                            <UiButton color="create" icon="save" @click="guardarUsuario(user.codigoPersona)" />
+                            <UiButton color="delete" icon="trash" @click="eliminarUsuario(user.codigoPersona)" />
+                        </div>
+
                         <div class="usuario-info">
+
+
                             <div class="flex align-center gap-3">
                                 <span class="usuario-name">Nombre: {{ user.nombrePersona }} - Id: {{ user.codigoPersona
-                                }}</span>
+                                    }}</span>
                             </div>
 
                             <div class="flex flex-col align-center gap-3">
@@ -128,16 +131,19 @@
                                         placeholder="00:00" readonly />
                                 </div>
                             </div>
+
+                            <div class="mt-4">
+                                <UiSignature v-model="user.firma" label="Firma del operario" :height="150" />
+                            </div>
                         </div>
 
-                        <div class="buttons-container-cards">
-                            <UiButton color="create" icon="save" @click="guardarUsuario(user.codigoPersona)" />
-                            <UiButton color="delete" icon="trash" @click="eliminarUsuario(user.codigoPersona)" />
-                        </div>
+
                     </div>
                     <p v-if="addUsersList.length === 0" class="text-muted text-center py-4">
                         No hay personal adicional asignado.
                     </p>
+
+
                 </div>
             </section>
 
@@ -153,36 +159,28 @@
                     <Transition name="fade-slide">
                         <div v-if="isAddingRepuesto" class="mb-6 flex flex-col gap-4">
                             <!-- Paso 1: Seleccionar Tipo -->
-                            <UiSearchSelector 
-                                v-if="!selectedTipoRepuesto"
-                                :items="tipoRepuestosList"
-                                :searchFields="['NOMBRE_TIPO_REPUESTO']" 
-                                itemKey="ID_TIPO_REPUESTO"
-                                label="1. Buscar tipo de repuesto" 
-                                placeholder="Ej: Rodamientos, Motores..."
-                                selectLabel="Seleccionar tipo" 
-                                confirmLabel="Siguiente"
+                            <UiSearchSelector v-if="!selectedTipoRepuesto" :items="tipoRepuestosList"
+                                :searchFields="['NOMBRE_TIPO_REPUESTO']" itemKey="ID_TIPO_REPUESTO"
+                                label="1. Buscar tipo de repuesto" placeholder="Ej: Rodamientos, Motores..."
+                                selectLabel="Seleccionar tipo" confirmLabel="Siguiente"
                                 :displayFormat="(r) => r.NOMBRE_TIPO_REPUESTO"
-                                @select="confirmarSeleccionTipoRepuesto" 
-                            />
+                                @select="confirmarSeleccionTipoRepuesto" />
 
                             <!-- Paso 2: Seleccionar Repuesto Específico -->
                             <div v-else class="flex flex-col gap-2">
-                                <div class="flex justify-between items-center bg-primary/5 p-2 rounded border border-primary/10">
-                                    <span class="text-sm font-bold">Tipo: {{ selectedTipoRepuesto.NOMBRE_TIPO_REPUESTO }}</span>
-                                    <UiButton label="Cambiar tipo" size="sm" color="info" @click="selectedTipoRepuesto = null" />
+                                <div
+                                    class="flex justify-between items-center bg-primary/5 p-2 rounded border border-primary/10">
+                                    <span class="text-sm font-bold">Tipo: {{ selectedTipoRepuesto.NOMBRE_TIPO_REPUESTO
+                                        }}</span>
+                                    <UiButton label="Cambiar tipo" size="sm" color="info"
+                                        @click="selectedTipoRepuesto = null" />
                                 </div>
-                                <UiSearchSelector 
-                                    :items="repuestosList"
-                                    :searchFields="['NOMBRE_REPUESTO']" 
-                                    itemKey="ID_REPUESTO"
-                                    label="2. Buscar repuesto específico" 
-                                    placeholder="Nombre del repuesto..."
-                                    selectLabel="Seleccionar repuesto" 
+                                <UiSearchSelector :items="repuestosList" :searchFields="['NOMBRE_REPUESTO']"
+                                    itemKey="ID_REPUESTO" label="2. Buscar repuesto específico"
+                                    placeholder="Nombre del repuesto..." selectLabel="Seleccionar repuesto"
                                     confirmLabel="Agregar repuesto"
                                     :displayFormat="(r) => `${r.NOMBRE_REPUESTO} (Stock: ${r.INV_ACTUAL})`"
-                                    @select="confirmarSeleccionRepuesto" 
-                                />
+                                    @select="confirmarSeleccionRepuesto" />
                             </div>
                         </div>
                     </Transition>
@@ -198,16 +196,19 @@
                                 <div class="flex items-center gap-4">
                                     <div class="flex items-center gap-2">
                                         <label class="text-xs font-bold">Cant:</label>
-                                        <input type="number" v-model="rep.UND_REAL" class="w-16 p-1 border rounded text-center" min="1" />
+                                        <input type="number" v-model="rep.UND_REAL"
+                                            class="w-16 p-1 border rounded text-center" min="1" />
                                     </div>
                                     <div class="flex items-center gap-2">
                                         <UiButton color="create" icon="save" size="sm" @click="guardarRepuesto(rep)" />
-                                        <UiButton color="delete" icon="trash" size="sm" @click="eliminarRepuesto(rep.ID_REPUESTO)" />
+                                        <UiButton color="delete" icon="trash" size="sm"
+                                            @click="eliminarRepuesto(rep.ID_REPUESTO)" />
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <p v-if="addRepuestosList.length === 0" class="text-center text-muted py-4">No hay repuestos agregados.</p>
+                        <p v-if="addRepuestosList.length === 0" class="text-center text-muted py-4">No hay repuestos
+                            agregados.</p>
                     </div>
                 </div>
             </section>
@@ -215,10 +216,10 @@
             <section class="section-card">
                 <h2 class="section-card-title">Fotos</h2>
                 <div class="grid  gap-6 mt-4">
-                    <UiImageUpload label="Foto 1" v-model="foto1"
-                        placeholder="Capturar o seleccionar foto 1" />
-                    <UiImageUpload label="Foto 2" v-model="foto2"
-                        placeholder="Capturar o seleccionar foto 2" />
+                    <UiImageUpload label="Foto 1" v-model="foto1" placeholder="Capturar o seleccionar foto 1"
+                        @save="(img) => guardarFotoOtm(1, img)" />
+                    <UiImageUpload label="Foto 2" v-model="foto2" placeholder="Capturar o seleccionar foto 2"
+                        @save="(img) => guardarFotoOtm(2, img)" />
                 </div>
             </section>
 
@@ -259,22 +260,24 @@
                 <Transition name="fade-slide">
                     <div v-if="isAddingSupervisor" class="mb-6">
                         <UiSearchSelector :items="supervisorList" :searchFields="['nombrePersona']"
-                            itemKey="codigoPersona" label="Buscar supervisor"
-                            placeholder="Ej: Juan Perez" selectLabel="Seleccionar supervisor"
-                            confirmLabel="Confirmar"
-                            :displayFormat="(s) => `${s.nombrePersona}`"
-                            @select="confirmarSeleccionSupervisor" />
+                            itemKey="codigoPersona" label="Buscar supervisor" placeholder="Ej: Juan Perez"
+                            selectLabel="Seleccionar supervisor" confirmLabel="Confirmar"
+                            :displayFormat="(s) => `${s.nombrePersona}`" @select="confirmarSeleccionSupervisor" />
                     </div>
                 </Transition>
 
                 <div class="supervisor-asignado mt-4">
-                    <div v-for="sup in addSupervisorList" :key="sup.codigoPersona" class="usuario-item supervisor-item">
+                    <div v-for="sup in addSupervisorList" :key="sup.codigoPersona" class="usuario-item">
+                        <div class="buttons-container-cards">
+                            <UiButton color="delete" icon="trash" @click="eliminarSupervisor(sup.codigoPersona)" />
+                        </div>
                         <div class="usuario-info">
                             <span class="text-muted text-xs">Supervisor</span>
                             <span class="usuario-name text-sm">{{ sup.nombrePersona }}</span>
-                        </div>
-                        <div class="buttons-container-cards">
-                            <UiButton color="delete" icon="trash" @click="eliminarSupervisor(sup.codigoPersona)" />
+
+                            <div class="mt-4">
+                                <UiSignature v-model="sup.firma" label="Firma del supervisor" :height="150" />
+                            </div>
                         </div>
                     </div>
                     <p v-if="addSupervisorList.length === 0" class="text-muted text-center py-4">
@@ -282,20 +285,15 @@
                     </p>
                 </div>
 
-                <UiButton v-if="addSupervisorList.length > 0" label="Aprobar" color="create" icon="check" iconPosition="end" @click="aprobarOTM()" />
+                <UiButton v-if="addSupervisorList.length > 0" label="Aprobar" color="create" icon="check"
+                    iconPosition="end" @click="aprobarOTM()" />
             </section>
         </div>
 
         <!-- Modal de Confirmación -->
-        <UiModal 
-            v-if="otmData && currentDatosOtm"
-            v-model="showConfirmModal"
-            title="Finalizar Orden de Trabajo"
+        <UiModal v-if="otmData && currentDatosOtm" v-model="showConfirmModal" title="Finalizar Orden de Trabajo"
             :message="`¿Estás seguro de que deseas marcar la OTM #${otmData.ID_OTM} (${currentDatosOtm.NOMBRE_ACTIVIDAD}) como cumplida? Esta acción no se puede deshacer.`"
-            confirmLabel="Sí, finalizar"
-            confirmIcon="Check"
-            @confirm="handleConfirmCumplir"
-        />
+            confirmLabel="Sí, finalizar" confirmIcon="Check" @confirm="handleConfirmCumplir" />
     </div>
 </template>
 
@@ -303,11 +301,13 @@
 import { onMounted, ref, computed, watch, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { getSelectedOtm, clearSelectedOtm } from '../../utils/dataTransfer.js'
+import { getSelectedDbApiUrl } from '../../utils/dbProfile.js'
 import axios from '../../api/axios.js'
 import UiButton from '../../components/UiButton.vue'
 import UiInput from '../../components/UiInput.vue'
 import UiSearchSelector from '../../components/UiSearchSelector.vue'
 import UiImageUpload from '../../components/UiImageUpload.vue'
+import UiSignature from '../../components/UiSignature.vue'
 import UiModal from '../../components/UiModal.vue'
 import UiAlert from '../../components/UiAlert.vue'
 import { formatDate, formatForDateTimeInput } from '../../utils/formatDate.js'
@@ -361,13 +361,13 @@ watch(() => addUsersList.value, (newList) => {
         if (user.horaInicio && user.horaFin) {
             const start = new Date(user.horaInicio)
             const end = new Date(user.horaFin)
-            
+
             const diffMs = end - start
             if (diffMs > 0) {
                 const totalSeconds = Math.floor(diffMs / 1000)
                 const hours = Math.floor(totalSeconds / 3600)
                 const minutes = Math.floor((totalSeconds % 3600) / 60)
-                
+
                 user.horaTotal = [hours, minutes]
                     .map(v => v.toString().padStart(2, '0'))
                     .join(':')
@@ -423,7 +423,7 @@ async function loadData() {
 
         try {
             // Ejecutamos todas las peticiones en paralelo
-            const [otmRes, usersRes, tipoRepuestosRes, supervisoresRes, personasAsignadasRes, repuestosAsignadosRes] = await Promise.all([
+            const [otmRes, usersRes, tipoRepuestosRes, supervisoresRes, personasAsignadasRes, repuestosAsignadosRes, supervisorAsignadoRes] = await Promise.all([
                 axios.get('otmProgramada/get-datos-otm-programada', { params: { idOtmProgramada: idStr } }),
                 axios.get('users/not-suspended').catch(err => {
                     console.error('Error al cargar datos de los usuarios:', err)
@@ -433,21 +433,44 @@ async function loadData() {
                 axios.get('users/get-supervisores'),
                 axios.get('users/personas-asignadas', { params: { idOtm: idStr } }),
                 axios.get('otmProgramada/get-repuestos-asignados-otm', { params: { idOtm: idStr } }),
+                axios.get('users/supervisor-asignado', { params: { idOtm: idStr } }).catch(err => {
+                    console.error('Error al cargar supervisor asignado:', err)
+                    return { data: null }
+                }),
             ])
 
             itemsList.value = Array.isArray(otmRes.data) ? otmRes.data : [otmRes.data]
             usersList.value = Array.isArray(usersRes.data) ? usersRes.data : [usersRes.data]
             tipoRepuestosList.value = Array.isArray(tipoRepuestosRes.data) ? tipoRepuestosRes.data : [tipoRepuestosRes.data]
             supervisorList.value = Array.isArray(supervisoresRes.data) ? supervisoresRes.data : [supervisoresRes.data]
-            
+
+            const baseUrl = (getSelectedDbApiUrl() || import.meta.env.VITE_API_URL || '').replace(/\/api$/, '')
+
             if (Array.isArray(personasAsignadasRes.data)) {
                 addUsersList.value = personasAsignadasRes.data.map(u => ({
                     ...u,
                     horaInicio: formatForDateTimeInput(u.horaInicio),
                     horaFin: formatForDateTimeInput(u.horaFin),
-                    horaTotal: u.horaTotal || '00:00:00'
+                    horaTotal: u.horaTotal || '00:00:00',
+                    firma: u.firma ? `${baseUrl}/${u.firma}` : null
                 }))
             }
+
+            if (supervisorAsignadoRes.data) {
+                const sup = supervisorAsignadoRes.data
+                addSupervisorList.value = [{
+                    ...sup,
+                    firma: sup.firma ? `${baseUrl}/${sup.firma}` : null
+                }]
+            }
+
+            // Cargar fotos existentes
+            if (otmRes.data) {
+                const otm = Array.isArray(otmRes.data) ? otmRes.data[0] : otmRes.data
+                if (otm.FOTO_1) foto1.value = `${baseUrl}/${otm.FOTO_1}`
+                if (otm.FOTO_2) foto2.value = `${baseUrl}/${otm.FOTO_2}`
+            }
+
             if (Array.isArray(repuestosAsignadosRes.data)) {
                 addRepuestosList.value = repuestosAsignadosRes.data
             }
@@ -500,6 +523,7 @@ async function guardarUsuario(codigoPersona) {
     const inicio = new Date(user.horaInicio)
     const fin = new Date(user.horaFin)
     const fechaProgramada = new Date(otmData.value.FECHA_PROGRAMADA)
+    console.log(fechaProgramada)
 
     // Validaciones
     if (inicio >= fin) {
@@ -507,7 +531,10 @@ async function guardarUsuario(codigoPersona) {
         return
     }
 
-    if (inicio < fechaProgramada) {
+
+    const inicioMinutos = new Date(inicio).setSeconds(0, 0);
+    const fechaProgMinutos = new Date(fechaProgramada).setSeconds(0, 0);
+    if (inicioMinutos < fechaProgMinutos) {
         showAlert('error', 'Fecha inválida', `La fecha de inicio no puede ser menor a la fecha programada (${formatDate(otmData.value.FECHA_PROGRAMADA)})`)
         return
     }
@@ -515,11 +542,13 @@ async function guardarUsuario(codigoPersona) {
     try {
         const payload = {
             codigoPersona: user.codigoPersona,
+            nombrePersona: user.nombrePersona,
             horaInicio: user.horaInicio,
             horaFin: user.horaFin,
             horaTotal: user.horaTotal,
             ano: inicio.getFullYear(),
-            mes: inicio.getMonth() + 1
+            mes: inicio.getMonth() + 1,
+            firma: user.firma
         }
 
         await axios.post(`otmProgramada/save-persona-asignada-otm/${otmData.value.ID_OTM}`, payload)
@@ -581,7 +610,7 @@ async function guardarRepuesto(repuesto) {
         await axios.post('otmProgramada/save-repuestos-asignados-otm', payload, {
             params: { idOtm: otmData.value.ID_OTM }
         })
-        
+
         showAlert('success', 'Repuesto guardado', `El repuesto ${repuesto.NOMBRE_REPUESTO} ha sido guardado correctamente`)
     } catch (error) {
         console.error('Error al guardar repuesto:', error)
@@ -625,10 +654,10 @@ function confirmarSeleccionRepuesto(repuesto) {
         // Evitar duplicados por ID_REPUESTO
         const exists = addRepuestosList.value.some(r => r.ID_REPUESTO === repuesto.ID_REPUESTO)
         if (!exists) {
-            addRepuestosList.value.push({ 
-                ...repuesto, 
+            addRepuestosList.value.push({
+                ...repuesto,
                 cantidad: 1,
-                nombreTipoRepuesto: selectedTipoRepuesto.value.NOMBRE_TIPO_REPUESTO 
+                nombreTipoRepuesto: selectedTipoRepuesto.value.NOMBRE_TIPO_REPUESTO
             })
         }
         isAddingRepuesto.value = false
@@ -637,8 +666,50 @@ function confirmarSeleccionRepuesto(repuesto) {
     }
 }
 
-function aprobarOTM() {
-    console.log('Aprobar OTM')
+async function aprobarOTM() {
+    const supervisor = addSupervisorList.value[0]
+    if (!supervisor) return
+
+    if (!supervisor.firma) {
+        showAlert('warning', 'Firma requerida', 'El supervisor debe firmar para aprobar la OTM')
+        return
+    }
+
+    try {
+        const payload = {
+            codigoPersona: supervisor.codigoPersona,
+            nombrePersona: supervisor.nombrePersona,
+            firma: supervisor.firma
+        }
+
+        await axios.post(`otmProgramada/aprobar-otm/${otmData.value.ID_OTM}`, payload)
+        showAlert('success', 'OTM Aprobada', 'La orden de trabajo ha sido aprobada correctamente.')
+    } catch (error) {
+        console.error('Error al aprobar OTM:', error)
+        showAlert('error', 'Error de aprobación', 'No se pudo aprobar la OTM: ' + (error.response?.data?.error || error.message))
+    }
+}
+
+async function guardarFotoOtm(photoNumber, imageBase64) {
+    try {
+        const payload = {
+            photoNumber,
+            image: imageBase64
+        }
+        const res = await axios.post(`otmProgramada/save-otm-photo/${otmData.value.ID_OTM}`, payload)
+        
+        const baseUrl = (getSelectedDbApiUrl() || import.meta.env.VITE_API_URL || '').replace(/\/api$/, '')
+        if (photoNumber === 1) {
+            foto1.value = `${baseUrl}/${res.data.url}`
+        } else {
+            foto2.value = `${baseUrl}/${res.data.url}`
+        }
+        
+        showAlert('success', 'Foto guardada', `La foto ${photoNumber} ha sido guardada correctamente`)
+    } catch (error) {
+        console.error('Error al guardar foto:', error)
+        showAlert('error', 'Error', 'No se pudo guardar la foto: ' + (error.response?.data?.error || error.message))
+    }
 }
 
 </script>
@@ -818,9 +889,9 @@ textarea:focus {
     pointer-events: none;
 }
 
-.alert-container-centered > * {
+.alert-container-centered>* {
     pointer-events: auto;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
 @media (max-width: 768px) {

@@ -1,4 +1,4 @@
-import { getUserById, getAllUsers, getNotSuspendedUsers, getSupervisores, getPersonasAsignadas } from '../services/usersService.js'
+import { getUserById, getAllUsers, getNotSuspendedUsers, getSupervisores, getPersonasAsignadas, getSupervisorAsignado } from '../services/usersService.js'
 
 export async function listUsers(req, res, next) {
   try {
@@ -52,6 +52,19 @@ export async function getListPersonasAsignadas(req, res, next) {
     }
     const personasAsignadas = await getPersonasAsignadas(idOtm)
     res.json(personasAsignadas)
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getSupervisorAsignadoController(req, res, next) {
+  try {
+    const idOtm = req.params.idOtm || req.query.idOtm
+    if (!idOtm) {
+      return res.status(400).json({ error: 'Falta el parámetro idOtm' })
+    }
+    const supervisor = await getSupervisorAsignado(idOtm)
+    res.json(supervisor)
   } catch (err) {
     next(err)
   }

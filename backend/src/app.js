@@ -4,6 +4,11 @@ import dotenv from 'dotenv'
 import helmet from 'helmet'
 import apiRouter from './routes/api.js'
 import db from './db/index.js'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 dotenv.config()
 
@@ -17,7 +22,10 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'x-db-id']
 }))
 app.use(express.json())
-app.use(helmet())
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}))
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')))
 
 // Middleware para manejar el contexto de la base de datos
 app.use((req, res, next) => {

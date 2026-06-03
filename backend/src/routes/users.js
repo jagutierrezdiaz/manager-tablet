@@ -1,5 +1,5 @@
 import express from 'express'
-import { listUsers, listNotSuspendedUsers, getUser, getListSupervisores, getListPersonasAsignadas } from '../controllers/usersController.js'
+import { listUsers, listNotSuspendedUsers, getUser, getListSupervisores, getListPersonasAsignadas, getSupervisorAsignadoController } from '../controllers/usersController.js'
 
 const router = express.Router()
 
@@ -11,6 +11,9 @@ router.get('/not-suspended', listNotSuspendedUsers)
 
 // GET /api/users/supervisores
 router.get('/get-supervisores', getListSupervisores)
+
+// GET /api/users/supervisor-asignado
+router.get('/supervisor-asignado', getSupervisorAsignadoController)
 
 // GET /api/users/personas-asignadas
 router.get('/personas-asignadas', getListPersonasAsignadas)

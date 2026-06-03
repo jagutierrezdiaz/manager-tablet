@@ -80,6 +80,12 @@ export async function getMaxIdNumerico() {
 }
 
 export async function saveOTMCorrectiva(data) {
+    // 0. Verificar si existe la actividadEquipo, si no, crearla
+    const exists = await checkActividadEquipoExists(data.ID_EQUIPO, data.ID_ACTIVIDAD)
+    if (!exists) {
+        await insertActividadEquipoOtm(data.ID_EQUIPO, data.ID_ACTIVIDAD)
+    }
+
     // 1. Obtener el siguiente ID_OTM
     const maxId = await getMaxIdNumerico()
     const nextId = Number(maxId) + 1
@@ -137,9 +143,90 @@ export async function saveOTMCorrectiva(data) {
     ]
 
     await db.query(sql, params)
+    await saveActividadEquipoOtm(data.ID_EQUIPO, data.ID_ACTIVIDAD)
+
+    // Obtener personas asociadas a la actividad e insertar en CIERRE_MOD
+    const personas = await getPersonaActividad(data.ID_ACTIVIDAD)
+    for (const persona of personas) {
+        await insertCierreMod(nextId, persona.CODIGO_PERSONA)
+    }
+
     return { success: true, ID_OTM: nextId }
 }
 
+
+export async function insertActividadEquipoOtm(idEquipo, idActividad) {
+    const sql = `
+        INSERT INTO ACTIVIDAD_EQUIPO(
+            ID_EQUIPO,
+            ID_ACTIVIDAD,
+            TIEMPO_MANTENIMIENTO,
+            VALOR_VARIABLE_MTTO,
+            VALOR_MINIMO,
+            VALOR_MAXIMO,
+            UND_VARIABLE,
+            HORAS_ACUMULADAS,
+            ASIGNADO,
+            PROGRAMADO,
+            OTM,
+            PRIORIDAD,
+            FECHA_ESTADO,
+            TIEMPO_TRABAJO,
+            TIEMPO_ACTIVIDAD,
+            ESTADO,
+            ID_VARIABLE,
+            FECHA_ASIGNACION,
+            REINICIAR_TIPO_FIJO
+        )
+        VALUES
+        (
+            ?,                
+            ?,              
+            0,                     
+            0,              
+            0,                     
+            0,                     
+            'No Aplica',                 
+            0,                       
+            'NO',                    
+            'NO',                   
+            'NO',                     
+            'Alta',               
+            null,                    
+            0,                        
+            0,          
+            'ABIERTA',               
+            'No Aplica',             
+            CURRENT_TIMESTAMP,               
+            null                    
+        )
+    `
+    const params = [idEquipo, idActividad]
+    await db.query(sql, params)
+    return { success: true }
+}
+
+export async function saveActividadEquipoOtm(idEquipo, idActividad) {
+    const sql = `
+        UPDATE ACTIVIDAD_EQUIPO
+        SET ASIGNADO = 'SI',
+        OTM = 'SI'
+        WHERE ID_EQUIPO = ?
+        AND ID_ACTIVIDAD = ?;
+    `
+    const params = [idEquipo, idActividad]
+    await db.query(sql, params)
+    return { success: true }
+}
+
+export async function checkActividadEquipoExists(idEquipo, idActividad) {
+    const sql = `
+        SELECT 1 FROM ACTIVIDAD_EQUIPO
+        WHERE ID_EQUIPO = ? AND ID_ACTIVIDAD = ?
+    `
+    const rows = await db.query(sql, [idEquipo, idActividad])
+    return rows.length > 0
+}
 
 export async function getParametroLimiteCierre() {
     const sql = `
@@ -150,4 +237,49 @@ export async function getParametroLimiteCierre() {
     `
     const rows = await db.query(sql, [])
     return rows
+}
+
+
+export async function getPersonaActividad(idActividad) {
+    const sql = `
+        SELECT MA.CODIGO_PERSONA
+        FROM MOD_ACTIVIDAD MA
+        WHERE MA.ID_ACTIVIDAD = ? 
+    `
+    const rows = await db.query(sql, [idActividad])
+    return rows
+}
+
+export async function insertCierreMod(idOtm, codigoPersona) {
+    const now = new Date()
+    const ano = now.getFullYear()
+    const mes = now.getMonth() + 1
+
+    const sql = `
+        INSERT INTO CIERRE_MOD
+        (
+            ID_OTM,
+            CODIGO_PERSONA,
+            FECHA_INICIO,
+            FECHA_FIN,
+            VLR_HORA,
+            VLR_MOD,
+            ANO,
+            MES,
+            HORAS_TRABAJO
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `
+    const params = [
+        idOtm,
+        codigoPersona,
+        now,
+        now,
+        0,
+        0,
+        ano,
+        mes,
+        0
+    ]
+    await db.query(sql, params)
 }
