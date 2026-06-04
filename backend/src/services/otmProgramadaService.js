@@ -19,6 +19,7 @@ export async function getOtmProgramadas(codigoPersona) {
         WHERE OTM.CUMPLIDA = 'NO'
             AND OTM.ID_ACTIVIDAD = AC.ID_ACTIVIDAD
             AND OTM.ID_OTM = CM.ID_OTM
+            AND AC.TIPO_PROGRAMA = 'PERIODO'
             AND CM.CODIGO_PERSONA = ?
         ORDER BY OTM.FECHA_PROGRAMADA`
     const rows = await db.query(sql, [codigoPersona])
@@ -372,13 +373,126 @@ export async function saveCumplimientoOtm(tiempoReal, indiceCumplimiento, efecti
                 INDICE_CUMPLIMIENTO = ?,
                 EFECTIVIDAD_CUMPLIMIENTO = ?,
                 COMENTARIOS_DE_CIERRE = ?,
-                TIEMPO_MOD = ?
+                TIEMPO_MOD = ?,
+                CUMPLIDA = 'SI'
             WHERE ID_OTM = ?
         `
         await db.query(sql, [tiempoReal, indiceCumplimiento, efectividadCumplimiento, comentariosCierre, tiempoMod, idOtm])
-        return { success: true, message: 'Cumplimiento de la OTM guardado correctamente' }
+
+        // 1. Obtener datos de la OTM que se acaba de cumplir
+        const sqlGet = 'SELECT ID_NUMERICO, ID_ACTIVIDAD, ID_EQUIPO FROM OTM WHERE ID_OTM = ?'
+        const rows = await db.query(sqlGet, [idOtm])
+
+        if (rows.length > 0) {
+            const { ID_NUMERICO, ID_ACTIVIDAD, ID_EQUIPO } = rows[0]
+
+            // 2. Actualizar las OTMs programadas siguientes (mismo equipo y actividad)
+            // Se incrementa tanto la fecha programada como el límite de cierre según el parámetro configurado
+            const sqlUpdateNext = `
+                UPDATE OTM O
+                SET O.FECHA_PROGRAMADA = O.FECHA_PROGRAMADA + (SELECT P.LIMITE_CIERRE FROM PARAMETRO P),
+                    O.LIMITE_CIERRE = O.LIMITE_CIERRE + (SELECT P.LIMITE_CIERRE FROM PARAMETRO P)
+                WHERE O.ID_NUMERICO > ?
+                  AND O.ID_ACTIVIDAD = ?
+                  AND O.ID_EQUIPO = ?
+                  AND O.CUMPLIDA = 'NO'
+            `
+            await db.query(sqlUpdateNext, [ID_NUMERICO, ID_ACTIVIDAD, ID_EQUIPO])
+        }
+
+        return { success: true, message: 'Cumplimiento de la OTM guardado y siguientes actualizadas correctamente' }
     } catch (error) {
         console.error('Error saving OTM cumplimiento:', error)
+        throw error
+    }
+}
+
+
+export async function assignOtmToUser(idOtm, codigoPersona) {
+    try {
+        // Verificar si ya existe la asignación
+        const sqlCheck = 'SELECT * FROM CIERRE_MOD WHERE ID_OTM = ? AND CODIGO_PERSONA = ?'
+        const rows = await db.query(sqlCheck, [idOtm, codigoPersona])
+
+        if (rows && rows.length > 0) {
+            return { success: true, message: 'La OTM ya está asignada al usuario' }
+        }
+
+        const sqlInsert = `
+            INSERT INTO CIERRE_MOD
+            (
+                ID_OTM,
+                CODIGO_PERSONA,
+                FECHA_INICIO,
+                FECHA_FIN,
+                VLR_HORA,
+                VLR_MOD,
+                ANO,
+                MES,
+                HORAS_TRABAJO
+            )
+            VALUES
+            (
+                ?,
+                ?,
+                CURRENT_TIMESTAMP,
+                CURRENT_TIMESTAMP,
+                0,
+                0,
+                EXTRACT(YEAR FROM CURRENT_DATE),
+                EXTRACT(MONTH FROM CURRENT_DATE),
+                0
+            )
+        `
+        await db.query(sqlInsert, [idOtm, codigoPersona])
+        return { success: true, message: 'OTM asignada correctamente al usuario' }
+    } catch (error) {
+        console.error('Error assigning OTM to user:', error)
+        throw error
+    }
+}
+
+export async function validarOtmAnterior(idNumerico, idEquipo, idActividad) {
+    console.log('Validating previous OTM Params:', { idNumerico, idEquipo, idActividad })
+    
+    if (!idNumerico || !idEquipo || !idActividad) {
+        console.warn('Missing parameters for validating previous OTM')
+        return { success: true, idOtm: null }
+    }
+
+    try {
+        const sql = `
+            SELECT ID_OTM
+            FROM OTM
+            WHERE ID_NUMERICO = (SELECT MIN(ID_NUMERICO)
+            FROM OTM
+            WHERE ID_NUMERICO  < ?
+                AND ID_EQUIPO    = ?
+                AND ID_ACTIVIDAD = ?
+                AND CUMPLIDA='NO');
+        `
+        console.log('SQL:', sql, [idNumerico, idEquipo, idActividad])
+        const rows = await db.query(sql, [idNumerico, idEquipo, idActividad])
+        
+        if (rows.length > 0) {
+            const idOtmAnterior = rows[0].ID_OTM
+            const sqlDetalle = `
+                SELECT O.ID_OTM, O.FECHA_PROGRAMADA, A.NOMBRE_ACTIVIDAD 
+                FROM OTM O, ACTIVIDAD A
+                WHERE O.ID_ACTIVIDAD = A.ID_ACTIVIDAD 
+                AND O.ID_OTM = ?
+            `
+            const rowsDetalle = await db.query(sqlDetalle, [idOtmAnterior])
+            return { 
+                success: true, 
+                idOtm: idOtmAnterior,
+                detalle: rowsDetalle.length > 0 ? rowsDetalle[0] : null
+            }
+        }
+
+        return { success: true, idOtm: null }
+    } catch (error) {
+        console.error('Error validating previous OTM:', error)
         throw error
     }
 }

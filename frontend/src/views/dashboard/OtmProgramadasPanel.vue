@@ -45,7 +45,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from '../../api/axios.js'
 import { getSessionUser } from '../../utils/authSession.js'
@@ -110,19 +110,7 @@ const filteredData = computed(() =>
   data.value.filter((item) => filters[routeDateCategory(item.FECHA_PROGRAMADA)])
 )
 
-function handleClick(item, color) {
-  setSelectedOtm({ ...item, COLOR_CARD: color })
-  // Usamos setTimeout para sacar la navegación del ciclo de actualización actual de Vue
-  // Esto evita el error "Cannot set properties of null (setting '__vnode')"
-  setTimeout(() => {
-    router.push({
-      name: 'otm-programada-register',
-      params: { id: item.ID_OTM }
-    })
-  }, 0)
-}
-
-onMounted(async () => {
+async function loadOtmProgramadas() {
   const user = getSessionUser()
   const codigoPersona = user?.codigoPersona
   if (codigoPersona == null || codigoPersona.trim() === '') {
@@ -136,11 +124,27 @@ onMounted(async () => {
     })
     const list = Array.isArray(response.data) ? response.data : []
     data.value = list
+    console.log('otmProgramadas', data.value)
   } catch (e) {
     console.error('otmProgramada', e)
     data.value = []
   }
-})
+}
+
+function handleClick(item, color) {
+  setSelectedOtm({ ...item, COLOR_CARD: color })
+  // Usamos setTimeout para sacar la navegación del ciclo de actualización actual de Vue
+  // Esto evita el error "Cannot set properties of null (setting '__vnode')"
+  setTimeout(() => {
+    router.push({
+      name: 'otm-programada-register',
+      params: { id: item.ID_OTM }
+    })
+  }, 0)
+}
+
+onMounted(loadOtmProgramadas)
+onActivated(loadOtmProgramadas)
 </script>
 
 <style scoped>

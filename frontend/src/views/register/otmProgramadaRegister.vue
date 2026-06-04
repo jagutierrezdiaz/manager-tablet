@@ -291,13 +291,18 @@
         <UiModal v-if="otmData && currentDatosOtm" v-model="showConfirmModal" title="Finalizar Orden de Trabajo"
             :message="`¿Estás seguro de que deseas marcar la OTM #${otmData.ID_OTM} (${currentDatosOtm.NOMBRE_ACTIVIDAD}) como cumplida? Esta acción no se puede deshacer.`"
             confirmLabel="Sí, finalizar" confirmIcon="Check" @confirm="handleConfirmCumplir" />
+
+        <!-- Modal OTM Anterior -->
+        <UiModal v-if="otmAnteriorDetalle" v-model="showAnteriorModal" title="OTM Anterior Pendiente"
+            :message="`La OTM anterior #${otmAnteriorDetalle.ID_OTM} (${otmAnteriorDetalle.NOMBRE_ACTIVIDAD}) programada para el ${formatDate(otmAnteriorDetalle.FECHA_PROGRAMADA)} no ha sido cumplida. ¿Deseas realizar esta OTM ahora?`"
+            confirmLabel="Sí, realizar ahora" confirmIcon="ArrowRight" @confirm="handleIrAAnterior" />
     </div>
 </template>
 
 <script setup>
 import { onMounted, ref, computed, watch, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
-import { getSelectedOtm, clearSelectedOtm } from '../../utils/dataTransfer.js'
+import { getSelectedOtm, clearSelectedOtm, setSelectedOtm } from '../../utils/dataTransfer.js'
 import { getSelectedDbApiUrl } from '../../utils/dbProfile.js'
 import axios from '../../api/axios.js'
 import UiButton from '../../components/UiButton.vue'
@@ -308,6 +313,7 @@ import UiSignature from '../../components/UiSignature.vue'
 import UiModal from '../../components/UiModal.vue'
 import UiAlert from '../../components/UiAlert.vue'
 import { formatDate, formatForDateTimeInput } from '../../utils/formatDate.js'
+import { getSessionUser } from '../../utils/authSession.js'
 
 const props = defineProps({
     id: {
@@ -336,6 +342,8 @@ const foto1 = ref(null)
 const foto2 = ref(null)
 const observacionesEjecucion = ref('')
 const showConfirmModal = ref(false)
+const showAnteriorModal = ref(false)
+const otmAnteriorDetalle = ref(null)
 
 // Estado para alertas
 const alertConfig = ref({
@@ -379,6 +387,7 @@ watch(() => addUsersList.value, (newList) => {
 }, { deep: true })
 
 const currentDatosOtm = computed(() => {
+    console.log('currentDatosOtm', itemsList.value[currentIndex.value])
     return itemsList.value.length > 0 ? itemsList.value[currentIndex.value] : null
 })
 
@@ -398,15 +407,97 @@ function cumplir() {
     showConfirmModal.value = true
 }
 
+async function handleIrAAnterior() {
+    if (!otmAnteriorDetalle.value) return
+
+    const user = getSessionUser()
+    const codigoPersona = user?.codigoPersona
+
+    if (!codigoPersona) {
+        showAlert('error', 'Error', 'No se pudo obtener el usuario en sesión')
+        return
+    }
+
+    try {
+        // 1. Asignar la OTM al usuario si no la tiene (el backend ya verifica si existe)
+        await axios.post('otmProgramada/assign-otm-to-user', {
+            idOtm: otmAnteriorDetalle.value.ID_OTM,
+            codigoPersona: codigoPersona
+        })
+
+        // 2. Actualizar los datos en sesión para la nueva OTM
+        const idAnterior = otmAnteriorDetalle.value.ID_OTM
+        setSelectedOtm({
+            ID_OTM: idAnterior,
+            FECHA_PROGRAMADA: otmAnteriorDetalle.value.FECHA_PROGRAMADA,
+            NOMBRE_ACTIVIDAD: otmAnteriorDetalle.value.NOMBRE_ACTIVIDAD
+        })
+
+        // 3. Redirigir a la vista de registro de esa OTM
+        showAnteriorModal.value = false
+        
+        // Limpiar datos actuales para evitar conflictos al cargar la nueva
+        otmData.value = null
+        itemsList.value = []
+        
+        router.push({
+            name: 'otm-programada-register',
+            params: { id: idAnterior }
+        })
+        
+        // Forzar recarga de datos
+        setTimeout(() => {
+            loadData()
+        }, 100)
+
+    } catch (error) {
+        console.error('Error al asignar OTM anterior:', error)
+        showAlert('error', 'Error', 'No se pudo asignar la OTM anterior: ' + (error.response?.data?.error || error.message))
+    }
+}
+
 async function handleConfirmCumplir() {
+    console.log('handleConfirmCumplir called')
     // 1. Validaciones
     if (tiempoEjecucion.value <= 0) {
         showAlert('warning', 'Tiempo inválido', 'El tiempo real debe ser mayor a 0')
         showConfirmModal.value = false
         return
     }
-    if (!observacionesEjecucion.value.trim()) {
+    if (!observacionesEjecucion.value || !observacionesEjecucion.value.trim()) {
         showAlert('warning', 'Observaciones requeridas', 'Debe ingresar las observaciones de ejecución')
+        showConfirmModal.value = false
+        return
+    }
+    // 1. Validar OTM anterior
+    if (!currentDatosOtm.value) {
+        showAlert('error', 'Error', 'No se han cargado los datos de la OTM correctamente.')
+        showConfirmModal.value = false
+        return
+    }
+
+    console.log('validating previous OTM', {
+        idNumerico: currentDatosOtm.value.ID_NUMERICO,
+        idEquipo: currentDatosOtm.value.ID_EQUIPO,
+        idActividad: currentDatosOtm.value.ID_ACTIVIDAD
+    })
+
+    try {
+        const result = await axios.post('otmProgramada/validar-otm-anterior', {
+            idNumerico: currentDatosOtm.value.ID_NUMERICO,
+            idEquipo: currentDatosOtm.value.ID_EQUIPO,
+            idActividad: currentDatosOtm.value.ID_ACTIVIDAD
+        })
+
+        if (result.data.idOtm) {
+            otmAnteriorDetalle.value = result.data.detalle
+            showAnteriorModal.value = true
+            showConfirmModal.value = false
+            return
+        }
+    } catch (error) {
+        console.error('Error al validar OTM anterior:', error)
+        showAlert('error', 'Error de validación', 'No se pudo verificar la OTM anterior: ' + (error.response?.data?.error || error.message))
         showConfirmModal.value = false
         return
     }
@@ -541,6 +632,10 @@ async function loadData() {
         console.warn('Los datos en sesión no coinciden con el ID de la URL o no existen')
     }
 }
+
+watch(() => props.id, () => {
+    loadData()
+})
 
 onMounted(() => {
     loadData()
