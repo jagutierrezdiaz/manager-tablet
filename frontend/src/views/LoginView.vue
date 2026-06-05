@@ -25,6 +25,8 @@ onMounted(async () => {
     return
   }
 
+  console.log(selectedDbProfile.value)
+
   try {
     const { data: users } = await api.get('users')
     // eslint-disable-next-line no-console
@@ -90,7 +92,7 @@ async function onSubmit() {
       <section class="section-info glass-card">
         <h1>Iniciar sesión</h1>
         <p v-if="selectedDbProfile" class="db-badge">
-          Base de datos: <strong>{{ selectedDbProfile.label }}</strong>
+          Entorno de trabajo: <strong>{{ selectedDbProfile.description }}</strong>
         </p>
         <form class="flex flex-col gap-6" @submit.prevent="onSubmit">
           <Transition name="fade-slide">
