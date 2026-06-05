@@ -3,21 +3,21 @@ export const DB_PROFILE_KEY = 'selectedDbProfile'
 export const DB_PROFILES = [
     {
         id: 'db1',
-        label: 'Base de datos 1',
+        label: 'Base de Datos 1',
         description: 'Normandy Planta',
         apiUrl: import.meta.env.VITE_API_URL_DB_1 || import.meta.env.VITE_API_URL || '',
         available: true
     },
     {
         id: 'db2',
-        label: 'Base de datos 2',
+        label: 'Base de Datos 2',
         description: 'Normandy Locativos',
         apiUrl: import.meta.env.VITE_API_URL_DB_2 || 'http://localhost:3001/api',
         available: true
     },
     {
         id: 'db3',
-        label: 'Base de datos 3',
+        label: 'Base de Datos 3',
         description: 'Normandy Metrología',
         apiUrl: import.meta.env.VITE_API_URL_DB_3 || '',
         available: true

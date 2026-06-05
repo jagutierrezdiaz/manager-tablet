@@ -1,7 +1,9 @@
 <template>
-    <div class="register-container">
+    <div class="register-container glass-panel">
+        <div class="accent-bar"></div>
+        <h2>Ejecución OTMs Programadas</h2>
         <div class="buttons-container">
-            <UiButton label="Regresar" color="info" icon="ArrowLeft" @click="$router.back()" />
+            <UiButton label="Regresar" color="read" icon="ArrowLeft" @click="$router.back()" />
             <div class="buttons-container-cards" v-if="itemsList.length > 0">
                 <UiButton color="edit" icon="ArrowLeft" :disabled="currentIndex === 0" @click="anterior()" />
 
@@ -11,11 +13,9 @@
         </div>
 
         <div v-if="rutaInfo" class="data-container">
-            <UiTitleView 
-            :titleOTM="rutaInfo.ID_TIPO_RUTA" 
-            :titleActivity="rutaInfo.NOMBRE_TIPO_RUTA" 
-            :text1="`Nro Ruta: ${String(rutaInfo.ID_NUMERICO || '').trim()}`"
-            :text2="`Fecha: ${formatDate(rutaInfo.FECHA_PROGRAMADA || '')}`"
+            <UiTitleView :titleOTM="rutaInfo.ID_TIPO_RUTA" :titleActivity="rutaInfo.NOMBRE_TIPO_RUTA"
+                :text1="`Nro Ruta: ${String(rutaInfo.ID_NUMERICO || '').trim()}`"
+                :text2="`Fecha: ${formatDate(rutaInfo.FECHA_PROGRAMADA || '')}`"
                 :colorCard="rutaInfo.COLOR_CARD || 'bg-primary'" />
         </div>
 
@@ -89,8 +89,7 @@
         </section>
 
         <div class="footer-actions" v-if="itemsList.length > 0">
-            <UiButton label="Cumplir" color="create" icon="Check" :disabled="!isUltimoRegistro"
-                @click="cumplirRuta" />
+            <UiButton label="Cumplir" color="create" icon="Check" :disabled="!isUltimoRegistro" @click="cumplirRuta" />
         </div>
 
         <!-- Modal de Confirmación -->
@@ -458,7 +457,6 @@ td {
 .footer-actions {
     display: flex;
     justify-content: center;
-    margin-bottom: var(--space-xl);
     border-top: 1px solid var(--color-surface);
 }
 
@@ -517,5 +515,42 @@ textarea:focus {
 .fade-slide-leave-to {
     opacity: 0;
     transform: translate(-50%, -40%);
+}
+
+
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  /* Cristal templado premium Fiori Light */
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.40);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: 1050px;
+  /* Tamaño máximo optimizado */
+  margin: 0 auto;
+  padding: 2.25rem 2rem;
+}
+
+
+.glass-panel .accent-bar {
+  width: 120px;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  margin: 0 auto 0.55rem auto;
+}
+
+.glass-panel h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
 }
 </style>

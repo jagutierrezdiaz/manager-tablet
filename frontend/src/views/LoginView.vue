@@ -120,12 +120,30 @@ async function onSubmit() {
 <style scoped>
 .container-login {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  background: 
+    radial-gradient(circle at top center, rgba(255, 255, 255, 0.12), transparent 45%),
+    linear-gradient(180deg, #163766 0%, #0f2b54 50%, #0a1f3f 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   overflow: hidden;
+}
+
+/* Rejilla técnica de fondo estilo plano industrial */
+.container-login::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: 
+    radial-gradient(rgba(255, 255, 255, 0.10) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 40px 40px, 20px 20px, 20px 20px;
+  background-position: center;
+  opacity: 0.4;
+  z-index: 0;
 }
 
 /* Background Decoration */
@@ -147,19 +165,27 @@ async function onSubmit() {
 }
 
 .circle-1 {
-  width: 400px;
-  height: 400px;
-  background: var(--color-primary);
-  top: -100px;
-  right: -100px;
+  width: 380px !important;
+  height: 380px !important;
+  background-color: transparent !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba%28255,255,255,0.08%29' stroke-width='0.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z'/%3E%3C/svg%3E") !important;
+  filter: none !important;
+  opacity: 1 !important;
+  top: -80px !important;
+  right: -80px !important;
+  left: auto !important;
+  animation: spin 60s linear infinite;
+  transform-origin: center;
+  border-radius: 0% !important;
 }
 
 .circle-2 {
-  width: 300px;
-  height: 300px;
-  background: var(--color-secondary);
-  bottom: -50px;
-  left: -50px;
+  display: none !important;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .content-wrapper {
@@ -168,76 +194,116 @@ async function onSubmit() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   min-height: 100vh;
   width: 100%;
-  padding: var(--space-xl) var(--space-md);
+  padding: 3rem 1.5rem;
 }
 
 .header-logo {
-  width: 100%;
+  position: absolute;
+  top: 3rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 3rem);
+  max-width: 650px;
   display: flex;
   justify-content: center;
-  margin-bottom: var(--space-sm);
+  margin-bottom: 0;
 }
 
 .img-logo {
-  max-width: 280px;
-  width: 70%;
-  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35));
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: var(--radius-lg);
-  padding: var(--space-md);
-  box-shadow: var(--shadow-lg);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.85); /* Fiori Light Card */
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-radius: 28px;
+  padding: 2.5rem 2rem;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.40);
   width: 100%;
-  max-width: 420px;
+  max-width: 440px;
+  position: relative;
+}
+
+.glass-card::before {
+  content: '';
+  display: block;
+  width: 120px;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  margin: 0 auto 1.5rem auto;
 }
 
 h1 {
-  font-size: 1.75rem;
+  font-size: 1.6rem;
   font-weight: 800;
-  color: #1e293b;
-  margin-bottom: var(--space-lg);
+  color: #0f172a;
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
   text-align: center;
 }
 
 .db-badge {
   text-align: center;
-  color: #64748b;
-  margin: calc(var(--space-lg) * -0.5) 0 var(--space-md);
+  color: #1e3a8a; /* Azul corporativo semántico */
+  background: rgba(30, 58, 138, 0.06); /* Micro-placa translúcida */
+  border: 1px solid rgba(30, 58, 138, 0.08);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  margin: 0 0 1.75rem 0;
   font-size: 0.95rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.db-badge strong {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(30, 58, 138, 0.08);
 }
 
 .footer-logo {
+  position: absolute;
+  bottom: 2.5rem;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  margin-top: var(--space-sm);
+  margin-top: 0;
+  width: 100%;
 }
 
 .powered-by {
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.45);
+  margin-bottom: 4px;
 }
 
 .img-logo-emp {
-  max-width: 140px;
-  width: 60%;
-  transition: opacity 0.3s ease;
-}
-
-.img-logo-emp:hover {
-  opacity: 1;
+  max-width: 650px;
+  width: 80%;
+  height: auto;
+  opacity: 0.85;
+  margin-top: -14px; /* Eleva el logo reduciendo el espacio con respecto al texto */
 }
 
 /* Animations */
@@ -259,9 +325,6 @@ h1 {
 @media (min-width: 768px) {
   .img-logo {
     max-width: 380px;
-  }
-  .img-logo-emp {
-    max-width: 250px;
   }
 }
 </style>

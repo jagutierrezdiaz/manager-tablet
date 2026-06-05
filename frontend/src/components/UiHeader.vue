@@ -2,7 +2,13 @@
   <div class="layout-navigation">
     <!-- Top Bar: Logo -->
     <header class="top-bar">
-      <img :src="logo" alt="Manager Logo" class="img-logo">
+      <div class="header-container">
+        <img :src="logo" alt="Manager Logo" class="img-logo">
+        <!-- Se comenta el logo de la empresa temporalmente:
+        <img :src="logoEmp" alt="Hazlo Software" class="img-logo-emp">
+       -->        
+
+      </div>
     </header>
 
     <!-- Bottom Navigation: Actions -->
@@ -49,6 +55,7 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import UiNavButton from './UiNavButton.vue'
 import logo from '../assets/manager_logo.png'
+import logoEmp from '../assets/hazlo_software.png'
 import { getSessionUser, clearSessionUser } from '../utils/authSession.js'
 
 const emit = defineEmits(['select-route'])
@@ -92,28 +99,54 @@ function onClick(name, routeName) {
   left: 0;
   right: 0;
   height: 64px;
-  background: linear-gradient(179deg, #0f172a 0%, #1e293b 100%);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  background: transparent; /* Totalmente transparente para lucir el fondo dinámico sin obstrucciones */
   z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: none; /* Pureza total sin líneas divisorias */
   padding: 4px var(--space-md);
 }
 
+.header-container {
+  width: 100%;
+  max-width: 1400px;
+  display: flex;
+  justify-content: center;     /*space-between;*/
+  align-items: center;
+  padding: 10px var(--space-md);
+  background-color: #f2f4f7;
+  border-radius: 20px;
+  margin-top: 40px;
+}
+
+
+/*
 .img-logo {
-  height: 32px;
+  height: 52px; 
   object-fit: contain;
+}
+*/
+.img-logo-emp {
+  height: 52px; /* Exactamente el mismo tamaño para simetria ideal */
+  object-fit: contain;
+  opacity: 1; /* Contraste y visibilidad estables */
 }
 
 @media (max-width: 600px) {
   .top-bar {
     height: 56px;
   }
+  
   .img-logo {
-    height: 28px;
+    width: 100%;                  
+    max-height: 40px;            
+    object-fit: contain;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35)); 
+  }
+
+  .img-logo-emp {
+    height: 62px; /* Simetría ampliada adaptada a móviles */
   }
   .top-spacer {
     height: 56px;
@@ -146,7 +179,6 @@ function onClick(name, routeName) {
 }
 
 /* Dark Mode Overrides */
-[data-theme="dark"] .top-bar,
 [data-theme="dark"] .bottom-nav {
   background-color: rgba(15, 23, 42, 0.85);
   border-color: rgba(255, 255, 255, 0.1);

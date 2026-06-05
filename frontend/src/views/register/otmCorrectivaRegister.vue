@@ -1,7 +1,9 @@
 <template>
-    <div class="register-container">
+    <div class="register-container glass-panel">
+        <div class="accent-bar"></div>
+        <h2>Crear OTM Correctiva</h2>
         <div class="buttons-container">
-            <UiButton label="Regresar" color="info" icon="ArrowLeft" @click="$router.back()" />
+            <UiButton label="Regresar" color="read" icon="ArrowLeft" @click="$router.back()" />
         </div>
 
         <div v-if="otmData" class="data-container">
@@ -120,7 +122,7 @@
             </section>
 
         </div>
-        <div class="flex justify-center mt-6 mb-16">
+        <div class="flex justify-center mt-6 mb-2">
             <UiButton label="Crear OTM" color="create" icon="Check" @click="crearOTM" />
         </div>
     </div>
@@ -601,5 +603,41 @@ textarea:focus {
     color: var(--color-muted);
     align-self: end;
     margin-bottom: 20px;
+}
+
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  /* Cristal templado premium Fiori Light */
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.40);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: 1050px;
+  /* Tamaño máximo optimizado */
+  margin: 0 auto;
+  padding: 2.25rem 2rem;
+}
+
+
+.glass-panel .accent-bar {
+  width: 120px;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  margin: 0 auto 0.55rem auto;
+}
+
+.glass-panel h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
 }
 </style>

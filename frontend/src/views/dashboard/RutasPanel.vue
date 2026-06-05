@@ -1,45 +1,41 @@
 <template>
-  <div class="container">
-
+  <div class="container  glass-panel">
+    <div class="accent-bar"></div>
+    <h2>Listado de rutas</h2>
     <section class="filters-block" aria-labelledby="filters-title">
       <div class="filters" role="group" aria-label="Filtrar rutas por vigencia de fecha">
         <div>
-          <h3>Filtros por vigencia </h3>
           <button type="button" class="pill pill--todas" :class="{ 'pill--active': isTodasSelected }"
             :aria-pressed="isTodasSelected" @click="selectTodas">
             <span class="pill__dot" aria-hidden="true" />
-            Todas las rutas
+            Todas
           </button>
-
-        </div>
-        <div>
-
           <button v-for="opt in filterOptions" :key="opt.key" type="button" class="pill" :class="[
             `pill--${opt.key}`,
             { 'pill--active': filters[opt.key] }
           ]" :aria-pressed="filters[opt.key]" :aria-label="filterAriaLabel(opt)" @click="toggleCategory(opt.key)">
             <span class="pill__dot" aria-hidden="true" />
             {{ opt.label }}
-            <span v-if="filters[opt.key]" class="pill__badge">Visibles</span>
-            <span v-else class="pill__badge pill__badge--off">Ocultas</span>
+
           </button>
         </div>
-
       </div>
     </section>
+    <div class="contenedor-card">
+      <UiCard v-for="item in filteredData" :key="item.ID_NUMERICO" :nameText="item.CLASE_ACTIVIDAD" :content="{
+        idTask: item.ID_NUMERICO,
+        nameTask: item.NOMBRE_TIPO_RUTA,
+        dateProgrammed: item.FECHA_PROGRAMADA
+      }" @select="(color) => handleClick(item, color)" />
 
-    <UiCard v-for="item in filteredData" :key="item.ID_NUMERICO" :nameText="item.CLASE_ACTIVIDAD" :content="{
-      idTask: item.ID_NUMERICO,
-      nameTask: item.NOMBRE_TIPO_RUTA,
-      dateProgrammed: item.FECHA_PROGRAMADA
-    }" @select="(color) => handleClick(item, color)" />
+      <p v-if="!filteredData.length && data.length" class="empty-hint">
+        Ninguna ruta coincide con los filtros seleccionados.
+      </p>
+      <p v-if="!data.length" class="empty-hint">
+        No hay rutas para mostrar.
+      </p>
+    </div>
 
-    <p v-if="!filteredData.length && data.length" class="empty-hint">
-      Ninguna ruta coincide con los filtros seleccionados.
-    </p>
-    <p v-if="!data.length" class="empty-hint">
-      No hay rutas para mostrar.
-    </p>
   </div>
 </template>
 
@@ -158,6 +154,49 @@ function handleClick(item, color) {
   width: 100%;
   max-width: 1000px;
   margin: 0 auto;
+  max-height: 720px;
+
+}
+
+.contenedor-card {
+  max-height: 530px;
+  overflow-y: auto;
+}
+
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  /* Cristal templado premium Fiori Light */
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.40);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: 1050px;
+  /* Tamaño máximo optimizado */
+  margin: 0 auto;
+  padding: 2.25rem 2rem;
+}
+
+
+.glass-panel .accent-bar {
+  width: 120px;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  margin: 0 auto 0.55rem auto;
+}
+
+.glass-panel h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
 }
 
 h3 {
@@ -224,10 +263,21 @@ h3 {
   flex-shrink: 0;
 }
 
-.pill--past .pill__dot { background: #ef4444; }
-.pill--today .pill__dot { background: #f59e0b; }
-.pill--future .pill__dot { background: #10b981; }
-.pill--todas .pill__dot { background: var(--color-primary); }
+.pill--past .pill__dot {
+  background: #ef4444;
+}
+
+.pill--today .pill__dot {
+  background: #f59e0b;
+}
+
+.pill--future .pill__dot {
+  background: #10b981;
+}
+
+.pill--todas .pill__dot {
+  background: var(--color-primary);
+}
 
 .pill--active {
   background: var(--color-background);
@@ -289,10 +339,12 @@ h3 {
   .container {
     padding: var(--space-sm);
   }
+
   .filters {
     padding: var(--space-sm);
     border-radius: var(--radius);
   }
+
   .pill {
     padding: 8px 16px;
     font-size: 0.85rem;

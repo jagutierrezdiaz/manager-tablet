@@ -172,60 +172,101 @@ const barOptions = {
 
 <template>
   <div class="container">
-    
-    <div class="dashboard-grid">
-      <div class="chart-card">
-        <div class="chart-container">
-          <Pie :data="chartData" :options="chartOptions" />
+    <div class="glass-panel">
+      <div class="accent-bar"></div>
+      <h2>Dashboard General</h2>
+      
+      <div class="dashboard-grid">
+        <div class="chart-card">
+          <div class="chart-container">
+            <Pie :data="chartData" :options="chartOptions" />
+          </div>
         </div>
-      </div>
 
-      <div class="chart-card">
-        <div class="chart-container">
-          <Bar :data="barData" :options="barOptions" />
+        <div class="chart-card">
+          <div class="chart-container">
+            <Bar :data="barData" :options="barOptions" />
+          </div>
         </div>
       </div>
     </div>
-
-
   </div>
 </template>
 
 <style scoped>
 .container {
-  padding: var(--space-md);
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
 }
 
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85); /* Cristal templado premium Fiori Light */
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.40);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: 1050px; /* Tamaño máximo optimizado */
+  margin: 0 auto;
+  padding: 2.25rem 2rem;
+}
+
+.glass-panel .accent-bar {
+  width: 120px;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  margin: 0 auto 0.55rem auto;
+}
+
+.glass-panel h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
+}
+
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  /* Rejilla de alta respuesta basada en flexión y anchos en lugar de columnas rígidas de píxeles */
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: var(--space-lg);
-  margin-bottom: var(--space-xl);
 }
 
 .chart-card {
-  background: var(--color-background);
+  background: rgba(255, 255, 255, 0.6); /* Integración fluida en el cristal superior */
   border-radius: var(--radius-lg);
-  padding: var(--space-lg);
-  box-shadow: var(--shadow-md);
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 1.5rem; /* Ajuste responsivo de relleno inicial */
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(15, 35, 70, 0.05);
   transition: transform 0.3s ease;
+  width: 100%;
+  min-width: 0; /* Evita desbordamiento en contenedores flexibles de CSS */
+  height: 280px;
 }
 
 .chart-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.chart-card canvas{
+    height: 240px !important;
 }
 
 .chart-container {
-  height: 400px;
+  height: 280px; /* Altura ideal balanceada para vistas de escritorio/tableta */
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
 .actions-footer {
@@ -234,16 +275,28 @@ const barOptions = {
   padding: var(--space-sm) 0;
 }
 
+/* Modificaciones dinámicas según escalado de tabletas y móviles */
 @media (max-width: 768px) {
+  .glass-panel {
+    padding: 1.5rem 1rem; /* Compacta la tarjeta contenedora */
+    border-radius: 20px;
+  }
   .dashboard-grid {
     grid-template-columns: 1fr;
-    gap: var(--space-xl);
+    gap: 1.25rem;
   }
   .chart-card {
-    padding: var(--space-md);
+    padding: 1rem; /* Compacta los gráficos */
   }
+}
+
+@media (max-width: 480px) {
   .chart-container {
-    height: 320px;
+    height: 250px; /* Altura segura para smartphones muy compactos */
+  }
+  .glass-panel h2 {
+    font-size: 1.25rem;
+    margin-bottom: 0.55rem;
   }
 }
 </style>
