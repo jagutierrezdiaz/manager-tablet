@@ -11,12 +11,22 @@
 <script setup>
 
 import axios from '../../api/axios.js'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { setSelectedOtm } from '../../utils/dataTransfer.js'
 
 const router = useRouter()
 const list = ref([])
+
+async function loadMachines() {
+  try {
+    const response = await axios.get('otmCorrectiva/list-machines')
+    list.value = Array.isArray(response.data) ? response.data : []
+    console.log(list.value)
+  } catch (e) {
+    console.error('Error al obtener la lista de máquinas', e)
+  }
+}
 
 function handleClick(item, color) {
   setSelectedOtm({ ...item, COLOR_CARD: color })
@@ -29,15 +39,8 @@ function handleClick(item, color) {
   }, 0)
 }
 
-onMounted(async () => {
-  try {
-    const response = await axios.get('otmCorrectiva/list-machines')
-    list.value = Array.isArray(response.data) ? response.data : []
-    console.log(list.value)
-  } catch (e) {
-    console.error('Error al obtener la lista de máquinas', e)
-  }
-})
+onMounted(loadMachines)
+onActivated(loadMachines)
 </script>
 
 <style scoped>

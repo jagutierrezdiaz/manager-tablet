@@ -142,3 +142,59 @@ export async function saveOtmPhotoController(req, res, next) {
         next(err)
     }
 }
+
+export async function deleteOtmPhotoController(req, res, next) {
+    try {
+        const idOtm = String(req.params.idOtm || '').trim()
+        const photoNumber = req.query.photoNumber
+        const result = await otmProgramadaService.deleteOtmPhoto(idOtm, photoNumber)
+        res.json(result)
+    } catch (err) {
+        next(err)
+    }
+}
+
+
+export async function saveCumplimientoOtmController(req, res, next) {
+    try {
+        const { tiempoReal, indiceCumplimiento, efectividadCumplimiento, comentariosCierre, tiempoMod, idOtm } = req.body
+        
+        
+        console.log(tiempoReal, indiceCumplimiento, efectividadCumplimiento, comentariosCierre, tiempoMod, idOtm)
+
+        if (!tiempoReal || !indiceCumplimiento || !efectividadCumplimiento || !comentariosCierre || !tiempoMod || !idOtm) {
+            return res.status(400).json({ error: 'Todos los campos son requeridos' })
+        }
+        
+        const result = await otmProgramadaService.saveCumplimientoOtm(tiempoReal, indiceCumplimiento, efectividadCumplimiento, comentariosCierre, tiempoMod, idOtm)
+        res.json(result)
+    } catch (err) {
+        next(err)
+    }
+}
+
+
+export async function assignOtmToUserController(req, res, next) {
+    try {
+        const { idOtm, codigoPersona } = req.body
+        if (!idOtm || !codigoPersona) {
+            return res.status(400).json({ error: 'idOtm y codigoPersona son requeridos' })
+        }
+        const result = await otmProgramadaService.assignOtmToUser(idOtm, codigoPersona)
+        res.json(result)
+    } catch (err) {
+        next(err)
+    }
+}
+
+export async function validarOtmAnteriorController(req, res, next) {
+    try {
+        const idNumerico = String(req.body.idNumerico || '').trim()
+        const idEquipo = String(req.body.idEquipo || '').trim()
+        const idActividad = String(req.body.idActividad || '').trim()
+        const result = await otmProgramadaService.validarOtmAnterior(idNumerico, idEquipo, idActividad)
+        res.json(result)
+    } catch (err) {
+        next(err)
+    }
+}

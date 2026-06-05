@@ -5,7 +5,7 @@
             <UiButton label="Regresar" color="info" icon="arrow-left" @click="$router.back()" />
             <div v-if="itemsList.length > 0">
                 <span v-if="itemsList.length > 1" class="pagination-info">{{ currentIndex + 1 }} de {{ itemsList.length
-                }}</span>
+                    }}</span>
                 <UiButton v-if="itemsList.length > 1" label="Anterior" color="edit" icon="arrow-left"
                     :disabled="currentIndex === 0" @click="anterior()" />
 
@@ -108,7 +108,7 @@
 
                             <div class="flex align-center gap-3">
                                 <span class="usuario-name">Nombre: {{ user.nombrePersona }} - Id: {{ user.codigoPersona
-                                    }}</span>
+                                }}</span>
                             </div>
 
                             <div class="flex flex-col align-center gap-3">
@@ -171,7 +171,7 @@
                                 <div
                                     class="flex justify-between items-center bg-primary/5 p-2 rounded border border-primary/10">
                                     <span class="text-sm font-bold">Tipo: {{ selectedTipoRepuesto.NOMBRE_TIPO_REPUESTO
-                                        }}</span>
+                                    }}</span>
                                     <UiButton label="Cambiar tipo" size="sm" color="info"
                                         @click="selectedTipoRepuesto = null" />
                                 </div>
@@ -217,9 +217,9 @@
                 <h2 class="section-card-title">Fotos</h2>
                 <div class="grid  gap-6 mt-4">
                     <UiImageUpload label="Foto 1" v-model="foto1" placeholder="Capturar o seleccionar foto 1"
-                        @save="(img) => guardarFotoOtm(1, img)" />
+                        @save="(img) => guardarFotoOtm(1, img)" @remove="eliminarFotoOtm(1)" />
                     <UiImageUpload label="Foto 2" v-model="foto2" placeholder="Capturar o seleccionar foto 2"
-                        @save="(img) => guardarFotoOtm(2, img)" />
+                        @save="(img) => guardarFotoOtm(2, img)" @remove="eliminarFotoOtm(2)" />
                 </div>
             </section>
 
@@ -233,11 +233,8 @@
 
                 <div class="section-card obs-box">
                     <h2>Observaciones al ejecutar</h2>
-                    <textarea placeholder="Escribe aquí tus observaciones..." />
+                    <textarea v-model="observacionesEjecucion" placeholder="Escribe aquí tus observaciones..." />
                 </div>
-
-                <UiButton label="Guardar observaciones" color="create" icon="save" iconPosition="end"
-                    @click="guardarObservaciones()" />
             </section>
 
             <section class="section-card data-tiempo-ejecucion">
@@ -294,13 +291,18 @@
         <UiModal v-if="otmData && currentDatosOtm" v-model="showConfirmModal" title="Finalizar Orden de Trabajo"
             :message="`¿Estás seguro de que deseas marcar la OTM #${otmData.ID_OTM} (${currentDatosOtm.NOMBRE_ACTIVIDAD}) como cumplida? Esta acción no se puede deshacer.`"
             confirmLabel="Sí, finalizar" confirmIcon="Check" @confirm="handleConfirmCumplir" />
+
+        <!-- Modal OTM Anterior -->
+        <UiModal v-if="otmAnteriorDetalle" v-model="showAnteriorModal" title="OTM Anterior Pendiente"
+            :message="`La OTM anterior #${otmAnteriorDetalle.ID_OTM} (${otmAnteriorDetalle.NOMBRE_ACTIVIDAD}) programada para el ${formatDate(otmAnteriorDetalle.FECHA_PROGRAMADA)} no ha sido cumplida. ¿Deseas realizar esta OTM ahora?`"
+            confirmLabel="Sí, realizar ahora" confirmIcon="ArrowRight" @confirm="handleIrAAnterior" />
     </div>
 </template>
 
 <script setup>
 import { onMounted, ref, computed, watch, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
-import { getSelectedOtm, clearSelectedOtm } from '../../utils/dataTransfer.js'
+import { getSelectedOtm, clearSelectedOtm, setSelectedOtm } from '../../utils/dataTransfer.js'
 import { getSelectedDbApiUrl } from '../../utils/dbProfile.js'
 import axios from '../../api/axios.js'
 import UiButton from '../../components/UiButton.vue'
@@ -311,6 +313,7 @@ import UiSignature from '../../components/UiSignature.vue'
 import UiModal from '../../components/UiModal.vue'
 import UiAlert from '../../components/UiAlert.vue'
 import { formatDate, formatForDateTimeInput } from '../../utils/formatDate.js'
+import { getSessionUser } from '../../utils/authSession.js'
 
 const props = defineProps({
     id: {
@@ -337,7 +340,10 @@ const selectedTipoRepuesto = ref(null)
 const addRepuestosList = ref([])
 const foto1 = ref(null)
 const foto2 = ref(null)
+const observacionesEjecucion = ref('')
 const showConfirmModal = ref(false)
+const showAnteriorModal = ref(false)
+const otmAnteriorDetalle = ref(null)
 
 // Estado para alertas
 const alertConfig = ref({
@@ -381,6 +387,7 @@ watch(() => addUsersList.value, (newList) => {
 }, { deep: true })
 
 const currentDatosOtm = computed(() => {
+    console.log('currentDatosOtm', itemsList.value[currentIndex.value])
     return itemsList.value.length > 0 ? itemsList.value[currentIndex.value] : null
 })
 
@@ -400,17 +407,157 @@ function cumplir() {
     showConfirmModal.value = true
 }
 
-function handleConfirmCumplir() {
-    console.log('OTM Cumplida confirmada')
-    // Aquí iría la lógica de guardado final
-    clearSelectedOtm()
-    router.push({ name: 'principal-programadas' })
+async function handleIrAAnterior() {
+    if (!otmAnteriorDetalle.value) return
+
+    const user = getSessionUser()
+    const codigoPersona = user?.codigoPersona
+
+    if (!codigoPersona) {
+        showAlert('error', 'Error', 'No se pudo obtener el usuario en sesión')
+        return
+    }
+
+    try {
+        // 1. Asignar la OTM al usuario si no la tiene (el backend ya verifica si existe)
+        await axios.post('otmProgramada/assign-otm-to-user', {
+            idOtm: otmAnteriorDetalle.value.ID_OTM,
+            codigoPersona: codigoPersona
+        })
+
+        // 2. Actualizar los datos en sesión para la nueva OTM
+        const idAnterior = otmAnteriorDetalle.value.ID_OTM
+        setSelectedOtm({
+            ID_OTM: idAnterior,
+            FECHA_PROGRAMADA: otmAnteriorDetalle.value.FECHA_PROGRAMADA,
+            NOMBRE_ACTIVIDAD: otmAnteriorDetalle.value.NOMBRE_ACTIVIDAD
+        })
+
+        // 3. Redirigir a la vista de registro de esa OTM
+        showAnteriorModal.value = false
+        
+        // Limpiar datos actuales para evitar conflictos al cargar la nueva
+        otmData.value = null
+        itemsList.value = []
+        
+        router.push({
+            name: 'otm-programada-register',
+            params: { id: idAnterior }
+        })
+        
+        // Forzar recarga de datos
+        setTimeout(() => {
+            loadData()
+        }, 100)
+
+    } catch (error) {
+        console.error('Error al asignar OTM anterior:', error)
+        showAlert('error', 'Error', 'No se pudo asignar la OTM anterior: ' + (error.response?.data?.error || error.message))
+    }
+}
+
+async function handleConfirmCumplir() {
+    console.log('handleConfirmCumplir called')
+    // 1. Validaciones
+    if (tiempoEjecucion.value <= 0) {
+        showAlert('warning', 'Tiempo inválido', 'El tiempo real debe ser mayor a 0')
+        showConfirmModal.value = false
+        return
+    }
+    if (!observacionesEjecucion.value || !observacionesEjecucion.value.trim()) {
+        showAlert('warning', 'Observaciones requeridas', 'Debe ingresar las observaciones de ejecución')
+        showConfirmModal.value = false
+        return
+    }
+    // 1. Validar OTM anterior
+    if (!currentDatosOtm.value) {
+        showAlert('error', 'Error', 'No se han cargado los datos de la OTM correctamente.')
+        showConfirmModal.value = false
+        return
+    }
+
+    console.log('validating previous OTM', {
+        idNumerico: currentDatosOtm.value.ID_NUMERICO,
+        idEquipo: currentDatosOtm.value.ID_EQUIPO,
+        idActividad: currentDatosOtm.value.ID_ACTIVIDAD
+    })
+
+    try {
+        const result = await axios.post('otmProgramada/validar-otm-anterior', {
+            idNumerico: currentDatosOtm.value.ID_NUMERICO,
+            idEquipo: currentDatosOtm.value.ID_EQUIPO,
+            idActividad: currentDatosOtm.value.ID_ACTIVIDAD
+        })
+
+        if (result.data.idOtm) {
+            otmAnteriorDetalle.value = result.data.detalle
+            showAnteriorModal.value = true
+            showConfirmModal.value = false
+            return
+        }
+    } catch (error) {
+        console.error('Error al validar OTM anterior:', error)
+        showAlert('error', 'Error de validación', 'No se pudo verificar la OTM anterior: ' + (error.response?.data?.error || error.message))
+        showConfirmModal.value = false
+        return
+    }
+
+    // 2. Calcular tiempoMod (suma de horas de personal) en formato decimal
+    let totalModHours = 0
+    addUsersList.value.forEach(user => {
+        if (user.horaTotal) {
+            const parts = user.horaTotal.split(':')
+            const h = parseInt(parts[0], 10) || 0
+            const m = parseInt(parts[1], 10) || 0
+            const s = parseInt(parts[2], 10) || 0
+            totalModHours += h + (m / 60) + (s / 3600)
+        }
+    })
+
+    // 3. Preparar datos de cierre usando la función datosCierreOTM
+    const datos = datosCierreOTM({
+        otm: otmData.value,
+        tiempoEstimadoActividad: itemsList.value[0].TIEMPO_ESTIMADO_ACTIVIDAD,
+        tiempoMod: totalModHours,
+        tiempoReal: tiempoEjecucion.value,
+        comentariosCierre: observacionesEjecucion.value,
+        idOtm: otmData.value.ID_OTM
+    })
+
+    console.log('datos_cierre_otm', datos)
+
+    // 4. Llamar al backend para guardar el cumplimiento
+    try {
+        const payload = {
+            tiempoReal: datos.tiempo_real,
+            indiceCumplimiento: datos.indice_cumplimiento,
+            efectividadCumplimiento: datos.efectividad_cumplimiento,
+            comentariosCierre: datos.comentarios_de_cierre,
+            tiempoMod: datos.tiempo_mod,
+            idOtm: datos.id_otm
+        }
+
+        await axios.post('otmProgramada/save-cumplimiento-otm', payload)
+
+        showAlert('success', 'OTM Finalizada', 'La orden de trabajo ha sido finalizada con éxito.')
+
+        // Limpiar datos y redirigir
+        setTimeout(() => {
+            clearSelectedOtm()
+            router.push({ name: 'principal-programadas' })
+        }, 1500)
+    } catch (error) {
+        console.error('Error al finalizar OTM:', error)
+        showAlert('error', 'Error', 'No se pudo finalizar la OTM: ' + (error.response?.data?.error || error.message))
+    } finally {
+        showConfirmModal.value = false
+    }
 }
 
 async function loadData() {
     const data = getSelectedOtm()
     const idStr = String(props.id)
-
+    console.log('data_programadas', data)
     // Verificamos que los datos correspondan al ID de la URL
     if (data && (String(data.ID_OTM) === idStr || String(data.ID_MAQUINA) === idStr)) {
         // Resetear estado anterior
@@ -419,6 +566,8 @@ async function loadData() {
         addUsersList.value = []
         addRepuestosList.value = []
         addSupervisorList.value = []
+        foto1.value = null
+        foto2.value = null
         currentIndex.value = 0
 
         try {
@@ -464,11 +613,13 @@ async function loadData() {
                 }]
             }
 
-            // Cargar fotos existentes
-            if (otmRes.data) {
-                const otm = Array.isArray(otmRes.data) ? otmRes.data[0] : otmRes.data
+            // Cargar fotos y datos existentes
+            if (itemsList.value.length > 0) {
+                const otm = itemsList.value[0]
                 if (otm.FOTO_1) foto1.value = `${baseUrl}/${otm.FOTO_1}`
                 if (otm.FOTO_2) foto2.value = `${baseUrl}/${otm.FOTO_2}`
+                observacionesEjecucion.value = otm.COMENTARIOS_DE_CIERRE || ''
+                tiempoEjecucion.value = otm.TIEMPO_REAL || 0
             }
 
             if (Array.isArray(repuestosAsignadosRes.data)) {
@@ -481,6 +632,10 @@ async function loadData() {
         console.warn('Los datos en sesión no coinciden con el ID de la URL o no existen')
     }
 }
+
+watch(() => props.id, () => {
+    loadData()
+})
 
 onMounted(() => {
     loadData()
@@ -523,7 +678,6 @@ async function guardarUsuario(codigoPersona) {
     const inicio = new Date(user.horaInicio)
     const fin = new Date(user.horaFin)
     const fechaProgramada = new Date(otmData.value.FECHA_PROGRAMADA)
-    console.log(fechaProgramada)
 
     // Validaciones
     if (inicio >= fin) {
@@ -574,7 +728,6 @@ function confirmarSeleccionSupervisor(supervisor) {
     if (supervisor) {
         // En este caso, solo permitimos un supervisor por OTM
         addSupervisorList.value = [{ ...supervisor }]
-        console.log('Supervisor seleccionado:', addSupervisorList.value)
         isAddingSupervisor.value = false
         showAlert('success', 'Supervisor seleccionado', `${supervisor.nombrePersona} ha sido asignado para la aprobación.`)
     }
@@ -697,20 +850,97 @@ async function guardarFotoOtm(photoNumber, imageBase64) {
             image: imageBase64
         }
         const res = await axios.post(`otmProgramada/save-otm-photo/${otmData.value.ID_OTM}`, payload)
-        
+
         const baseUrl = (getSelectedDbApiUrl() || import.meta.env.VITE_API_URL || '').replace(/\/api$/, '')
         if (photoNumber === 1) {
             foto1.value = `${baseUrl}/${res.data.url}`
         } else {
             foto2.value = `${baseUrl}/${res.data.url}`
         }
-        
+
         showAlert('success', 'Foto guardada', `La foto ${photoNumber} ha sido guardada correctamente`)
     } catch (error) {
         console.error('Error al guardar foto:', error)
         showAlert('error', 'Error', 'No se pudo guardar la foto: ' + (error.response?.data?.error || error.message))
     }
 }
+
+async function eliminarFotoOtm(photoNumber) {
+    try {
+        await axios.delete(`otmProgramada/delete-otm-photo/${otmData.value.ID_OTM}`, {
+            params: { photoNumber }
+        })
+        showAlert('success', 'Foto eliminada', `La foto ${photoNumber} ha sido eliminada correctamente`)
+    } catch (error) {
+        console.error('Error al eliminar foto:', error)
+        showAlert('error', 'Error', 'No se pudo eliminar la foto: ' + (error.response?.data?.error || error.message))
+    }
+}
+
+
+
+function datosCierreOTM({
+    otm,
+    tiempoEstimadoActividad,
+    tiempoMod,
+    tiempoReal,
+    comentariosCierre,
+    idOtm
+}) {
+    console.log('datosCierreOTM', {
+        otm,
+        tiempoEstimadoActividad,
+        tiempoMod,
+        tiempoReal,
+        comentariosCierre,
+        idOtm
+    })
+
+    const fechaProgramada = new Date(otm.FECHA_PROGRAMADA);
+    fechaProgramada.setHours(0, 0, 0, 0);
+    const limiteCierre = new Date(otm.LIMITE_CIERRE);
+    limiteCierre.setHours(0, 0, 0, 0);
+    const fechaHoy = new Date();
+    fechaHoy.setHours(0, 0, 0, 0);
+
+    // INDICE DE CUMPLIMIENTO
+    let indiceCumplimiento = 0;
+    const diasTranscurridos = fechaHoy.getDate() - fechaProgramada.getDate();
+    const indiceProrrateado = (limiteCierre.getDate() - fechaProgramada.getDate()) / (fechaHoy.getDate() - fechaProgramada.getDate()) * 100;
+    if (diasTranscurridos === 0) {
+        indiceCumplimiento = 100;
+    } else if (indiceProrrateado > 0) {
+        indiceCumplimiento = 100;
+    } else {
+        indiceCumplimiento = Math.round((1 / diasTranscurridos) * 100);
+    }
+
+
+    // EFECTIVIDAD DE CUMPLIMIENTO
+    let efectividadCumplimiento = 0;
+    const tiempoProgramado = Number(tiempoEstimadoActividad || 0);
+    if (tiempoReal > 0) {
+        if (tiempoReal <= tiempoProgramado) {
+            efectividadCumplimiento = 100;
+        } else {
+            efectividadCumplimiento = Math.round(
+                (tiempoProgramado / tiempoReal) * 100
+            );
+        }
+    }
+
+    return {
+        id_otm: idOtm,
+        tiempo_real: tiempoReal,
+        indice_cumplimiento: indiceCumplimiento,
+        efectividad_cumplimiento: efectividadCumplimiento,
+        comentarios_de_cierre: comentariosCierre,
+        tiempo_mod: tiempoMod
+    };
+}
+
+
+
 
 </script>
 
