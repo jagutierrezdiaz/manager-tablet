@@ -1,7 +1,7 @@
 <template>
   <div class="container glass-panel">
     <div class="accent-bar"></div>
-    <h2>Listado de OTM programadas</h2>
+    <h2>Listado de Máquinas / Sistemas</h2>
     <div class="contenedor-card">
       <UiCard v-for="item in list" :key="item.ID_MAQUINA" :content="{
         nameTask: item.NOMBRE_MAQUINA,

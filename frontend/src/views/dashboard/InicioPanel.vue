@@ -3,6 +3,8 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { Pie, Bar } from 'vue-chartjs'
 import {
   Chart as ChartJS,
+  BarController,
+  LineController,
   ArcElement,
   BarElement,
   LineElement,
@@ -16,6 +18,8 @@ import {
 import UiButton from '@/components/UiButton.vue'
 
 ChartJS.register(
+  BarController,
+  LineController,
   ArcElement,
   BarElement,
   LineElement,
@@ -61,6 +65,8 @@ onMounted(async () => {
         if (!res1.ok) { console.error('Error general-month', res1.statusText); return }
         const d1 = await res1.json()
         dataGrafic1.value = d1
+        console.log('[FRONT] dataGrafic1 (d1):', d1)
+        console.log('[FRONT] dataGrafic1.value:', dataGrafic1.value)
         sessionStorage.setItem(cacheKey1, JSON.stringify(d1))
       }
       if (!cached2) {
@@ -68,6 +74,8 @@ onMounted(async () => {
         if (!res2.ok) { console.error('Error execution-index', res2.statusText); return }
         const d2 = await res2.json()
         dataGrafic2.value = d2
+        console.log('[FRONT] dataGrafic2 (d2):', d2)
+        console.log('[FRONT] dataGrafic2.value:', dataGrafic2.value)
         sessionStorage.setItem(cacheKey2, JSON.stringify(d2))
       }
     }

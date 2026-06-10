@@ -144,10 +144,13 @@ onActivated(loadOtmProgramadas)
 </script>
 
 <style scoped>
+
 .container {
+  padding: var(--space-md);
   width: 100%;
   max-width: 1000px;
   margin: 0 auto;
+  max-height: 720px;
 }
 
 h3 {
@@ -285,7 +288,6 @@ h3 {
   font-size: 1.1rem;
   font-weight: 500;
 }
-
 
 
 .glass-panel {

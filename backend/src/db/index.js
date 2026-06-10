@@ -54,13 +54,42 @@ function getConnection() {
   })
 }
 
+function safeParamToString(p) {
+  if (p === null || p === undefined) return 'NULL'
+  if (typeof p === 'number') return String(p)
+  // escape simple de comillas para visualización
+  return `'${String(p).replace(/'/g, "''")}'`
+}
+
+function interpolateSql(sql, params = []) {
+  let i = 0
+  return sql.replace(/\?/g, () => {
+    if (i >= params.length) return '?'
+    return safeParamToString(params[i++])
+  })
+}
+
 function query(sql, params = []) {
   return new Promise(async (resolve, reject) => {
     let db
     try {
+      // Opcional: controlar con variable de entorno para activar logs: SHOW_SQL=true
+      const showSql = process.env.SHOW_SQL === 'true'
+      if (showSql) {
+        try {
+          const full = interpolateSql(sql, params)
+          console.log('[SQL]', full)
+        } catch (e) {
+          // en caso de fallo, cae a logging básico
+          console.log('[SQL] statement:', sql)
+          console.log('[SQL] params:', params)
+        }
+      }
+      // Añadir justo antes de: db = await getConnection()
+      // Log mínimo para depuración (no altera lógica)
+      console.log('[SQL]', sql, params)
       db = await getConnection()
       db.query(sql, params, (err, result) => {
-        // release connection
         try { db.detach() } catch (e) { /* ignore */ }
         if (err) return reject(err)
         resolve(result)

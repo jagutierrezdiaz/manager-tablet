@@ -1,7 +1,7 @@
 <template>
   <div class="container  glass-panel">
     <div class="accent-bar"></div>
-    <h2>Listado de rutas</h2>
+    <h2>Listado de Rutas Programadas</h2>
     <section class="filters-block" aria-labelledby="filters-title">
       <div class="filters" role="group" aria-label="Filtrar rutas por vigencia de fecha">
         <div>

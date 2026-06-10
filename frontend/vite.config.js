@@ -38,8 +38,8 @@ export default defineConfig({
       '/api': {
         // En desarrollo local, apuntar al backend en localhost:3000.
         // Si usas Docker o un host diferente, ajusta esta URL.
-        target: 'http://localhost:3000',
-        changeOrigin: true
+        target: 'http://localhost:5000',
+        changeOrigin: true  
       }
     }
   }

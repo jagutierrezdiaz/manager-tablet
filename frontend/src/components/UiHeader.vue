@@ -7,8 +7,8 @@
         <!-- Se comenta el logo de la empresa temporalmente:
         <img :src="logoEmp" alt="Hazlo Software" class="img-logo-emp">
        -->        
-
       </div>
+  
     </header>
 
     <!-- Bottom Navigation: Actions -->

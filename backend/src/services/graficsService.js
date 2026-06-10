@@ -8,7 +8,7 @@ export async function getGeneralMonth(startDate, endDate) {
         TIPO_MANTENIMIENTO, 
         COUNT(ID_OTM) AS TOTAL
     FROM QROTM_ABIERTA
-    WHERE (FECHA_PROGRAMADA BETWEEN ? AND ?)
+    WHERE CAST(FECHA_PROGRAMADA AS DATE) BETWEEN ? AND ?
     GROUP BY CLASE_ACTIVIDAD, TIPO_MANTENIMIENTO`
     const rows = await db.query(sql, [startDate, endDate])
     // Return pre-formatted aggregation suitable for charts: { label, count }

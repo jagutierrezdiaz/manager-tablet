@@ -16,11 +16,30 @@ const app = express()
 
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*'
 
-app.use(cors({
-  origin: CORS_ORIGIN,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-db-id']
-}))
+// Support single origin, multiple origins (comma/space/semicolon separated),
+// or wildcard '*'. Preserve existing headers/methods.
+let corsOptions
+if (CORS_ORIGIN.trim() === '*') {
+  corsOptions = {
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-db-id']
+  }
+} else {
+  const allowedOrigins = CORS_ORIGIN.split(/[,;\s]+/).filter(Boolean)
+  corsOptions = {
+    origin: (origin, cb) => {
+      // allow non-browser requests (curl, server-to-server) where origin is undefined
+      if (!origin) return cb(null, true)
+      if (allowedOrigins.includes(origin)) return cb(null, true)
+      cb(new Error('CORS not allowed'), false)
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-db-id']
+  }
+}
+
+app.use(cors(corsOptions))
 app.use(express.json({ limit: '50mb' }))
 app.use(express.urlencoded({ limit: '50mb', extended: true }))
 app.use(helmet({
