@@ -1,6 +1,14 @@
 import db from '../db/index.js'
 
-export async function getMachines() {
+export async function getMachines(idProceso = null) {
+    const params = []
+    let filtroProceso = ''
+
+    if (idProceso !== null && idProceso !== undefined && String(idProceso).trim() !== '') {
+        filtroProceso = ' AND PR.ID_PROCESO = ?'
+        params.push(idProceso)
+    }
+
     const sql = `
         SELECT 
             PR.ID_PROCESO,
@@ -12,8 +20,9 @@ export async function getMachines() {
         FROM PROCESO PR ,ETAPA ET, MAQUINA MA
         WHERE PR.ID_PROCESO = ET.ID_PROCESO AND
             ET.ID_ETAPA = MA.ID_ETAPA
+            ${filtroProceso}
         ORDER BY PR.NOMBRE_PROCESO, ET.NOMBRE_ETAPA, MA.NOMBRE_MAQUINA`
-    const rows = await db.query(sql, [])
+    const rows = await db.query(sql, params)
     return rows
 }
 
@@ -79,14 +88,51 @@ export async function getMaxIdNumerico() {
     return rows[0]?.MAXIDNUMERICO || 0
 }
 
+function formatOtmFecha(fecha) {
+    if (!fecha) return '—'
+    const d = new Date(fecha)
+    if (Number.isNaN(d.getTime())) return String(fecha)
+    return d.toLocaleString('es-CO', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    })
+}
+
+function buildOpenOtmErrorMessage(otm = {}) {
+    return [
+        'No se puede crear una nueva otm por que ya existe una abierta para este equipo y actividad.',
+        '',
+        `Equipo: ${otm.NOMBRE_EQUIPO || '—'}`,
+        `Actividad: ${otm.NOMBRE_ACTIVIDAD || '—'}`,
+        `OTM: ${otm.ID_OTM ?? '—'}`,
+        `Fecha programada: ${formatOtmFecha(otm.FECHA_PROGRAMADA)}`,
+        `Limite cierre: ${formatOtmFecha(otm.LIMITE_CIERRE)}`
+    ].join('\n')
+}
+
 export async function saveOTMCorrectiva(data) {
-    // 0. Verificar si existe la actividadEquipo, si no, crearla
-    const exists = await checkActividadEquipoExists(data.ID_EQUIPO, data.ID_ACTIVIDAD)
-    if (!exists) {
+    const otmCheck = await checkOtmActividadEquipoExists(data.ID_EQUIPO, data.ID_ACTIVIDAD)
+
+    if (otmCheck.status === 'open') {
+        const details = {
+            NOMBRE_EQUIPO: otmCheck.otm.NOMBRE_EQUIPO,
+            NOMBRE_ACTIVIDAD: otmCheck.otm.NOMBRE_ACTIVIDAD,
+            ID_OTM: otmCheck.otm.ID_OTM,
+            FECHA_PROGRAMADA: otmCheck.otm.FECHA_PROGRAMADA,
+            LIMITE_CIERRE: otmCheck.otm.LIMITE_CIERRE
+        }
+        const err = new Error(buildOpenOtmErrorMessage(details))
+        err.status = 409
+        err.details = details
+        throw err
+    }
+
+    if (otmCheck.status === 'none') {
         await insertActividadEquipoOtm(data.ID_EQUIPO, data.ID_ACTIVIDAD, data.TIEMPO_ACTIVIDAD)
     }
 
-    // 1. Obtener el siguiente ID_OTM
+    // Si status === 'fulfilled' (CUMPLIDA = SI), omitir insertActividadEquipoOtm y crear la nueva OTM
     const maxId = await getMaxIdNumerico()
     const nextId = Number(maxId) + 1
 
@@ -221,13 +267,45 @@ export async function saveActividadEquipoOtm(idEquipo, idActividad) {
     return { success: true }
 }
 
-export async function checkActividadEquipoExists(idEquipo, idActividad) {
+export async function checkOtmActividadEquipoExists(idEquipo, idActividad) {
     const sql = `
-        SELECT 1 FROM ACTIVIDAD_EQUIPO
-        WHERE ID_EQUIPO = ? AND ID_ACTIVIDAD = ?
+        SELECT
+            E.ID_EQUIPO,
+            E.NOMBRE_EQUIPO,
+            A.ID_ACTIVIDAD,
+            A.NOMBRE_ACTIVIDAD,
+            O.ID_NUMERICO,
+            O.ID_OTM,
+            O.FECHA_PROGRAMADA,
+            O.LIMITE_CIERRE,
+            O.CUMPLIDA
+        FROM OTM O
+        INNER JOIN EQUIPO E
+                ON O.ID_EQUIPO = E.ID_EQUIPO
+        INNER JOIN ACTIVIDAD A
+                ON O.ID_ACTIVIDAD = A.ID_ACTIVIDAD
+        WHERE O.ID_NUMERICO = (SELECT MAX(O2.ID_NUMERICO)
+            FROM OTM O2
+            WHERE O2.ID_ACTIVIDAD = ?
+            AND O2.ID_EQUIPO = ?)
     `
-    const rows = await db.query(sql, [idEquipo, idActividad])
-    return rows.length > 0
+    const rows = await db.query(sql, [idActividad, idEquipo])
+
+    if (!rows || rows.length === 0) {
+        return { status: 'none' }
+    }
+
+    const cumplida = String(rows[0].CUMPLIDA || '').trim().toUpperCase()
+
+    if (cumplida === 'NO') {
+        return { status: 'open', otm: rows[0] }
+    }
+
+    if (cumplida === 'SI') {
+        return { status: 'fulfilled', otm: rows[0] }
+    }
+
+    return { status: 'none' }
 }
 
 export async function getParametroLimiteCierre() {
@@ -241,7 +319,7 @@ export async function getParametroLimiteCierre() {
     return rows
 }
 
-export async function insertModActividad(idActividad, codigoPersona){
+export async function insertModActividad(idActividad, codigoPersona) {
     const sql = `
         INSERT INTO MOD_ACTIVIDAD(
             ID_ACTIVIDAD,
@@ -296,4 +374,17 @@ export async function insertCierreMod(idOtm, codigoPersona) {
         0
     ]
     await db.query(sql, params)
+}
+
+export async function getProcesoMaquinas() {
+    const sql = `
+        SELECT
+            ID_NUMERICO,
+            ID_PROCESO,
+            NOMBRE_PROCESO
+        FROM PROCESO
+        ORDER BY NOMBRE_PROCESO;
+    `
+    const rows = await db.query(sql, [])
+    return rows
 }

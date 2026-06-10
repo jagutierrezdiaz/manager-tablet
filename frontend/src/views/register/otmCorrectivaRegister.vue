@@ -3,25 +3,26 @@
         <div class="accent-bar"></div>
         <h2>Crear OTM Correctiva</h2>
         <div class="buttons-container">
-            <UiButton label="Regresar" color="read" icon="ArrowLeft" @click="$router.back()" />
+            <UiButton label="Regresar" color="read" icon="ArrowLeft" @click="regresar" />
         </div>
 
         <div v-if="otmData" class="data-container">
 
 
 
-            <UiTitleView :titleOTM="otmData.NOMBRE_PROCESO" :titleActivity="otmData.NOMBRE_MAQUINA"
+            <UiTitleView :titleOTM="otmData.NOMBRE_PROCESO" :titleActivity="`Maquina: ${otmData.NOMBRE_MAQUINA}`"
                 :colorCard="otmData.COLOR_CARD" :text1="`Proceso: ${otmData.NOMBRE_PROCESO}`"
-                :text2="`Máquina: ${otmData.NOMBRE_MAQUINA}`" />
+                :text2="`Etapa: ${otmData.NOMBRE_ETAPA}`" />
 
 
             <section class="section-card">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="section-card-title">Equipo Seleccionado</h2>
                     <UiButton v-if="addEquiposList.length === 0"
-                        :label="isAddingEquipo ? 'Cancelar' : 'Seleccionar Equipo'"
+                        :label="isAddingEquipo ? 'Cancelar' : 'Equipo'"
                         :color="isAddingEquipo ? 'delete' : 'create'" :icon="isAddingEquipo ? 'x' : 'plus'"
-                        iconPosition="end" @click="isAddingEquipo = !isAddingEquipo" />
+
+                         @click="isAddingEquipo = !isAddingEquipo" />
                 </div>
 
                 <Transition name="fade-slide">
@@ -41,7 +42,7 @@
                             <span class="usuario-name text-sm">{{ eq.NOMBRE_EQUIPO }}</span>
                         </div>
                         <div class="buttons-container-cards">
-                            <UiButton color="delete" icon="trash" @click="eliminarEquipo(eq.ID_EQUIPO)" />
+                            <UiButton label="Equipo" color="delete" icon="trash" @click="eliminarEquipo(eq.ID_EQUIPO)" />
                         </div>
                     </div>
                     <p v-if="addEquiposList.length === 0" class="text-muted text-center py-4">
@@ -52,10 +53,11 @@
 
             <section class="section-card data-actividades">
                 <div class="section-head">
-                    <h2 class="section-card-title">Actividades de mantenimiento</h2>
-                    <UiButton :label="isAddingActividad ? 'Cancelar' : 'Agregar actividad'"
+                    <h2 class="section-card-title">Actividades a Realizar</h2>
+                    <UiButton v-if="addActividadesList.length === 0"
+                        :label="isAddingActividad ? 'Cancelar' : 'Actividad'"
                         :color="isAddingActividad ? 'delete' : 'create'" :icon="isAddingActividad ? 'x' : 'plus'"
-                        iconPosition="end" @click="agregaActividad()" />
+                        @click="agregaActividad()" />
                 </div>
 
                 <!-- Panel para agregar actividades -->
@@ -85,14 +87,14 @@
                                 <span class="actividad-chip__name">{{ actividad.NOMBRE_ACTIVIDAD }}</span>
                                 <span class="actividad-chip__badge">{{ actividad.CLASE_ACTIVIDAD }}</span>
                             </div>
-                            <UiButton color="delete" icon="trash"
+                            <UiButton color="delete" icon="trash" label="Actividad"
                                 @click="eliminarActividad(actividad.NOMBRE_ACTIVIDAD)" />
 
 
                         </div>
-                        <div class="flex gap-2">
-                            <UiInput label="Tiempo estimado de la actividad" type="number" min="0" v-model="tiempoActividad"
-                                placeholder="Tiempo estimado en horas" />
+                        <div class="flex gap-2 ">
+                            <UiInput label="Tiempo estimado de la actividad" type="number" min="0" class="w-full"
+                                v-model="tiempoActividad" placeholder="Tiempo estimado en horas" />
                             <p class="text-horas"> Horas </p>
                         </div>
                     </div>
@@ -105,9 +107,8 @@
             </section>
 
             <section class="section-card">
-                <h2 class="section-card-title mb-4">Parada de Máquina</h2>
+                <h2 class="section-card-title mb-4">¿Causó Parada de Máquina / Sistema?</h2>
                 <div class="flex flex-col gap-4">
-                    <h3>¿Causó parada de máquina?</h3>
                     <div class="flex gap-6 justify-center">
                         <UiRadio label="No" v-model="causoParada" value="NO" color="create" name="parada" />
                         <UiRadio label="Sí" v-model="causoParada" value="SI" color="delete" name="parada" />
@@ -151,6 +152,7 @@ import UiSearchSelector from '../../components/UiSearchSelector.vue'
 import UiModal from '../../components/UiModal.vue'
 import UiAlert from '../../components/UiAlert.vue'
 import axios from '../../api/axios.js'
+import { formatDate } from '../../utils/formatDate.js'
 const causoParada = ref('NO')
 import { getSessionUser } from '../../utils/authSession.js'
 
@@ -196,15 +198,49 @@ const claseActividadSeleccionada = ref('TODOS')
 
 
 const confirmMessage = computed(() => {
-    console.log(otmData.value)
-    if (!otmData.value) {
-        return `¿Estás seguro de que deseas crear esta OTM Correctiva (ID: ${props.id})?`
+    return `¿Estás seguro de que deseas crear esta OTM Correctiva?`
+})
+
+function validarFormularioCrear() {
+    if (addEquiposList.value.length === 0) {
+        return {
+            ok: false,
+            title: 'Equipo requerido',
+            message: 'Debe seleccionar un equipo antes de crear la OTM.'
+        }
     }
 
-    const nombre = otmData.value.NOMBRE_MAQUINA || 'la máquina seleccionada'
-    const id = otmData.value.ID_OTM || otmData.value.ID_MAQUINA || props.id
-    return `¿Estás seguro de que deseas crear la OTM Correctiva para ${nombre} (ID: ${id})?`
-})
+    if (addActividadesList.value.length === 0) {
+        return {
+            ok: false,
+            title: 'Actividad requerida',
+            message: 'Debe seleccionar una actividad antes de crear la OTM.'
+        }
+    }
+
+    if (!tiempoActividad.value || Number(tiempoActividad.value) <= 0) {
+        return {
+            ok: false,
+            title: 'Tiempo inválido',
+            message: 'El tiempo estimado de la actividad debe ser mayor a 0.'
+        }
+    }
+
+    if (!observacionesOTM.value || !observacionesOTM.value.trim()) {
+        return {
+            ok: false,
+            title: 'Observaciones requeridas',
+            message: 'Debe ingresar las observaciones antes de crear la OTM.'
+        }
+    }
+
+    return { ok: true }
+}
+
+function regresar() {
+    observacionesOTM.value = ''
+    router.back()
+}
 
 function agregaActividad() {
     isAddingActividad.value = !isAddingActividad.value
@@ -223,27 +259,22 @@ function eliminarEquipo(idEquipo) {
 }
 
 function crearOTM() {
+    const check = validarFormularioCrear()
+    if (!check.ok) {
+        showAlert('warning', check.title, check.message)
+        return
+    }
     showConfirmModal.value = true
 }
 
 async function handleConfirmCrear() {
-    if (tiempoActividad.value <= 0) {
-        showAlert('warning', 'Tiempo inválido', 'El tiempo estimado de la actividad debe ser mayor a 0')
-        return
-    }
-
-    if (addEquiposList.value.length === 0 || addActividadesList.value.length === 0) {
-        showAlert('warning', 'Campos incompletos', 'Por favor seleccione un equipo y al menos una actividad.')
-        return
-    }
-
     try {
         const equipo = addEquiposList.value[0]
-        const actividad = addActividadesList.value[0] // Tomamos la primera actividad seleccionada
-        const user = getSessionUser() // Obtener usuario de la sesión
+        const actividad = addActividadesList.value[0]
+        const user = getSessionUser()
 
         const data = {
-            CODIGO_PERSONA: user?.codigoPersona || '', // Asignar el código del usuario
+            CODIGO_PERSONA: user?.codigoPersona || '',
             ID_EQUIPO: equipo.ID_EQUIPO,
             ID_ACTIVIDAD: actividad.ID_ACTIVIDAD,
             TIEMPO_ACTIVIDAD: tiempoActividad.value,
@@ -252,7 +283,6 @@ async function handleConfirmCrear() {
             PRIORIDAD: prioridadActividad.value
         }
 
-        console.log('Enviando datos OTM:', data)
         await axios.post('/otmCorrectiva/save-otm', data)
 
         showAlert('success', '¡Éxito!', 'La OTM Correctiva ha sido creada correctamente.')
@@ -261,24 +291,51 @@ async function handleConfirmCrear() {
 
         setTimeout(() => {
             router.push({ name: 'principal-correctivas' }).catch(() => { })
-        }, 2000)
+        }, 5000)
     } catch (error) {
         console.error('Error al crear la OTM:', error)
-        const errorMsg = error.response?.data?.error || 'Hubo un error al crear la OTM. Por favor intente de nuevo.'
-        showAlert('error', 'Error al crear', errorMsg)
+        const status = error.response?.status
+        const body = error.response?.data
+
+        if (status === 409) {
+            showAlert(
+                'warning',
+                'OTM abierta existente',
+                body?.error || formatOpenOtmConflict(body?.details)
+            )
+        } else {
+            const errorMsg = body?.error || 'Hubo un error al crear la OTM. Por favor intente de nuevo.'
+            showAlert('error', 'Error al crear', errorMsg)
+        }
+        showConfirmModal.value = false
     }
 }
 
-function confirmarSeleccion(actividad) {
-    const exists = addActividadesList.value.some(a => a.NOMBRE_ACTIVIDAD === actividad.NOMBRE_ACTIVIDAD)
-    if (!exists) {
-        addActividadesList.value.push({ ...actividad })
+function formatOpenOtmConflict(details) {
+    if (!details) {
+        return 'No se puede crear una nueva otm por que ya existe una abierta y con todos los datos.'
     }
+    return [
+        'No se puede crear una nueva otm por que ya existe una abierta y con todos los datos.',
+        '',
+        `Equipo: ${details.NOMBRE_EQUIPO || '—'}`,
+        `Actividad: ${details.NOMBRE_ACTIVIDAD || '—'}`,
+        `OTM: ${details.ID_OTM ?? '—'}`,
+        `Fecha programada: ${details.FECHA_PROGRAMADA ? formatDate(details.FECHA_PROGRAMADA) : '—'}`,
+        `Fecha cierre: ${details.FECHA_CIERRE ? formatDate(details.FECHA_CIERRE) : '—'}`
+    ].join('\n')
+}
+
+function confirmarSeleccion(actividad) {
+    if (!actividad) return
+    addActividadesList.value = [{ ...actividad }]
     isAddingActividad.value = false
 }
 
 function eliminarActividad(nombreActividad) {
     addActividadesList.value = addActividadesList.value.filter(a => a.NOMBRE_ACTIVIDAD !== nombreActividad)
+    isAddingActividad.value = false
+    tiempoActividad.value = 0
 }
 
 async function fetchActividades() {
@@ -524,7 +581,7 @@ textarea:focus {
     background: var(--color-surface);
     border-radius: 10px;
     border-left: 4px solid var(--color-secondary);
-    margin-bottom: var(--space-xs);
+    margin-bottom: var(--space-md);
 }
 
 .actividad-chip__info {
@@ -607,37 +664,44 @@ textarea:focus {
 
 
 .glass-panel {
-  background: rgba(255, 255, 255, 0.85);
-  /* Cristal templado premium Fiori Light */
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.40);
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
-  position: relative;
-  overflow: hidden;
-  width: 100%;
-  max-width: 1050px;
-  /* Tamaño máximo optimizado */
-  margin: 0 auto;
-  padding: 2.25rem 2rem;
+    background: rgba(255, 255, 255, 0.85);
+    /* Cristal templado premium Fiori Light */
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-radius: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.40);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    max-width: 1050px;
+    /* Tamaño máximo optimizado */
+    margin: 0 auto;
 }
 
 
 .glass-panel .accent-bar {
-  width: 120px;
-  height: 6px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
-  margin: 0 auto 0.55rem auto;
+    width: 120px;
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    margin: 0 auto 0.55rem auto;
 }
 
 .glass-panel h2 {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #0f172a;
-  text-align: center;
-  margin-bottom: 0.5rem;
-  letter-spacing: -0.02em;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #0f172a;
+    text-align: center;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.02em;
+}
+
+
+@media (max-width: 768px) {
+    .container {
+        max-width: 720px;
+        padding: var(--space-sm);
+    }
 }
 </style>

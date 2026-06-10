@@ -120,7 +120,7 @@ function logout() {
 
 .container-content {
   /* Barreras responsivas para garantizar que los paneles (glass-panel) jamás queden tapados por el logo superior y la bottom-nav */
-  padding: 5.5rem 1.5rem 8.5rem 1.5rem; 
+  padding: 6rem 1.5rem 8.5rem 1.5rem; 
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);

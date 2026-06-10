@@ -16,9 +16,8 @@
         v-if="ResolvedIcon && iconPosition === 'start'"
         :is="ResolvedIcon"
         class="ui-btn__icon"
-        :stroke="iconStroke"
-        :width="iconSize"
-        :height="iconSize"
+        :color="iconStroke"
+        :size="iconSize"
       />
 
       <span class="ui-btn__label">
@@ -29,9 +28,8 @@
         v-if="ResolvedIcon && iconPosition === 'end'"
         :is="ResolvedIcon"
         class="ui-btn__icon"
-        :stroke="iconStroke"
-        :width="iconSize"
-        :height="iconSize"
+        :color="iconStroke"
+        :size="iconSize"
       />
     </template>
 
@@ -41,9 +39,8 @@
         v-if="ResolvedIcon"
         :is="ResolvedIcon"
         class="ui-btn__icon"
-        :stroke="iconStroke"
-        :width="iconSize"
-        :height="iconSize"
+        :color="iconStroke"
+        :size="iconSize"
       />
     </template>
   </button>
@@ -139,7 +136,14 @@ const iconStroke = computed(() => {
 });
 
 const iconSize = computed(() => {
-  return props.size === 'sm' ? 12 : props.size === 'lg' ? 24 : 20;
+  if (isIconOnly.value) {
+    if (props.size === 'lg') return 26
+    if (props.size === 'sm') return 22
+    return 24
+  }
+  if (props.size === 'sm') return 18
+  if (props.size === 'lg') return 24
+  return 20
 });
 </script>
 
@@ -172,6 +176,11 @@ const iconSize = computed(() => {
   align-items: center;
   justify-content: center;
   color: inherit;
+  flex-shrink: 0;
+}
+
+.ui-btn__icon :deep(svg) {
+  display: block;
 }
 
 .ui-btn__label {
@@ -189,6 +198,7 @@ const iconSize = computed(() => {
   width: 48px;
   height: 48px;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 /* estilo outlined: fondo transparente, borde y texto coloreado */

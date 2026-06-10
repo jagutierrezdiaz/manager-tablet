@@ -15,7 +15,7 @@
       @touchend="stopDrawing"
     ></canvas>
     <div class="signature-footer">
-      <UiButton label="Limpiar firma" color="delete" icon="trash" size="sm" @click="clear" />
+      <UiButton label="Firma" color="delete" icon="trash" size="sm" @click="clear" />
     </div>
   </div>
 </template>
@@ -41,6 +41,26 @@ onMounted(() => {
   initCanvas()
 })
 
+watch(() => props.modelValue, () => {
+  drawStoredSignature()
+})
+
+function drawStoredSignature() {
+  if (!ctx || !canvasRef.value) return
+  ctx.clearRect(0, 0, canvasRef.value.width, canvasRef.value.height)
+  if (!props.modelValue) return
+
+  const img = new Image()
+  img.crossOrigin = 'anonymous'
+  img.onload = () => {
+    ctx.drawImage(img, 0, 0, canvasRef.value.width, canvasRef.value.height)
+  }
+  img.onerror = () => {
+    console.error('No se pudo cargar la firma:', props.modelValue)
+  }
+  img.src = props.modelValue
+}
+
 function initCanvas() {
   const canvas = canvasRef.value
   ctx = canvas.getContext('2d')
@@ -55,12 +75,7 @@ function initCanvas() {
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
 
-  if (props.modelValue) {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => ctx.drawImage(img, 0, 0)
-    img.src = props.modelValue
-  }
+  drawStoredSignature()
 }
 
 function startDrawing(e) {

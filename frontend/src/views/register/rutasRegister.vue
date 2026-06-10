@@ -4,12 +4,7 @@
         <h2>Ejecución OTMs Programadas</h2>
         <div class="buttons-container">
             <UiButton label="Regresar" color="read" icon="ArrowLeft" @click="$router.back()" />
-            <div class="buttons-container-cards" v-if="itemsList.length > 0">
-                <UiButton color="edit" icon="ArrowLeft" :disabled="currentIndex === 0" @click="anterior()" />
 
-                <UiButton color="edit" icon="ArrowRight" :disabled="currentIndex === itemsList.length - 1"
-                    @click="siguiente()" />
-            </div>
         </div>
 
         <div v-if="rutaInfo" class="data-container">
@@ -19,74 +14,84 @@
                 :colorCard="rutaInfo.COLOR_CARD || 'bg-primary'" />
         </div>
 
-        <section class="section-card data-otm" v-if="currentItem">
-            <div class="flex justify-between items-center mb-4">
-                <h2>Referencias de la Ruta</h2>
-                <span v-if="itemsList.length > 1" class="text-muted font-bold">
-                    {{ currentIndex + 1 }} de {{ itemsList.length }}
-                </span>
-            </div>
-            <table>
-                <tbody>
-                    <tr>
-                        <th>Proceso</th>
-                        <td>{{ currentItem.NOMBRE_PROCESO }}</td>
-                    </tr>
-                    <tr>
-                        <th>Etapa</th>
-                        <td>{{ currentItem.NOMBRE_ETAPA }}</td>
-                    </tr>
-                    <tr>
-                        <th>Máquina</th>
-                        <td>{{ currentItem.NOMBRE_MAQUINA }}</td>
-                    </tr>
-                    <tr>
-                        <th>Equipo</th>
-                        <td>{{ currentItem.NOMBRE_EQUIPO }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </section>
+        <div class="buttons-container-cards" v-if="itemsList.length > 0">
+            <UiButton color="edit" label="Tarea Anterior" icon="ArrowLeft" :disabled="currentIndex === 0" @click="anterior()" />
 
+            <UiButton color="edit" label="Tarea Siguiente" iconPosition="end" icon="ArrowRight" :disabled="currentIndex === itemsList.length - 1"
+                @click="siguiente()" />
+        </div>
+        <div class="container-ruta">
 
-        <section class="section-card data-tarea" v-if="currentItem">
-            <h2 class="section-card-title">Tareas a realizar</h2>
-
-            <textarea v-model="currentItem.INDICACIONES_ESPECIFICAS" placeholder="Escribe aquí tus tareas..." />
-        </section>
-
-
-        <section class="section-card data-observaciones" v-if="currentItem">
-            <h2 class="section-card-title">Observaciones</h2>
-
-            <textarea v-model="currentItem.OBSERVACION" placeholder="Escribe aquí tus observaciones..." />
-        </section>
-
-
-        <section class="section-card" v-if="currentItem">
-            <h2 class="section-card-title">Resultados de la inspección</h2>
-            <div class="flex flex-col gap-4">
-                <h3>¿Cumple con los criterios de aceptación?</h3>
-                <div class="flex gap-6">
-                    <UiRadio label="Si cumple" v-model="currentItem.CUMPLE_REVISION" value="SI" color="create"
-                        name="criterios" />
-                    <UiRadio label="No cumple" v-model="currentItem.CUMPLE_REVISION" value="NO" color="delete"
-                        name="criterios" />
-                    <UiButton color="create" icon="Save" label="Guardar" @click="guardarRutaIndividual" />
+            <section class="section-card data-otm" v-if="currentItem">
+                <div class="flex justify-between items-center mb-4">
+                    <h2>Referencias de la Ruta</h2>
+                    <span v-if="itemsList.length > 1" class="text-muted font-bold">
+                        {{ currentIndex + 1 }} de {{ itemsList.length }}
+                    </span>
                 </div>
-            </div>
-        </section>
+                <table>
+                    <tbody>
+                        <tr>
+                            <th>Proceso</th>
+                            <td>{{ currentItem.NOMBRE_PROCESO }}</td>
+                        </tr>
+                        <tr>
+                            <th>Etapa</th>
+                            <td>{{ currentItem.NOMBRE_ETAPA }}</td>
+                        </tr>
+                        <tr>
+                            <th>Máquina</th>
+                            <td>{{ currentItem.NOMBRE_MAQUINA }}</td>
+                        </tr>
+                        <tr>
+                            <th>Equipo</th>
+                            <td>{{ currentItem.NOMBRE_EQUIPO }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+
+            <section class="section-card data-tarea" v-if="currentItem">
+                <h2 class="section-card-title">Tareas a realizar</h2>
+
+                <textarea v-model="currentItem.INDICACIONES_ESPECIFICAS" placeholder="Escribe aquí tus tareas..." />
+            </section>
+
+
+            <section class="section-card data-observaciones" v-if="currentItem">
+                <h2 class="section-card-title">Observaciones</h2>
+
+                <textarea v-model="currentItem.OBSERVACION" placeholder="Escribe aquí tus observaciones..." />
+            </section>
+
+
+            <section class="section-card" v-if="currentItem">
+                <h2 class="section-card-title">Resultados de la inspección</h2>
+                <div class="flex flex-col gap-4">
+                    <h3>¿Cumple con los criterios de aceptación?</h3>
+                    <div class="flex gap-6">
+                        <UiRadio label="Si cumple" v-model="currentItem.CUMPLE_REVISION" value="SI" color="create"
+                            name="criterios" />
+                        <UiRadio label="No cumple" v-model="currentItem.CUMPLE_REVISION" value="NO" color="delete"
+                            name="criterios" />
+                        <UiButton color="create" icon="Save" label="Guardar" @click="guardarRutaIndividual" />
+                    </div>
+                </div>
+            </section>
 
 
 
 
-        <section class="section-card data-tiempo-ejecucion">
-            <h2 style="margin:0; border:none; padding:0;">Tiempo Real de Ejecución Ruta</h2>
-            <div class="flex items-center gap-3">
-                <UiInput type="number" v-model="tiempoEjecucion" min="0" max="24" size="sm" minWidth="120px" />
-                <span class="font-bold">Horas</span>
-            </div>
-        </section>
+            <section class="section-card data-tiempo-ejecucion">
+                <h2 style="margin:0; border:none; padding:0;">Tiempo Real de Ejecución Ruta</h2>
+                <div class="flex items-center gap-3">
+                    <UiInput type="number" v-model="tiempoEjecucion" min="0" max="24" size="sm" minWidth="120px" />
+                    <span class="font-bold">Horas</span>
+                </div>
+            </section>
+        </div>
+
 
         <div class="footer-actions" v-if="itemsList.length > 0">
             <UiButton label="Cumplir" color="create" icon="Check" :disabled="!isUltimoRegistro" @click="cumplirRuta" />
@@ -380,7 +385,7 @@ async function guardarRutaIndividual() {
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
+    gap: var(--space-sm);
 }
 
 .data-container {
@@ -441,16 +446,13 @@ td {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-sm);
-    margin-top: var(--space-sm);
+
     padding-bottom: var(--space-sm);
-    border-top: 1px solid var(--color-surface);
 }
 
 .buttons-container-cards {
     display: flex;
-    justify-content: end;
-    align-items: end;
+    justify-content: center;
     gap: var(--space-sm);
 }
 
@@ -520,37 +522,45 @@ textarea:focus {
 
 
 .glass-panel {
-  background: rgba(255, 255, 255, 0.85);
-  /* Cristal templado premium Fiori Light */
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.40);
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
-  position: relative;
-  overflow: hidden;
-  width: 100%;
-  max-width: 1050px;
-  /* Tamaño máximo optimizado */
-  margin: 0 auto;
-  padding: 2.25rem 2rem;
+    background: rgba(255, 255, 255, 0.85);
+    /* Cristal templado premium Fiori Light */
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-radius: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.40);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    max-width: 1050px;
+    /* Tamaño máximo optimizado */
+    margin: 0 auto;
+    padding: 2.25rem 2rem;
 }
 
 
 .glass-panel .accent-bar {
-  width: 120px;
-  height: 6px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
-  margin: 0 auto 0.55rem auto;
+    width: 120px;
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    margin: 0 auto 0.55rem auto;
 }
 
 .glass-panel h2 {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #0f172a;
-  text-align: center;
-  margin-bottom: 0.5rem;
-  letter-spacing: -0.02em;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #0f172a;
+    text-align: center;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.02em;
+}
+
+.container-ruta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    max-height: 540px;
+    overflow-y: auto;
 }
 </style>

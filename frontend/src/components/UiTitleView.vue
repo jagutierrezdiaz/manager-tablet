@@ -46,8 +46,7 @@ const props = defineProps({
     display: flex;
     align-items: center;
     gap: var(--space-lg);
-    padding: var(--space-md) 0;
-    margin-bottom: var(--space-lg);
+  
 }
 .text-title {
     width: 80px;

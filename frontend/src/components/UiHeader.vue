@@ -121,12 +121,7 @@ function onClick(name, routeName) {
 }
 
 
-/*
-.img-logo {
-  height: 52px; 
-  object-fit: contain;
-}
-*/
+
 .img-logo-emp {
   height: 52px; /* Exactamente el mismo tamaño para simetria ideal */
   object-fit: contain;
@@ -140,7 +135,7 @@ function onClick(name, routeName) {
   
   .img-logo {
     width: 100%;                  
-    max-height: 40px;            
+    max-height: 55px;            
     object-fit: contain;
     filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35)); 
   }
@@ -207,7 +202,7 @@ function onClick(name, routeName) {
   }
   
   .img-logo {
-    height: 40px;
+    height: 55px;
   }
 }
 

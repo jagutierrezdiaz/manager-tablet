@@ -1,3 +1,4 @@
+import './firebirdEncoding.js'
 import Fb from 'node-firebird'
 import dotenv from 'dotenv'
 import { AsyncLocalStorage } from 'async_hooks'
@@ -14,6 +15,7 @@ const options = {
   password: process.env.FB_PASSWORD || 'masterkey',
   lowercase_keys: false,
   blobAsText: true,
+  encoding: process.env.FB_ENCODING || 'WIN1252',
   role: null,
   pageSize: 4096
 }

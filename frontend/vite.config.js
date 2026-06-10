@@ -40,6 +40,10 @@ export default defineConfig({
         // Si usas Docker o un host diferente, ajusta esta URL.
         target: 'http://localhost:5000',
         changeOrigin: true  
+      },
+      '/uploads': {
+        target: 'http://localhost:5000',
+        changeOrigin: true
       }
     }
   }

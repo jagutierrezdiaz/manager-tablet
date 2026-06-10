@@ -6,7 +6,7 @@
             <UiButton label="Regresar" color="read" icon="arrow-left" @click="$router.back()" />
             <div v-if="itemsList.length > 0">
                 <span v-if="itemsList.length > 1" class="pagination-info">{{ currentIndex + 1 }} de {{ itemsList.length
-                    }}</span>
+                }}</span>
                 <UiButton v-if="itemsList.length > 1" label="Anterior" color="edit" icon="arrow-left"
                     :disabled="currentIndex === 0" @click="anterior()" />
 
@@ -99,17 +99,12 @@
 
                 <div class="usuarios-list">
                     <div class="usuario-item" v-for="user in addUsersList" :key="user.codigoPersona">
-                        <div class="buttons-container-cards">
-                            <UiButton color="create" icon="save" @click="guardarUsuario(user.codigoPersona)" />
-                            <UiButton color="delete" icon="trash" @click="eliminarUsuario(user.codigoPersona)" />
-                        </div>
-
                         <div class="usuario-info">
 
 
                             <div class="flex align-center gap-3">
                                 <span class="usuario-name">Nombre: {{ user.nombrePersona }} - Id: {{ user.codigoPersona
-                                }}</span>
+                                    }}</span>
                             </div>
 
                             <div class="flex flex-col align-center gap-3">
@@ -135,6 +130,13 @@
 
                             <div class="mt-4">
                                 <UiSignature v-model="user.firma" label="Firma del operario" :height="150" />
+                            </div>
+
+                            <div class="buttons-container-cards">
+                                <UiButton color="create" label="Tiempo y Firma" icon="save"
+                                    @click="guardarUsuario(user.codigoPersona)" />
+                                <UiButton color="delete" label="Persona" icon="trash"
+                                    @click="eliminarUsuario(user.codigoPersona)" />
                             </div>
                         </div>
 
@@ -172,7 +174,7 @@
                                 <div
                                     class="flex justify-between items-center bg-primary/5 p-2 rounded border border-primary/10">
                                     <span class="text-sm font-bold">Tipo: {{ selectedTipoRepuesto.NOMBRE_TIPO_REPUESTO
-                                    }}</span>
+                                        }}</span>
                                     <UiButton label="Cambiar tipo" size="sm" color="info"
                                         @click="selectedTipoRepuesto = null" />
                                 </div>
@@ -189,18 +191,18 @@
                     <!-- Lista de Repuestos Agregados -->
                     <div class="repuestos-agregados mt-4">
                         <div v-for="rep in addRepuestosList" :key="rep.ID_REPUESTO" class="repuesto-item-card">
-                            <div class="flex justify-between items-center p-3 bg-surface rounded-lg border mb-2">
-                                <div>
+                            <div class="repuesto-item-row">
+                                <div class="repuesto-item-info">
                                     <p class="font-bold">{{ rep.NOMBRE_REPUESTO }}</p>
                                     <p class="text-xs text-muted">Unidad de medida: {{ rep.UNIDAD_MEDIDA }}</p>
                                 </div>
-                                <div class="flex items-center gap-4">
-                                    <div class="flex items-center gap-2">
+                                <div class="repuesto-item-controls">
+                                    <div class="repuesto-qty">
                                         <label class="text-xs font-bold">Cant:</label>
                                         <input type="number" v-model="rep.UND_REAL"
                                             class="w-16 p-1 border rounded text-center" min="1" />
                                     </div>
-                                    <div class="flex items-center gap-2">
+                                    <div class="repuesto-actions">
                                         <UiButton color="create" icon="save" size="sm" @click="guardarRepuesto(rep)" />
                                         <UiButton color="delete" icon="trash" size="sm"
                                             @click="eliminarRepuesto(rep.ID_REPUESTO)" />
@@ -250,7 +252,7 @@
             <section class="section-card">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="section-card-title">Aprobación OTM</h2>
-                    <UiButton :label="isAddingSupervisor ? 'Cancelar' : 'Seleccionar Supervisor'"
+                    <UiButton :label="isAddingSupervisor ? 'Cancelar' : (addSupervisorList.length ? 'Cambiar Supervisor' : 'Seleccionar Supervisor')"
                         :color="isAddingSupervisor ? 'delete' : 'create'" :icon="isAddingSupervisor ? 'x' : 'plus'"
                         iconPosition="end" @click="isAddingSupervisor = !isAddingSupervisor" />
                 </div>
@@ -266,9 +268,6 @@
 
                 <div class="supervisor-asignado mt-4">
                     <div v-for="sup in addSupervisorList" :key="sup.codigoPersona" class="usuario-item">
-                        <div class="buttons-container-cards">
-                            <UiButton color="delete" icon="trash" @click="eliminarSupervisor(sup.codigoPersona)" />
-                        </div>
                         <div class="usuario-info">
                             <span class="text-muted text-xs">Supervisor</span>
                             <span class="usuario-name text-sm">{{ sup.nombrePersona }}</span>
@@ -277,14 +276,20 @@
                                 <UiSignature v-model="sup.firma" label="Firma del supervisor" :height="150" />
                             </div>
                         </div>
+
+                        <div class="btn-aprobar">
+                            <UiButton label="Quitar supervisor" color="delete" icon="trash"
+                                @click="eliminarSupervisor(sup.codigoPersona)" />
+                            <UiButton label="Aprobar" color="create" icon="check" iconPosition="end"
+                                @click="aprobarOTM()" />
+                        </div>
                     </div>
                     <p v-if="addSupervisorList.length === 0" class="text-muted text-center py-4">
                         No se ha seleccionado un supervisor para la aprobación.
                     </p>
                 </div>
 
-                <UiButton v-if="addSupervisorList.length > 0" label="Aprobar" color="create" icon="check"
-                    iconPosition="end" @click="aprobarOTM()" />
+
             </section>
         </div>
 
@@ -304,7 +309,7 @@
 import { onMounted, ref, computed, watch, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { getSelectedOtm, clearSelectedOtm, setSelectedOtm } from '../../utils/dataTransfer.js'
-import { getSelectedDbApiUrl } from '../../utils/dbProfile.js'
+import { resolveUploadUrl } from '../../utils/uploadUrl.js'
 import axios from '../../api/axios.js'
 import UiButton from '../../components/UiButton.vue'
 import UiInput from '../../components/UiInput.vue'
@@ -405,7 +410,95 @@ function anterior() {
 }
 
 function cumplir() {
+    const check = validarRequisitosCumplir()
+    if (!check.ok) {
+        showAlert('warning', check.title, check.message)
+        return
+    }
     showConfirmModal.value = true
+}
+
+function hasFirma(firma) {
+    return typeof firma === 'string' && firma.trim().length > 0
+}
+
+function validarRequisitosCumplir() {
+    if (!tiempoEjecucion.value || Number(tiempoEjecucion.value) <= 0) {
+        return {
+            ok: false,
+            title: 'Tiempo inválido',
+            message: 'Debe ingresar el tiempo de ejecución (mayor a 0 horas).'
+        }
+    }
+
+    if (addUsersList.value.length === 0) {
+        return {
+            ok: false,
+            title: 'Personal requerido',
+            message: 'Debe asignar al menos una persona antes de cumplir la OTM.'
+        }
+    }
+
+    const operariosSinFirma = addUsersList.value.filter(u => !hasFirma(u.firma))
+    if (operariosSinFirma.length > 0) {
+        const nombres = operariosSinFirma.map(u => u.nombrePersona).join(', ')
+        return {
+            ok: false,
+            title: 'Firmas pendientes',
+            message: `Todo el personal asignado debe firmar. Pendientes: ${nombres}.`
+        }
+    }
+
+    if (addSupervisorList.value.length === 0) {
+        return {
+            ok: false,
+            title: 'Supervisor requerido',
+            message: 'Debe asignar un supervisor antes de cumplir la OTM.'
+        }
+    }
+
+    if (addSupervisorList.value.length > 1) {
+        return {
+            ok: false,
+            title: 'Supervisor duplicado',
+            message: 'Solo puede haber un supervisor asignado. Elimine el supervisor extra o seleccione uno nuevo.'
+        }
+    }
+
+    const supervisor = addSupervisorList.value[0]
+    if (!hasFirma(supervisor.firma)) {
+        return {
+            ok: false,
+            title: 'Firma del supervisor',
+            message: 'El supervisor asignado debe firmar antes de cumplir la OTM.'
+        }
+    }
+
+    if (!foto1.value) {
+        return {
+            ok: false,
+            title: 'Foto 1 requerida',
+            message: 'Debe capturar y guardar la foto 1 antes de cumplir la OTM.'
+        }
+    }
+
+    if (!foto2.value) {
+        return {
+            ok: false,
+            title: 'Foto 2 requerida',
+            message: 'Debe capturar y guardar la foto 2 antes de cumplir la OTM.'
+        }
+    }
+
+    if (!observacionesEjecucion.value || !observacionesEjecucion.value.trim()) {
+        return {
+            ok: false,
+            title: 'Observaciones requeridas',
+            message: 'Debe ingresar las observaciones de ejecución.'
+        }
+    }
+
+    return { ok: true }
 }
 
 async function handleIrAAnterior() {
@@ -436,16 +529,16 @@ async function handleIrAAnterior() {
 
         // 3. Redirigir a la vista de registro de esa OTM
         showAnteriorModal.value = false
-        
+
         // Limpiar datos actuales para evitar conflictos al cargar la nueva
         otmData.value = null
         itemsList.value = []
-        
+
         router.push({
             name: 'otm-programada-register',
             params: { id: idAnterior }
         })
-        
+
         // Forzar recarga de datos
         setTimeout(() => {
             loadData()
@@ -458,30 +551,18 @@ async function handleIrAAnterior() {
 }
 
 async function handleConfirmCumplir() {
-    console.log('handleConfirmCumplir called')
-    // 1. Validaciones
-    if (tiempoEjecucion.value <= 0) {
-        showAlert('warning', 'Tiempo inválido', 'El tiempo real debe ser mayor a 0')
+    const check = validarRequisitosCumplir()
+    if (!check.ok) {
+        showAlert('warning', check.title, check.message)
         showConfirmModal.value = false
         return
     }
-    if (!observacionesEjecucion.value || !observacionesEjecucion.value.trim()) {
-        showAlert('warning', 'Observaciones requeridas', 'Debe ingresar las observaciones de ejecución')
-        showConfirmModal.value = false
-        return
-    }
-    // 1. Validar OTM anterior
+
     if (!currentDatosOtm.value) {
         showAlert('error', 'Error', 'No se han cargado los datos de la OTM correctamente.')
         showConfirmModal.value = false
         return
     }
-
-    console.log('validating previous OTM', {
-        idNumerico: currentDatosOtm.value.ID_NUMERICO,
-        idEquipo: currentDatosOtm.value.ID_EQUIPO,
-        idActividad: currentDatosOtm.value.ID_ACTIVIDAD
-    })
 
     try {
         const result = await axios.post('otmProgramada/validar-otm-anterior', {
@@ -556,81 +637,86 @@ async function handleConfirmCumplir() {
 }
 
 async function loadData() {
-    const data = getSelectedOtm()
     const idStr = String(props.id)
-    console.log('data_programadas', data)
-    // Verificamos que los datos correspondan al ID de la URL
-    if (data && (String(data.ID_OTM) === idStr || String(data.ID_MAQUINA) === idStr)) {
-        // Resetear estado anterior
-        otmData.value = data
-        itemsList.value = []
-        addUsersList.value = []
-        addRepuestosList.value = []
-        addSupervisorList.value = []
-        foto1.value = null
-        foto2.value = null
-        currentIndex.value = 0
+    const sessionData = getSelectedOtm()
 
-        try {
-            // Ejecutamos todas las peticiones en paralelo
-            const [otmRes, usersRes, tipoRepuestosRes, supervisoresRes, personasAsignadasRes, repuestosAsignadosRes, supervisorAsignadoRes] = await Promise.all([
-                axios.get('otmProgramada/get-datos-otm-programada', { params: { idOtmProgramada: idStr } }),
-                axios.get('users/not-suspended').catch(err => {
-                    console.error('Error al cargar datos de los usuarios:', err)
-                    return { data: [] }
-                }),
-                axios.get('otmProgramada/get-tipo-repuestos'),
-                axios.get('users/get-supervisores'),
-                axios.get('users/personas-asignadas', { params: { idOtm: idStr } }),
-                axios.get('otmProgramada/get-repuestos-asignados-otm', { params: { idOtm: idStr } }),
-                axios.get('users/supervisor-asignado', { params: { idOtm: idStr } }).catch(err => {
-                    console.error('Error al cargar supervisor asignado:', err)
-                    return { data: null }
-                }),
-            ])
-
-            itemsList.value = Array.isArray(otmRes.data) ? otmRes.data : [otmRes.data]
-            usersList.value = Array.isArray(usersRes.data) ? usersRes.data : [usersRes.data]
-            tipoRepuestosList.value = Array.isArray(tipoRepuestosRes.data) ? tipoRepuestosRes.data : [tipoRepuestosRes.data]
-            supervisorList.value = Array.isArray(supervisoresRes.data) ? supervisoresRes.data : [supervisoresRes.data]
-
-            const baseUrl = (getSelectedDbApiUrl() || import.meta.env.VITE_API_URL || '').replace(/\/api$/, '')
-
-            if (Array.isArray(personasAsignadasRes.data)) {
-                addUsersList.value = personasAsignadasRes.data.map(u => ({
-                    ...u,
-                    horaInicio: formatForDateTimeInput(u.horaInicio),
-                    horaFin: formatForDateTimeInput(u.horaFin),
-                    horaTotal: u.horaTotal || '00:00:00',
-                    firma: u.firma ? `${baseUrl}/${u.firma}` : null
-                }))
-            }
-
-            if (supervisorAsignadoRes.data) {
-                const sup = supervisorAsignadoRes.data
-                addSupervisorList.value = [{
-                    ...sup,
-                    firma: sup.firma ? `${baseUrl}/${sup.firma}` : null
-                }]
-            }
-
-            // Cargar fotos y datos existentes
-            if (itemsList.value.length > 0) {
-                const otm = itemsList.value[0]
-                if (otm.FOTO_1) foto1.value = `${baseUrl}/${otm.FOTO_1}`
-                if (otm.FOTO_2) foto2.value = `${baseUrl}/${otm.FOTO_2}`
-                observacionesEjecucion.value = otm.COMENTARIOS_DE_CIERRE || ''
-                tiempoEjecucion.value = otm.TIEMPO_REAL || 0
-            }
-
-            if (Array.isArray(repuestosAsignadosRes.data)) {
-                addRepuestosList.value = repuestosAsignadosRes.data
-            }
-        } catch (error) {
-            console.error('Error al cargar datos de la OTM:', error)
-        }
+    if (sessionData && (String(sessionData.ID_OTM) === idStr || String(sessionData.ID_MAQUINA) === idStr)) {
+        otmData.value = sessionData
     } else {
-        console.warn('Los datos en sesión no coinciden con el ID de la URL o no existen')
+        otmData.value = { ID_OTM: idStr }
+    }
+
+    itemsList.value = []
+    addUsersList.value = []
+    addRepuestosList.value = []
+    addSupervisorList.value = []
+    foto1.value = null
+    foto2.value = null
+    currentIndex.value = 0
+
+    try {
+        const [otmRes, usersRes, tipoRepuestosRes, supervisoresRes, personasAsignadasRes, repuestosAsignadosRes, supervisorAsignadoRes] = await Promise.all([
+            axios.get('otmProgramada/get-datos-otm-programada', { params: { idOtmProgramada: idStr } }),
+            axios.get('users/not-suspended').catch(err => {
+                console.error('Error al cargar datos de los usuarios:', err)
+                return { data: [] }
+            }),
+            axios.get('otmProgramada/get-tipo-repuestos'),
+            axios.get('users/get-supervisores'),
+            axios.get('users/personas-asignadas', { params: { idOtm: idStr } }),
+            axios.get('otmProgramada/get-repuestos-asignados-otm', { params: { idOtm: idStr } }),
+            axios.get('users/supervisor-asignado', { params: { idOtm: idStr } }).catch(err => {
+                console.error('Error al cargar supervisor asignado:', err)
+                return { data: null }
+            }),
+        ])
+
+        itemsList.value = Array.isArray(otmRes.data) ? otmRes.data : [otmRes.data]
+        usersList.value = Array.isArray(usersRes.data) ? usersRes.data : [usersRes.data]
+        tipoRepuestosList.value = Array.isArray(tipoRepuestosRes.data) ? tipoRepuestosRes.data : [tipoRepuestosRes.data]
+        supervisorList.value = Array.isArray(supervisoresRes.data) ? supervisoresRes.data : [supervisoresRes.data]
+
+        if (itemsList.value.length > 0) {
+            const otm = itemsList.value[0]
+            otmData.value = {
+                ...otmData.value,
+                ID_OTM: otm.ID_OTM ?? idStr,
+                FECHA_PROGRAMADA: otm.FECHA_PROGRAMADA,
+                TIPO_MANTENIMIENTO: otm.TIPO_MANTENIMIENTO
+            }
+        }
+
+        if (Array.isArray(personasAsignadasRes.data)) {
+            addUsersList.value = personasAsignadasRes.data.map(u => ({
+                ...u,
+                horaInicio: formatForDateTimeInput(u.horaInicio),
+                horaFin: formatForDateTimeInput(u.horaFin),
+                horaTotal: u.horaTotal || '00:00:00',
+                firma: resolveUploadUrl(u.firma)
+            }))
+        }
+
+        if (supervisorAsignadoRes.data) {
+            const sup = supervisorAsignadoRes.data
+            addSupervisorList.value = [{
+                ...sup,
+                firma: resolveUploadUrl(sup.firma)
+            }]
+        }
+
+        if (itemsList.value.length > 0) {
+            const otm = itemsList.value[0]
+            if (otm.FOTO_1) foto1.value = resolveUploadUrl(otm.FOTO_1)
+            if (otm.FOTO_2) foto2.value = resolveUploadUrl(otm.FOTO_2)
+            observacionesEjecucion.value = otm.COMENTARIOS_DE_CIERRE || ''
+            tiempoEjecucion.value = otm.TIEMPO_REAL || 0
+        }
+
+        if (Array.isArray(repuestosAsignadosRes.data)) {
+            addRepuestosList.value = repuestosAsignadosRes.data
+        }
+    } catch (error) {
+        console.error('Error al cargar datos de la OTM:', error)
     }
 }
 
@@ -726,12 +812,27 @@ function confirmarSeleccion(user) {
 }
 
 function confirmarSeleccionSupervisor(supervisor) {
-    if (supervisor) {
-        // En este caso, solo permitimos un supervisor por OTM
-        addSupervisorList.value = [{ ...supervisor }]
-        isAddingSupervisor.value = false
-        showAlert('success', 'Supervisor seleccionado', `${supervisor.nombrePersona} ha sido asignado para la aprobación.`)
+    if (!supervisor) return
+
+    const anterior = addSupervisorList.value[0]
+    const mismaPersona = anterior?.codigoPersona === supervisor.codigoPersona
+
+    addSupervisorList.value = [{
+        ...supervisor,
+        firma: mismaPersona ? anterior.firma : null
+    }]
+    isAddingSupervisor.value = false
+
+    if (anterior && !mismaPersona) {
+        showAlert(
+            'info',
+            'Supervisor reemplazado',
+            `${anterior.nombrePersona} fue sustituido por ${supervisor.nombrePersona}. Debe firmar nuevamente.`
+        )
+        return
     }
+
+    showAlert('success', 'Supervisor seleccionado', `${supervisor.nombrePersona} ha sido asignado para la aprobación.`)
 }
 
 function eliminarSupervisor(codigoPersona) {
@@ -852,11 +953,10 @@ async function guardarFotoOtm(photoNumber, imageBase64) {
         }
         const res = await axios.post(`otmProgramada/save-otm-photo/${otmData.value.ID_OTM}`, payload)
 
-        const baseUrl = (getSelectedDbApiUrl() || import.meta.env.VITE_API_URL || '').replace(/\/api$/, '')
         if (photoNumber === 1) {
-            foto1.value = `${baseUrl}/${res.data.url}`
+            foto1.value = resolveUploadUrl(res.data.url)
         } else {
-            foto2.value = `${baseUrl}/${res.data.url}`
+            foto2.value = resolveUploadUrl(res.data.url)
         }
 
         showAlert('success', 'Foto guardada', `La foto ${photoNumber} ha sido guardada correctamente`)
@@ -950,12 +1050,16 @@ function datosCierreOTM({
     padding: var(--space-md);
     max-width: 1000px;
     margin: 0 auto;
+    max-height: 750px;
 }
 
 .data-container {
     display: flex;
     flex-direction: column;
     gap: var(--space-md);
+    max-height: 580px;
+    overflow-y: auto;
+    padding-bottom: var(--space-sm);
 }
 
 .section-card {
@@ -1060,6 +1164,37 @@ textarea:focus {
     gap: var(--space-sm);
 }
 
+.repuesto-item-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-surface);
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    margin-bottom: var(--space-sm);
+}
+
+.repuesto-item-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+}
+
+.repuesto-qty,
+.repuesto-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-shrink: 0;
+}
+
+.repuesto-actions :deep(.ui-btn) {
+    flex-shrink: 0;
+}
+
 .usuario-item {
     display: flex;
     flex-direction: column;
@@ -1101,7 +1236,6 @@ textarea:focus {
     margin-bottom: var(--space-sm);
     margin-top: var(--space-sm);
     padding-bottom: var(--space-sm);
-    border-top: 1px solid var(--color-surface);
 }
 
 .pagination-info {
@@ -1127,41 +1261,51 @@ textarea:focus {
 
 
 .glass-panel {
-  background: rgba(255, 255, 255, 0.85);
-  /* Cristal templado premium Fiori Light */
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.40);
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
-  position: relative;
-  overflow: hidden;
-  width: 100%;
-  max-width: 1050px;
-  /* Tamaño máximo optimizado */
-  margin: 0 auto;
-  padding: 2.25rem 2rem;
+    background: rgba(255, 255, 255, 0.85);
+    /* Cristal templado premium Fiori Light */
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-radius: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.40);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    max-width: 1050px;
+    /* Tamaño máximo optimizado */
+    margin: 0 auto;
 }
 
 
 .glass-panel .accent-bar {
-  width: 120px;
-  height: 6px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
-  margin: 0 auto 0.55rem auto;
+    width: 120px;
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    margin: 0 auto 0.55rem auto;
 }
 
 .glass-panel h2 {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #0f172a;
-  text-align: center;
-  margin-bottom: 0.5rem;
-  letter-spacing: -0.02em;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #0f172a;
+    text-align: center;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.02em;
+}
+
+.btn-aprobar {
+    width: 100%;
+    display: flex;
+    gap: 20px;
+    justify-content: end;
 }
 
 @media (max-width: 768px) {
+    .container {
+        padding: var(--space-sm);
+    }
+
     .section-card {
         padding: var(--space-md);
     }

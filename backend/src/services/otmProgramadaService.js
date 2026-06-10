@@ -2,6 +2,12 @@ import db from '../db/index.js'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import {
+    getFirmaPersonalDir,
+    getFotosOtmDir,
+    toPublicPath,
+    toAbsolutePath
+} from '../config/uploads.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -174,9 +180,7 @@ export async function savePersonaAsignadaOtm(idOtm, personaAsignada) {
 async function saveSignatureFile(idOtm, personaAsignada) {
     try {
         const base64Data = personaAsignada.firma.replace(/^data:image\/png;base64,/, "")
-        // Definir la ruta relativa a la raíz del backend (2 niveles arriba de src/services)
-        const backendRoot = path.resolve(__dirname, '..', '..')
-        const uploadDir = path.join(backendRoot, 'uploads', 'Firma_Personal')
+        const uploadDir = getFirmaPersonalDir()
 
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true })
@@ -188,8 +192,7 @@ async function saveSignatureFile(idOtm, personaAsignada) {
 
         fs.writeFileSync(filePath, base64Data, 'base64')
 
-        // Guardar en la tabla FIRMA_PERSONAL
-        const urlFirma = `uploads/Firma_Personal/${fileName}`
+        const urlFirma = toPublicPath('Firma_Personal', fileName)
 
         // Verificar si ya existe la firma para esta OTM y persona
         const sqlCheck = 'SELECT ID_NUMERICO FROM FIRMA_PERSONAL WHERE ID_OTM = ? AND CODIGO_PERSONAL = ?'
@@ -309,8 +312,7 @@ export async function aprobarOtm(idOtm, supervisorData) {
 export async function saveOtmPhoto(idOtm, photoNumber, base64Data) {
     try {
         const cleanData = base64Data.replace(/^data:image\/\w+;base64,/, "")
-        const backendRoot = path.resolve(__dirname, '..', '..')
-        const uploadDir = path.join(backendRoot, 'uploads', 'Fotos_OTM')
+        const uploadDir = getFotosOtmDir()
 
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true })
@@ -321,7 +323,7 @@ export async function saveOtmPhoto(idOtm, photoNumber, base64Data) {
 
         fs.writeFileSync(filePath, cleanData, 'base64')
 
-        const urlFoto = `uploads/Fotos_OTM/${fileName}`
+        const urlFoto = toPublicPath('Fotos_OTM', fileName)
         const fieldName = `FOTO_${photoNumber}`
 
         const sql = `UPDATE OTM SET ${fieldName} = ? WHERE ID_OTM = ?`
@@ -345,10 +347,9 @@ export async function deleteOtmPhoto(idOtm, photoNumber) {
 
         // 2. Eliminar el archivo físico si existe
         if (currentPath) {
-            const backendRoot = path.resolve(__dirname, '..', '..')
-            const fullPath = path.join(backendRoot, currentPath)
+            const fullPath = toAbsolutePath(currentPath)
 
-            if (fs.existsSync(fullPath)) {
+            if (fullPath && fs.existsSync(fullPath)) {
                 fs.unlinkSync(fullPath)
             }
         }

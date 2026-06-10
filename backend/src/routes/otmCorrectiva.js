@@ -1,5 +1,5 @@
 import express from 'express'
-import { getListMachines, getDetailMachineController, getListEquiposController, getListActividadesController, saveOTMCorrectivaController } from '../controllers/otmCorrectivaController.js'
+import { getListMachines, getDetailMachineController, getListEquiposController, getListActividadesController, saveOTMCorrectivaController, getProcesoMaquinasController } from '../controllers/otmCorrectivaController.js'
 
 const router = express.Router()
 
@@ -21,4 +21,6 @@ router.get('/get-list-actividades/:claseActividad', getListActividadesController
 // POST /api/otmCorrectiva/save-otm
 router.post('/save-otm', saveOTMCorrectivaController)
 
+// GET /api/otmCorrectiva/get-proceso-maquinas
+router.get('/get-proceso-maquinas', getProcesoMaquinasController)
 export default router

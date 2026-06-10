@@ -183,6 +183,7 @@ const CloseIcon = Icons['X'] || Icons['XCircle'] || null;
   font-size: var(--fs-sm);
   line-height: 1.5;
   font-weight: 500;
+  white-space: pre-line;
 }
 .ui-alert__close {
   background: transparent;

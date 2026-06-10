@@ -28,12 +28,14 @@
     <div class="ui-image-upload__footer">
       <UiButton 
         v-if="previewUrl"
+        label="Imagen"
         size="sm" 
         color="delete" 
         icon="trash" 
         @click.stop="removeImage"
       />
       <UiButton 
+        label="Cambiar"
         size="sm" 
         color="edit" 
         icon="refresh-cw" 
@@ -44,7 +46,7 @@
         size="sm" 
         color="create" 
         icon="save" 
-        label="Guardar"
+        label="Imagen"
         @click.stop="saveImage"
       />
     </div>

@@ -2,7 +2,8 @@ import * as otmCorrectivaService from '../services/otmCorrectivaService.js'
 
 export async function getListMachines(req, res, next) {
     try {
-        const machines = await otmCorrectivaService.getMachines()
+        const idProceso = req.query.idProceso
+        const machines = await otmCorrectivaService.getMachines(idProceso)
         res.json(machines)
     } catch (error) {
         next(error)
@@ -45,6 +46,21 @@ export async function saveOTMCorrectivaController(req, res, next) {
         const data = req.body
         const result = await otmCorrectivaService.saveOTMCorrectiva(data)
         res.json(result)
+    } catch (err) {
+        if (err.status === 409) {
+            return res.status(409).json({
+                error: err.message,
+                details: err.details || null
+            })
+        }
+        next(err)
+    }
+}
+
+export async function getProcesoMaquinasController(req, res, next) {
+    try {
+        const listProcesoMaquinas = await otmCorrectivaService.getProcesoMaquinas()
+        res.json(listProcesoMaquinas)
     } catch (err) {
         next(err)
     }
