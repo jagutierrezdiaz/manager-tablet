@@ -25,7 +25,7 @@ export async function getOtmProgramadas(codigoPersona) {
         WHERE OTM.CUMPLIDA = 'NO'
             AND OTM.ID_ACTIVIDAD = AC.ID_ACTIVIDAD
             AND OTM.ID_OTM = CM.ID_OTM
-            AND AC.TIPO_PROGRAMA = 'PERIODO'
+            AND AC.TIPO_PROGRAMA IN ('PERIODO', 'NINGUNO')
             AND CM.CODIGO_PERSONA = ?
         ORDER BY OTM.FECHA_PROGRAMADA`
     const rows = await db.query(sql, [codigoPersona])

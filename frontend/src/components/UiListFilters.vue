@@ -126,8 +126,8 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
   flex-direction: column;
   gap: var(--space-sm);
   width: 100%;
-  margin: 0 auto var(--space-md);
-  padding: var(--space-md);
+  margin: 0 auto var(--space-sm);
+  padding: var(--space-sm);
   background-color: var(--color-surface);
   border-radius: var(--radius);
   border: 1px solid rgba(15, 23, 42, 0.06);

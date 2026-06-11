@@ -2,6 +2,7 @@
   <div class="signature-container">
     <div v-if="label" class="signature-label">
       <label>{{ label }}</label>
+      <UiButton label="Firma" color="delete" icon="trash" size="sm" @click="clear" />
     </div>
     <canvas
       ref="canvasRef"
@@ -14,9 +15,7 @@
       @touchmove="handleTouchMove"
       @touchend="stopDrawing"
     ></canvas>
-    <div class="signature-footer">
-      <UiButton label="Firma" color="delete" icon="trash" size="sm" @click="clear" />
-    </div>
+   
   </div>
 </template>
 
@@ -153,15 +152,17 @@ window.addEventListener('resize', () => {
   gap: 8px;
 }
 
-.signature-label label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-muted);
+.signature-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.signature-footer {
-  display: flex;
-  justify-content: flex-end;
+.signature-label label {
+
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--color-muted);
 }
 
 .signature-canvas {

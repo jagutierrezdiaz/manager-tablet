@@ -7,6 +7,8 @@
 
         </div>
 
+
+
         <div v-if="rutaInfo" class="data-container">
             <UiTitleView :titleOTM="rutaInfo.ID_TIPO_RUTA" :titleActivity="rutaInfo.NOMBRE_TIPO_RUTA"
                 :text1="`Nro Ruta: ${String(rutaInfo.ID_NUMERICO || '').trim()}`"
@@ -15,19 +17,20 @@
         </div>
 
         <div class="buttons-container-cards" v-if="itemsList.length > 0">
-            <UiButton color="edit" label="Tarea Anterior" icon="ArrowLeft" :disabled="currentIndex === 0" @click="anterior()" />
-
-            <UiButton color="edit" label="Tarea Siguiente" iconPosition="end" icon="ArrowRight" :disabled="currentIndex === itemsList.length - 1"
-                @click="siguiente()" />
+            <UiButton color="edit" label="Tarea Anterior" icon="ArrowLeft" :disabled="currentIndex === 0"
+                @click="anterior()" />
+            <span v-if="itemsList.length > 1" class="text-muted font-bold">
+                {{ currentIndex + 1 }} / {{ itemsList.length }}
+            </span>
+            <UiButton color="edit" label="Tarea Siguiente" iconPosition="end" icon="ArrowRight"
+                :disabled="currentIndex === itemsList.length - 1" @click="siguiente()" />
         </div>
         <div class="container-ruta">
 
             <section class="section-card data-otm" v-if="currentItem">
                 <div class="flex justify-between items-center mb-4">
                     <h2>Referencias de la Ruta</h2>
-                    <span v-if="itemsList.length > 1" class="text-muted font-bold">
-                        {{ currentIndex + 1 }} de {{ itemsList.length }}
-                    </span>
+
                 </div>
                 <table>
                     <tbody>
@@ -355,7 +358,14 @@ onActivated(() => {
 
 async function guardarEjecucionRuta() {
     if (!currentItem.value) return
-
+    if (currentItem.value.CUMPLE_REVISION == null || currentItem.value.CUMPLE_REVISION == '') {
+        showAlert('warning', 'Criterios de aceptación', 'Es necesario que selecciones si cumple o no cumple con los criterios de aceptación antes de guardar la ejecución de la ruta.')
+        return
+    }
+    if (currentItem.value.OBSERVACION == null || currentItem.value.OBSERVACION == '') {
+        showAlert('warning', 'Observaciones', 'Es necesario que escribas las observaciones antes de guardar la ejecución de la ruta.')
+        return
+    }
     try {
         const data = {
             ID_NUMERICO: rutaInfo.value.ID_NUMERICO,
@@ -453,6 +463,7 @@ td {
 .buttons-container-cards {
     display: flex;
     justify-content: center;
+    align-items: center;
     gap: var(--space-sm);
 }
 

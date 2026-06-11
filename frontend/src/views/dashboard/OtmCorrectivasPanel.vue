@@ -124,7 +124,7 @@ onActivated(loadData)
 }
 
 .contenedor-card {
-  max-height: 620px;
+  max-height: 420px;
   overflow-y: auto;
 }
 

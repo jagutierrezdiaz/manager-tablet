@@ -2,6 +2,7 @@
   <div class="container glass-panel">
     <div class="accent-bar"></div>
     <h2>Listado de OTM programadas</h2>
+
     <section class="filters-block" aria-labelledby="filters-title">
       <div class="filters" role="group" aria-label="Filtrar OTMs programadas por vigencia de fecha">
         <div>
@@ -12,16 +13,22 @@
           </button>
           <button v-for="opt in filterOptions" :key="opt.key" type="button" class="pill" :class="[
             `pill--${opt.key}`,
-            { 'pill--active': filters[opt.key] }
-          ]" :aria-pressed="filters[opt.key]" :aria-label="filterAriaLabel(opt)" @click="toggleCategory(opt.key)">
+            { 'pill--active': isCategoryActive(opt.key) }
+          ]" :aria-pressed="isCategoryActive(opt.key)" :aria-label="filterAriaLabel(opt)" @click="selectCategory(opt.key)">
             <span class="pill__dot" aria-hidden="true" />
             {{ opt.label }}
           </button>
         </div>
-
-
       </div>
     </section>
+
+    <UiListFilters
+      v-model:search="searchQuery"
+      :show-select="false"
+      search-label="Buscar OTM"
+      search-placeholder="ID o nombre de actividad..."
+    />
+
     <div class="contenedor-card">
       <UiCard v-for="item in filteredData" :key="item.ID_OTM" :nameText="item.CLASE_ACTIVIDAD" :content="{
         idTask: item.ID_OTM,
@@ -30,8 +37,11 @@
         dateLimit: item.LIMITE_CIERRE
       }" @select="(color) => handleClick(item, color)" />
 
-      <p v-if="!filteredData.length && data.length" class="empty-hint">
-        Ninguna OTM programada coincide con los filtros seleccionados.
+      <p v-if="!filteredData.length && data.length && searchQuery.trim()" class="empty-hint">
+        Ninguna OTM programada coincide con la búsqueda.
+      </p>
+      <p v-else-if="!filteredData.length && data.length" class="empty-hint">
+        Ninguna OTM programada coincide con el filtro «{{ activeFilterLabel }}».
       </p>
       <p v-if="!data.length" class="empty-hint">
         No hay OTMs programadas para mostrar.
@@ -41,15 +51,21 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onActivated } from 'vue'
+import { ref, computed, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from '../../api/axios.js'
 import { getSessionUser } from '../../utils/authSession.js'
 import { setSelectedOtm } from '../../utils/dataTransfer.js'
+import UiListFilters from '../../components/UiListFilters.vue'
 
 const router = useRouter()
+const searchQuery = ref('')
 
-/** Alineado con RutasPanel / UiCard: rojo=vencida, amarillo=hoy, verde=próxima (según fecha programada) */
+const SEARCH_FIELDS = ['ID_OTM', 'NOMBRE_ACTIVIDAD']
+
+const FILTER_ALL = 'all'
+
+/** Alineado con UiCard: rojo=vencida, amarillo=hoy, verde=próxima */
 const DATE_CATEGORY = {
   past: 'past',
   today: 'today',
@@ -62,49 +78,95 @@ const filterOptions = [
   { key: DATE_CATEGORY.past, label: 'Vencidas' }
 ]
 
-function routeDateCategory(fecha) {
-  if (fecha == null || fecha === '') return DATE_CATEGORY.past
-  const today = new Date()
-  const programmed = new Date(fecha)
-  if (Number.isNaN(programmed.getTime())) return DATE_CATEGORY.past
-  if (programmed.toDateString() === today.toDateString()) return DATE_CATEGORY.today
-  if (programmed < today) return DATE_CATEGORY.past
+function parseLocalDate(value) {
+  if (value == null || value === '') return null
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return null
+    return new Date(value.getFullYear(), value.getMonth(), value.getDate())
+  }
+  const str = String(value)
+  const onlyDate = str.split('T')[0].trim().split(' ')[0]
+  const parts = onlyDate.split('-')
+  if (parts.length !== 3) {
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) return null
+    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
+  }
+  const [year, month, day] = parts
+  const y = Number(year)
+  const m = Number(month)
+  const d = Number(day)
+  if (!y || !m || !d) return null
+  return new Date(y, m - 1, d)
+}
+
+function routeDateCategory(fecha_programada, fecha_limite) {
+  const programmed = parseLocalDate(fecha_programada)
+  if (!programmed) return DATE_CATEGORY.past
+
+  const today = parseLocalDate(new Date())
+  const limit = parseLocalDate(fecha_limite)
+
+  if (limit) {
+    // Para hoy: fecha actual entre programada y límite (inclusive)
+    if (programmed.getTime() <= today.getTime() && today.getTime() <= limit.getTime()) {
+      return DATE_CATEGORY.today
+    }
+    // Vencidas: fecha actual > límite
+    if (today.getTime() > limit.getTime()) return DATE_CATEGORY.past
+    // Próximas: fecha actual < programada
+    if (today.getTime() < programmed.getTime()) return DATE_CATEGORY.future
+    return DATE_CATEGORY.past
+  }
+
+  if (programmed.getTime() === today.getTime()) return DATE_CATEGORY.today
+  if (today.getTime() > programmed.getTime()) return DATE_CATEGORY.past
   return DATE_CATEGORY.future
 }
 
 const data = ref([])
+const activeDateFilter = ref(FILTER_ALL)
 
-const filters = reactive({
-  [DATE_CATEGORY.past]: true,
-  [DATE_CATEGORY.today]: true,
-  [DATE_CATEGORY.future]: true
+const isTodasSelected = computed(() => activeDateFilter.value === FILTER_ALL)
+
+const activeFilterLabel = computed(() => {
+  if (activeDateFilter.value === FILTER_ALL) return 'Todas'
+  return filterOptions.find((opt) => opt.key === activeDateFilter.value)?.label ?? 'seleccionado'
 })
 
-const isTodasSelected = computed(
-  () => filters[DATE_CATEGORY.past] && filters[DATE_CATEGORY.today] && filters[DATE_CATEGORY.future]
-)
-
 function selectTodas() {
-  filters[DATE_CATEGORY.past] = true
-  filters[DATE_CATEGORY.today] = true
-  filters[DATE_CATEGORY.future] = true
+  activeDateFilter.value = FILTER_ALL
 }
 
-function toggleCategory(key) {
-  filters[key] = !filters[key]
-  if (!filters[DATE_CATEGORY.past] && !filters[DATE_CATEGORY.today] && !filters[DATE_CATEGORY.future]) {
-    selectTodas()
-  }
+function selectCategory(key) {
+  activeDateFilter.value = key
+}
+
+function isCategoryActive(key) {
+  return activeDateFilter.value === FILTER_ALL || activeDateFilter.value === key
 }
 
 function filterAriaLabel(opt) {
-  const on = filters[opt.key]
-  return on ? `${opt.label}: visibles en el listado` : `${opt.label}: ocultas (no se muestran)`
+  const on = isCategoryActive(opt.key)
+  return on ? `${opt.label}: visible en el listado` : `${opt.label}: oculta en el listado`
 }
 
-const filteredData = computed(() =>
-  data.value.filter((item) => filters[routeDateCategory(item.FECHA_PROGRAMADA)])
-)
+const filteredData = computed(() => {
+  const byDate = data.value.filter((item) => {
+    const category = routeDateCategory(item.FECHA_PROGRAMADA, item.LIMITE_CIERRE)
+    if (activeDateFilter.value === FILTER_ALL) return true
+    return category === activeDateFilter.value
+  })
+
+  const query = searchQuery.value.toLowerCase().trim()
+  if (!query) return byDate
+
+  return byDate.filter((item) =>
+    SEARCH_FIELDS.some((field) =>
+      String(item[field] || '').toLowerCase().includes(query)
+    )
+  )
+})
 
 async function loadOtmProgramadas() {
   const user = getSessionUser()
@@ -161,7 +223,7 @@ h3 {
 }
 
 .filters-block {
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-sm);
 }
 
 .filters {
@@ -299,12 +361,11 @@ h3 {
   border: 1px solid rgba(255, 255, 255, 0.40);
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   width: 100%;
   max-width: 1050px;
   /* Tamaño máximo optimizado */
   margin: 0 auto;
-  padding: 2.25rem 2rem;
 }
 
 
@@ -326,7 +387,7 @@ h3 {
 }
 
 .contenedor-card {
-  max-height: 530px;
+  max-height: 405px;
   overflow-y: auto;
 }
 

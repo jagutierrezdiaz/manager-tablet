@@ -136,7 +136,7 @@
                                 <UiButton color="create" label="Tiempo y Firma" icon="save"
                                     @click="guardarUsuario(user.codigoPersona)" />
                                 <UiButton color="delete" label="Persona" icon="trash"
-                                    @click="eliminarUsuario(user.codigoPersona)" />
+                                    @click="solicitarConfirmacionEliminacion('operario', user)" />
                             </div>
                         </div>
 
@@ -205,7 +205,7 @@
                                     <div class="repuesto-actions">
                                         <UiButton color="create" icon="save" size="sm" @click="guardarRepuesto(rep)" />
                                         <UiButton color="delete" icon="trash" size="sm"
-                                            @click="eliminarRepuesto(rep.ID_REPUESTO)" />
+                                            @click="solicitarConfirmacionEliminacion('repuesto', rep)" />
                                     </div>
                                 </div>
                             </div>
@@ -220,9 +220,9 @@
                 <h2 class="section-card-title">Fotos</h2>
                 <div class="grid  gap-6 mt-4">
                     <UiImageUpload label="Foto 1" v-model="foto1" placeholder="Capturar o seleccionar foto 1"
-                        @save="(img) => guardarFotoOtm(1, img)" @remove="eliminarFotoOtm(1)" />
+                        @save="(img) => guardarFotoOtm(1, img)" @remove="solicitarConfirmacionEliminacion('fotos', 1)" />
                     <UiImageUpload label="Foto 2" v-model="foto2" placeholder="Capturar o seleccionar foto 2"
-                        @save="(img) => guardarFotoOtm(2, img)" @remove="eliminarFotoOtm(2)" />
+                        @save="(img) => guardarFotoOtm(2, img)" @remove="solicitarConfirmacionEliminacion('fotos', 2)" />
                 </div>
             </section>
 
@@ -278,8 +278,8 @@
                         </div>
 
                         <div class="btn-aprobar">
-                            <UiButton label="Quitar supervisor" color="delete" icon="trash"
-                                @click="eliminarSupervisor(sup.codigoPersona)" />
+                            <UiButton label="Supervisor" color="delete" icon="trash"
+                                @click="solicitarConfirmacionEliminacion('supervisor', sup)" />
                             <UiButton label="Aprobar" color="create" icon="check" iconPosition="end"
                                 @click="aprobarOTM()" />
                         </div>
@@ -302,6 +302,16 @@
         <UiModal v-if="otmAnteriorDetalle" v-model="showAnteriorModal" title="OTM Anterior Pendiente"
             :message="`La OTM anterior #${otmAnteriorDetalle.ID_OTM} (${otmAnteriorDetalle.NOMBRE_ACTIVIDAD}) programada para el ${formatDate(otmAnteriorDetalle.FECHA_PROGRAMADA)} no ha sido cumplida. ¿Deseas realizar esta OTM ahora?`"
             confirmLabel="Sí, realizar ahora" confirmIcon="ArrowRight" @confirm="handleIrAAnterior" />
+
+        <UiModal
+            v-model="showDeleteConfirmModal"
+            :title="deleteConfirmConfig.title"
+            :message="deleteConfirmConfig.message"
+            confirmLabel="Sí, eliminar"
+            confirmColor="delete"
+            confirmIcon="trash"
+            @confirm="ejecutarEliminacionConfirmada"
+        />
     </div>
 </template>
 
@@ -349,6 +359,12 @@ const foto2 = ref(null)
 const observacionesEjecucion = ref('')
 const showConfirmModal = ref(false)
 const showAnteriorModal = ref(false)
+const showDeleteConfirmModal = ref(false)
+const deleteConfirmConfig = ref({
+    title: 'Confirmar eliminación',
+    message: '¿Está seguro de que desea eliminar este registro?',
+    onConfirm: null
+})
 const otmAnteriorDetalle = ref(null)
 
 // Estado para alertas
@@ -365,6 +381,45 @@ function showAlert(type, title, message) {
     setTimeout(() => {
         alertConfig.value.show = false
     }, 5000)
+}
+
+function solicitarConfirmacionEliminacion(tipo, item) {
+    const configs = {
+        operario: {
+            title: 'Eliminar operario',
+            message: `¿Está seguro de eliminar a ${item.nombrePersona} de la OTM?`,
+            onConfirm: () => eliminarUsuario(item.codigoPersona)
+        },
+        repuesto: {
+            title: 'Eliminar repuesto',
+            message: `¿Está seguro de eliminar el repuesto "${item.NOMBRE_REPUESTO}"?`,
+            onConfirm: () => eliminarRepuesto(item.ID_REPUESTO)
+        },
+        supervisor: {
+            title: 'Eliminar supervisor',
+            message: `¿Está seguro de quitar a ${item.nombrePersona} como supervisor?`,
+            onConfirm: () => eliminarSupervisor(item.codigoPersona)
+        },
+        fotos: {
+            title: 'Eliminar foto',
+            message: `¿Está seguro de eliminar la foto ${item}?`,
+            onConfirm: () => eliminarFotoOtm(item)
+        }
+    }
+
+    const config = configs[tipo]
+    if (!config) return
+
+    deleteConfirmConfig.value = config
+    showDeleteConfirmModal.value = true
+}
+
+async function ejecutarEliminacionConfirmada() {
+    const onConfirm = deleteConfirmConfig.value.onConfirm
+    if (typeof onConfirm === 'function') {
+        await onConfirm()
+    }
+    deleteConfirmConfig.value.onConfirm = null
 }
 
 // Calcular tiempo total automáticamente para cada usuario
@@ -423,11 +478,14 @@ function hasFirma(firma) {
 }
 
 function validarRequisitosCumplir() {
-    if (!tiempoEjecucion.value || Number(tiempoEjecucion.value) <= 0) {
+    const tiempoMayorOperario = Math.max(
+    ...addUsersList.value.map(user => Number(user.horaTotal))
+    )
+    if (!tiempoEjecucion.value || Number(tiempoEjecucion.value) <= tiempoMayorOperario) {
         return {
             ok: false,
             title: 'Tiempo inválido',
-            message: 'Debe ingresar el tiempo de ejecución (mayor a 0 horas).'
+            message: 'Debe ingresar el tiempo de ejecución mayor al tiempo de la persona que mas tiempo trabajo.'
         }
     }
 
@@ -435,7 +493,7 @@ function validarRequisitosCumplir() {
         return {
             ok: false,
             title: 'Personal requerido',
-            message: 'Debe asignar al menos una persona antes de cumplir la OTM.'
+            message: 'Debe asignar al menos una persona a la OTM.'
         }
     }
 
@@ -930,6 +988,13 @@ async function aprobarOTM() {
         return
     }
 
+    const check = validarRequisitosCumplir()
+    if (!check.ok) {
+        showAlert('warning', check.title, check.message)
+        showConfirmModal.value = false
+        return
+    }
+
     try {
         const payload = {
             codigoPersona: supervisor.codigoPersona,
@@ -971,6 +1036,8 @@ async function eliminarFotoOtm(photoNumber) {
         await axios.delete(`otmProgramada/delete-otm-photo/${otmData.value.ID_OTM}`, {
             params: { photoNumber }
         })
+        if (photoNumber === 1) foto1.value = null
+        if (photoNumber === 2) foto2.value = null
         showAlert('success', 'Foto eliminada', `La foto ${photoNumber} ha sido eliminada correctamente`)
     } catch (error) {
         console.error('Error al eliminar foto:', error)

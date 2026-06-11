@@ -18,7 +18,24 @@ export async function checkDevice(idPersistente, direccionIp) {
   return rows[0]
 }
 
+const MAX_REGISTROS_MOVIL = 5
+
+async function countRegistroMovil() {
+  const sql = `SELECT COUNT(*) AS TOTAL FROM REGISTRO_MOVIL`
+  const rows = await db.query(sql, [])
+  return Number(rows[0]?.TOTAL ?? 0)
+}
+
 export async function registerDevice(idPersistente, direccionIp, estado, codigoPersona = null) {
+  const totalRegistros = await countRegistroMovil()
+  if (totalRegistros >= MAX_REGISTROS_MOVIL) {
+    const err = new Error(
+      `No se puede registrar el dispositivo: se alcanzó el límite de ${MAX_REGISTROS_MOVIL} licencias.`
+    )
+    err.status = 409
+    throw err
+  }
+
   if (codigoPersona) {
     const sql = `
       INSERT INTO REGISTRO_MOVIL (

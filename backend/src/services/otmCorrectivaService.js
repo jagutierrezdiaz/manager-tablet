@@ -112,7 +112,7 @@ function buildOpenOtmErrorMessage(otm = {}) {
 }
 
 export async function saveOTMCorrectiva(data) {
-    const otmCheck = await checkOtmActividadEquipoExists(data.ID_EQUIPO, data.ID_ACTIVIDAD)
+    const otmCheck = await checkOtmExists(data.ID_EQUIPO, data.ID_ACTIVIDAD)
 
     if (otmCheck.status === 'open') {
         const details = {
@@ -129,14 +129,15 @@ export async function saveOTMCorrectiva(data) {
     }
 
     if (otmCheck.status === 'none') {
-        await insertActividadEquipoOtm(data.ID_EQUIPO, data.ID_ACTIVIDAD, data.TIEMPO_ACTIVIDAD)
+
+        const exists = await checkActividadEquipoExists(data.ID_EQUIPO, data.ID_ACTIVIDAD)
+        if (!exists) 
+            await insertActividadEquipoOtm(data.ID_EQUIPO, data.ID_ACTIVIDAD, data.TIEMPO_ACTIVIDAD)
     }
 
     // Si status === 'fulfilled' (CUMPLIDA = SI), omitir insertActividadEquipoOtm y crear la nueva OTM
     const maxId = await getMaxIdNumerico()
     const nextId = Number(maxId) + 1
-
-    console.log('data: ', data)
 
     // 2. Obtener parámetros para el límite de cierre
     const paramsCierre = await getParametroLimiteCierre()
@@ -145,10 +146,13 @@ export async function saveOTMCorrectiva(data) {
     // 3. Preparar fechas
     const now = new Date()
     const fechaOtm = now
+    fechaOtm.setHours(0, 0, 0, 0)
     const fechaProgramada = now
+    fechaProgramada.setHours(0, 0, 0, 0)
     const mesOtm = now.getMonth() + 1
     const limiteCierre = new Date(now)
     limiteCierre.setDate(limiteCierre.getDate() + diasLimite)
+    limiteCierre.setHours(0, 0, 0, 0)
 
     const sql = `
         INSERT INTO OTM (
@@ -190,18 +194,20 @@ export async function saveOTMCorrectiva(data) {
 
     await db.query(sql, params)
     await saveActividadEquipoOtm(data.ID_EQUIPO, data.ID_ACTIVIDAD)
-    await insertModActividad(data.ID_ACTIVIDAD, data.CODIGO_PERSONA)
-
-    // Obtener personas asociadas a la actividad e insertar en CIERRE_MOD
-    const personas = await getPersonaActividad(data.ID_ACTIVIDAD)
-    console.log('personas: ', personas)
-    for (const persona of personas) {
-        await insertCierreMod(nextId, persona.CODIGO_PERSONA)
-    }
+    await insertModActividad(data.ID_ACTIVIDAD, data.CODIGO_PERSONA, nextId)
 
     return { success: true, ID_OTM: nextId }
 }
 
+
+export async function checkActividadEquipoExists(idEquipo, idActividad) {
+    const sql = `
+        SELECT * FROM ACTIVIDAD_EQUIPO 
+        WHERE ID_EQUIPO = ? AND ID_ACTIVIDAD = ?
+    `
+    const rows = await db.query(sql, [idEquipo, idActividad])
+    return rows.length > 0
+}
 
 export async function insertActividadEquipoOtm(idEquipo, idActividad, tiempoActividad) {
     const sql = `
@@ -267,7 +273,7 @@ export async function saveActividadEquipoOtm(idEquipo, idActividad) {
     return { success: true }
 }
 
-export async function checkOtmActividadEquipoExists(idEquipo, idActividad) {
+export async function checkOtmExists(idEquipo, idActividad) {
     const sql = `
         SELECT
             E.ID_EQUIPO,
@@ -319,16 +325,34 @@ export async function getParametroLimiteCierre() {
     return rows
 }
 
-export async function insertModActividad(idActividad, codigoPersona) {
+export async function checkModActividadExists(idActividad) {
     const sql = `
-        INSERT INTO MOD_ACTIVIDAD(
-            ID_ACTIVIDAD,
-            CODIGO_PERSONA
-        )
-        VALUES (?, ?)
+        SELECT * FROM MOD_ACTIVIDAD WHERE ID_ACTIVIDAD = ?
     `
-    const params = [idActividad, codigoPersona]
-    await db.query(sql, params)
+    const rows = await db.query(sql, [idActividad])
+    return rows.length > 0
+}
+
+export async function insertModActividad(idActividad, codigoPersona, idOtm) {
+    const exists = await checkModActividadExists(idActividad)
+    if (!exists) {
+        const sql = `
+            INSERT INTO MOD_ACTIVIDAD(
+                ID_ACTIVIDAD,
+                CODIGO_PERSONA
+            )
+            VALUES (?, ?)
+        `
+        const params = [idActividad, codigoPersona]
+        await db.query(sql, params)
+    }
+
+    if (idOtm == null) return
+
+    const personas = await getPersonaActividad(idActividad)
+    for (const persona of personas) {
+        await insertCierreMod(idOtm, persona.CODIGO_PERSONA)
+    }
 }
 
 

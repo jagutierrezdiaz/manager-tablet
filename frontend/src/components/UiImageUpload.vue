@@ -64,7 +64,7 @@ const props = defineProps({
   modelValue: { type: [File, String], default: null }
 })
 
-const emit = defineEmits(['update:modelValue', 'change', 'save'])
+const emit = defineEmits(['update:modelValue', 'change', 'save', 'remove'])
 
 const fileInput = ref(null)
 const previewUrl = ref(null)
@@ -105,11 +105,6 @@ function handleFileChange(event) {
 }
 
 function removeImage() {
-  previewUrl.value = null
-  isNewImage.value = false
-  if (fileInput.value) fileInput.value.value = ''
-  emit('update:modelValue', null)
-  emit('change', null)
   emit('remove')
 }
 

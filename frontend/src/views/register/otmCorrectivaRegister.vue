@@ -18,11 +18,9 @@
             <section class="section-card">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="section-card-title">Equipo Seleccionado</h2>
-                    <UiButton v-if="addEquiposList.length === 0"
-                        :label="isAddingEquipo ? 'Cancelar' : 'Equipo'"
+                    <UiButton v-if="addEquiposList.length === 0" :label="isAddingEquipo ? 'Cancelar' : 'Equipo'"
                         :color="isAddingEquipo ? 'delete' : 'create'" :icon="isAddingEquipo ? 'x' : 'plus'"
-
-                         @click="isAddingEquipo = !isAddingEquipo" />
+                        @click="isAddingEquipo = !isAddingEquipo" />
                 </div>
 
                 <Transition name="fade-slide">
@@ -42,7 +40,8 @@
                             <span class="usuario-name text-sm">{{ eq.NOMBRE_EQUIPO }}</span>
                         </div>
                         <div class="buttons-container-cards">
-                            <UiButton label="Equipo" color="delete" icon="trash" @click="eliminarEquipo(eq.ID_EQUIPO)" />
+                            <UiButton label="Equipo" color="delete" icon="trash"
+                                @click="eliminarEquipo(eq.ID_EQUIPO)" />
                         </div>
                     </div>
                     <p v-if="addEquiposList.length === 0" class="text-muted text-center py-4">
@@ -53,7 +52,7 @@
 
             <section class="section-card data-actividades">
                 <div class="section-head">
-                    <h2 class="section-card-title">Actividades a Realizar</h2>
+                    <h2 class="section-card-title">Actividad a Realizar</h2>
                     <UiButton v-if="addActividadesList.length === 0"
                         :label="isAddingActividad ? 'Cancelar' : 'Actividad'"
                         :color="isAddingActividad ? 'delete' : 'create'" :icon="isAddingActividad ? 'x' : 'plus'"
@@ -239,6 +238,9 @@ function validarFormularioCrear() {
 
 function regresar() {
     observacionesOTM.value = ''
+    tiempoActividad.value = 0
+    isAddingEquipo.value = false
+    isAddingActividad.value = false
     router.back()
 }
 
@@ -283,12 +285,19 @@ async function handleConfirmCrear() {
             PRIORIDAD: prioridadActividad.value
         }
 
-        await axios.post('/otmCorrectiva/save-otm', data)
+        const response = await axios.post('/otmCorrectiva/save-otm', data)
+        const idOtm = response.data.ID_OTM
+        console.log('idOtm', idOtm)
 
-        showAlert('success', '¡Éxito!', 'La OTM Correctiva ha sido creada correctamente.')
+        showAlert('success', '¡Éxito!', `La OTM Correctiva ha sido creada correctamente. \n ID: ${idOtm}`)
         showConfirmModal.value = false
         clearSelectedOtm()
 
+
+        observacionesOTM.value = ''
+        tiempoActividad.value = 0
+        isAddingEquipo.value = false
+        isAddingActividad.value = false
         setTimeout(() => {
             router.push({ name: 'principal-correctivas' }).catch(() => { })
         }, 5000)
