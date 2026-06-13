@@ -5,6 +5,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import UiAlert from '../components/UiAlert.vue'
 import { DB_PROFILES, setSelectedDbProfile } from '../utils/dbProfile.js'
+import { clearDeviceRegisteredStatus } from '../utils/deviceInfo.js'
 
 // Importación directa de los componentes de la librería
 import { Factory, Building2, Gauge, Database, ArrowRight } from 'lucide-vue-next'
@@ -21,6 +22,7 @@ function selectProfile(profile) {
     }
 
     try {
+        clearDeviceRegisteredStatus()
         setSelectedDbProfile(profile.id)
         router.push({ name: 'device-register' })
     } catch (error) {
@@ -448,8 +450,6 @@ h1 {
 .footer-grid {
     width: 100%;
     max-width: 900px;
-    display: grid;
-    grid-template-columns: 1fr;
     gap: 1.5rem;
     margin-top: auto;
     padding-top: 5.5rem;

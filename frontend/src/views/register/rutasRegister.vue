@@ -547,6 +547,7 @@ textarea:focus {
     /* Tamaño máximo optimizado */
     margin: 0 auto;
     padding: 2.25rem 2rem;
+    height: calc(100vh - 235px);
 }
 
 
@@ -571,7 +572,7 @@ textarea:focus {
     display: flex;
     flex-direction: column;
     gap: var(--space-md);
-    max-height: 540px;
+    max-height: calc(100% - 240px);
     overflow-y: auto;
 }
 </style>

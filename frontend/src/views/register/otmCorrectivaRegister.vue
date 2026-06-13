@@ -414,7 +414,10 @@ onActivated(() => {
 .data-container {
     display: flex;
     flex-direction: column;
-    gap: var(--space-lg);
+    gap: var(--space-sm);
+    max-height: calc(100% - 210px);
+    overflow-y: auto;
+    padding-bottom: var(--space-sm);
 }
 
 .section-card {
@@ -686,6 +689,7 @@ textarea:focus {
     max-width: 1050px;
     /* Tamaño máximo optimizado */
     margin: 0 auto;
+    height: calc(100vh - 235px);
 }
 
 

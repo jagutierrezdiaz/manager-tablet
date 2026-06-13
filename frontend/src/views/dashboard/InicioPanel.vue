@@ -206,6 +206,7 @@ const barOptions = {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
+
 }
 
 .glass-panel {
@@ -221,6 +222,8 @@ const barOptions = {
   max-width: 1050px; /* Tamaño máximo optimizado */
   margin: 0 auto;
   padding: 2.25rem 2rem;
+  height: calc(100vh - 235px);
+  overflow-y: auto;
 }
 
 .glass-panel .accent-bar {
@@ -241,10 +244,9 @@ const barOptions = {
 }
 
 .dashboard-grid {
-  display: grid;
-  /* Rejilla de alta respuesta basada en flexión y anchos en lugar de columnas rígidas de píxeles */
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
 }
 
 .chart-card {
@@ -256,7 +258,6 @@ const barOptions = {
   transition: transform 0.3s ease;
   width: 100%;
   min-width: 0; /* Evita desbordamiento en contenedores flexibles de CSS */
-  height: 280px;
 }
 
 .chart-card:hover {
@@ -291,7 +292,7 @@ const barOptions = {
   }
   .dashboard-grid {
     grid-template-columns: 1fr;
-    gap: 1.25rem;
+    gap: 0.85rem;
   }
   .chart-card {
     padding: 1rem; /* Compacta los gráficos */

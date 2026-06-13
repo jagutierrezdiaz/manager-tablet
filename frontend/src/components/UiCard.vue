@@ -198,7 +198,7 @@ const colorCard = computed(() => {
     display: flex;
     flex-direction: row;
     gap: var(--space-sm);
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--space-sm);
     cursor: pointer;
     box-shadow: var(--shadow-md);
     border-radius: var(--radius);
@@ -240,7 +240,7 @@ const colorCard = computed(() => {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 6px;
+    gap: 4px;
 }
 
 .content h3 {
@@ -261,7 +261,7 @@ const colorCard = computed(() => {
     font-size: 0.95rem;
     font-weight: 400;
     color: var(--color-muted);
-    margin: 4px 0;
+    margin: 0;
     line-height: 1.4;
 }
 

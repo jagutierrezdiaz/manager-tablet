@@ -1,5 +1,5 @@
 <template>
-  <section class="ui-list-filters" :style="{ maxWidth: maxWidth }">
+  <section class="ui-list-filters">
     <div v-if="showSelect" class="ui-list-filters__field">
       <label :id="`${selectId}-label`" class="ui-list-filters__label">{{ selectLabel }}</label>
       <div ref="selectRoot" class="ui-list-filters__select-root">
@@ -126,11 +126,11 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
   flex-direction: column;
   gap: var(--space-sm);
   width: 100%;
-  margin: 0 auto var(--space-sm);
   padding: var(--space-sm);
   background-color: var(--color-surface);
   border-radius: var(--radius);
   border: 1px solid rgba(15, 23, 42, 0.06);
+  margin-bottom: 10px;
 }
 
 .ui-list-filters__field {

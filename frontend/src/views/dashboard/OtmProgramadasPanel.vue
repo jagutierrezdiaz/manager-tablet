@@ -212,7 +212,6 @@ onActivated(loadOtmProgramadas)
   width: 100%;
   max-width: 1000px;
   margin: 0 auto;
-  max-height: 720px;
 }
 
 h3 {
@@ -366,6 +365,7 @@ h3 {
   max-width: 1050px;
   /* Tamaño máximo optimizado */
   margin: 0 auto;
+  height: calc(100vh - 235px);
 }
 
 
@@ -387,7 +387,7 @@ h3 {
 }
 
 .contenedor-card {
-  max-height: 405px;
+  max-height: calc(100% - 270px);
   overflow-y: auto;
 }
 

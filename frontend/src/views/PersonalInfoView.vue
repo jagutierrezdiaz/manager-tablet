@@ -234,7 +234,6 @@ h1 {
 .actions > * {
     flex: 1;
 }
-
 .footer-logo {
     position: absolute;
     bottom: 2.5rem;
@@ -258,11 +257,12 @@ h1 {
 }
 
 .img-logo-emp {
-    max-width: 650px;
+    max-width: 320px;
     width: 80%;
     height: auto;
     opacity: 0.85;
-    margin-top: -14px; /* Eleva el logo reduciendo el espacio con respecto al texto */
+    margin-top: -14px;
+    /* Eleva el logo reduciendo el espacio con respecto al texto */
 }
 
 @media (max-width: 600px) {

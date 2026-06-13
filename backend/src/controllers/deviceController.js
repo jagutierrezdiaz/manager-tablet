@@ -15,22 +15,30 @@ export async function check(req, res, next) {
 
 export async function register(req, res, next) {
   try {
-    const { id_persistente, direccion_ip, estado, codigo_persona } = req.body
-    if (!id_persistente || !direccion_ip || !estado) {
-      return res.status(400).json({ error: 'ID persistente, dirección IP y estado son requeridos' })
+    const { id_persistente, direccion_ip } = req.body
+    if (!id_persistente || !direccion_ip) {
+      return res.status(400).json({ error: 'ID persistente y dirección IP son requeridos' })
     }
-    await registerDevice(id_persistente, direccion_ip, estado, codigo_persona)
-    res.status(201).json({ message: 'Dispositivo registrado exitosamente' })
+    const device = await registerDevice(id_persistente, direccion_ip)
+    res.status(201).json({ message: 'Dispositivo registrado exitosamente', device })
   } catch (err) {
     next(err)
   }
 }
 
-export function getMyIp(req, res) {
-  // En muchos entornos, req.ip puede estar detrás de un proxy.
-  // Intentamos obtener la IP real.
-  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress
-  // Si es IPv6 localhost, convertir a IPv4
-  const cleanIp = ip === '::1' ? '127.0.0.1' : ip.replace(/^.*:/, '')
-  res.json({ ip: cleanIp })
+export async function getMyIp(req, res, next) {
+  try {
+    const response = await fetch('https://api.ipify.org?format=json')
+    if (!response.ok) {
+      return res.status(502).json({ error: 'No se pudo obtener la IP pública del servidor' })
+    }
+    const data = await response.json()
+    if (!data?.ip) {
+      return res.status(502).json({ error: 'Respuesta inválida al consultar la IP pública' })
+    }
+    res.json({ ip: data.ip })
+  } catch (error) {
+    console.error('Error obteniendo IP pública:', error)
+    next(error)
+  }
 }

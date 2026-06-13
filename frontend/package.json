@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fingerprintjs/fingerprintjs": "^5.2.0",
     "@iconify/vue": "^5.0.1",
     "axios": "^1.16.0",
     "chart.js": "^4.5.1",

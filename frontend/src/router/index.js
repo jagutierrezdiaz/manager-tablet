@@ -7,7 +7,7 @@ import DatabaseSelectView from '../views/DatabaseSelectView.vue'
 import DeviceRegisterView from '../views/DeviceRegisterView.vue'
 import { getSessionUser } from '../utils/authSession.js'
 import { getSelectedDbProfile } from '../utils/dbProfile.js'
-import { getDeviceRegisteredStatus } from '../utils/deviceInfo.js'
+import { ensureDeviceRegistered } from '../utils/deviceInfo.js'
 
 const routes = [
     {
@@ -90,7 +90,7 @@ const router = createRouter({
     routes
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
     if (to.name === 'select-database') {
         return true
     }
@@ -103,7 +103,13 @@ router.beforeEach((to) => {
         return true
     }
 
-    if (!getDeviceRegisteredStatus() && to.name !== 'select-database') {
+    try {
+        const deviceAccess = await ensureDeviceRegistered()
+        if (!deviceAccess.registered) {
+            return { name: 'device-register', replace: true }
+        }
+    } catch (error) {
+        console.error('Error validando dispositivo:', error)
         return { name: 'device-register', replace: true }
     }
 

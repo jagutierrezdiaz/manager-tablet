@@ -156,7 +156,6 @@ function onInput(e) {
   font-size: var(--fs-base);
   color: var(--color-text);
   width: 100%;
-  min-width: 0;
   padding: 0;
   font-weight: 500;
 }

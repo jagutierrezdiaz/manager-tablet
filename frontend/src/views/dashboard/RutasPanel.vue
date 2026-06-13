@@ -2,7 +2,8 @@
   <div class="container  glass-panel">
     <div class="accent-bar"></div>
     <h2>Listado de Rutas Programadas</h2>
-    <section class="filters-block" aria-labelledby="filters-title">      <div class="filters" role="group" aria-label="Filtrar rutas por vigencia de fecha">
+    <section class="filters-block" aria-labelledby="filters-title">
+      <div class="filters" role="group" aria-label="Filtrar rutas por vigencia de fecha">
         <div>
           <button type="button" class="pill pill--todas" :class="{ 'pill--active': isTodasSelected }"
             :aria-pressed="isTodasSelected" @click="selectTodas">
@@ -12,7 +13,8 @@
           <button v-for="opt in filterOptions" :key="opt.key" type="button" class="pill" :class="[
             `pill--${opt.key}`,
             { 'pill--active': isCategoryActive(opt.key) }
-          ]" :aria-pressed="isCategoryActive(opt.key)" :aria-label="filterAriaLabel(opt)" @click="selectCategory(opt.key)">
+          ]" :aria-pressed="isCategoryActive(opt.key)" :aria-label="filterAriaLabel(opt)"
+            @click="selectCategory(opt.key)">
             <span class="pill__dot" aria-hidden="true" />
             {{ opt.label }}
 
@@ -21,12 +23,8 @@
       </div>
     </section>
 
-    <UiListFilters
-      v-model:search="searchQuery"
-      :show-select="false"
-      search-label="Buscar ruta"
-      search-placeholder="ID o nombre de ruta..."
-    />
+    <UiListFilters v-model:search="searchQuery" :show-select="false" search-label="Buscar ruta"
+      search-placeholder="ID o nombre de ruta..." />
 
     <div class="contenedor-card">
       <UiCard v-for="item in filteredData" :key="item.ID_NUMERICO" :nameText="item.CLASE_ACTIVIDAD" :content="{
@@ -180,12 +178,11 @@ function handleClick(item, color) {
   width: 100%;
   max-width: 1000px;
   margin: 0 auto;
-  max-height: 720px;
 
 }
 
 .contenedor-card {
-  max-height: 450px;
+  max-height: calc(100% - 240px);
   overflow-y: auto;
 }
 
@@ -205,6 +202,7 @@ function handleClick(item, color) {
   /* Tamaño máximo optimizado */
   margin: 0 auto;
   padding: 2.25rem 2rem;
+  height: calc(100vh - 235px);
 }
 
 
@@ -233,7 +231,7 @@ h3 {
 }
 
 .filters-block {
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-sm);
 }
 
 .filters {

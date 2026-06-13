@@ -120,7 +120,7 @@ function logout() {
 
 .container-content {
   /* Barreras responsivas para garantizar que los paneles (glass-panel) jamás queden tapados por el logo superior y la bottom-nav */
-  padding: 6rem 1.5rem 8.5rem 1.5rem; 
+  padding: 6.2rem 1rem 6.3rem 1rem; 
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
@@ -129,13 +129,8 @@ function logout() {
   margin: 0 auto;
   position: relative;
   z-index: 1;
+  min-height: 100vh;
 }
 
-@media (min-width: 900px) {
-  .container-content {
-    padding: 8rem 2rem 9rem 2rem; /* Mayor aire visual en terminales de alta gama */
-    gap: var(--space-xl);
-  }
-}
 
 </style>

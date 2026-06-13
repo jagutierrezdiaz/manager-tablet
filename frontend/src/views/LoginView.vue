@@ -277,35 +277,35 @@ h1 {
   border-radius: 4px;
   border: 1px solid rgba(30, 58, 138, 0.08);
 }
-
 .footer-logo {
-  position: absolute;
-  bottom: 2.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  margin-top: 0;
-  width: 100%;
+    position: absolute;
+    bottom: 2.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    margin-top: 0;
+    width: 100%;
 }
 
 .powered-by {
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.45);
-  margin-bottom: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(255, 255, 255, 0.45);
+    margin-bottom: 4px;
 }
 
 .img-logo-emp {
-  max-width: 650px;
-  width: 80%;
-  height: auto;
-  opacity: 0.85;
-  margin-top: -14px; /* Eleva el logo reduciendo el espacio con respecto al texto */
+    max-width: 320px;
+    width: 80%;
+    height: auto;
+    opacity: 0.85;
+    margin-top: -14px;
+    /* Eleva el logo reduciendo el espacio con respecto al texto */
 }
 
 /* Animations */

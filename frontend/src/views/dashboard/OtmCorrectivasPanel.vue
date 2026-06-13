@@ -3,7 +3,7 @@
     <div class="accent-bar"></div>
     <h2>Listado de Máquinas / Sistemas</h2>
 
-    <UiListFilters
+    <UiListFilters class="filters-list"
       v-model:select="procesoSeleccionado"
       v-model:search="searchQuery"
       select-label="Proceso"
@@ -121,10 +121,11 @@ onActivated(loadData)
   width: 100%;
   max-width: 1000px;
   margin: 0 auto;
+  padding: var(--space-sm);
 }
 
 .contenedor-card {
-  max-height: 420px;
+  max-height: calc(100% - 325px);
   overflow-y: auto;
 }
 
@@ -146,6 +147,7 @@ onActivated(loadData)
   width: 100%;
   max-width: 1050px;
   margin: 0 auto;
+  height: calc(100vh - 235px);
 }
 
 .glass-panel .accent-bar {
@@ -164,6 +166,7 @@ onActivated(loadData)
   margin-bottom: 0.5rem;
   letter-spacing: -0.02em;
 }
+
 
 @media (max-width: 768px) {
   .container {

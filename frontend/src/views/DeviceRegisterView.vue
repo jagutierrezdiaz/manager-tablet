@@ -3,8 +3,12 @@ import logo from '../assets/manager_logo.png'
 import logo_emp from '../assets/hazlo_software.png'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import api from '../api/axios.js'
-import { getPersistentId, setDeviceRegisteredStatus } from '../utils/deviceInfo.js'
+import {
+    ensureDeviceRegistered,
+    getPersistentId,
+    registerDeviceOnServer,
+    setDeviceRegisteredStatus
+} from '../utils/deviceInfo.js'
 import UiButton from '../components/UiButton.vue'
 import UiAlert from '../components/UiAlert.vue'
 
@@ -12,35 +16,28 @@ const router = useRouter()
 const loading = ref(true)
 const error = ref('')
 const ip = ref('')
-const persistentId = getPersistentId()
+const persistentId = ref('')
 
 async function checkAndRegister() {
     loading.value = true
     error.value = ''
     try {
-        // 1. Obtener IP (este endpoint no requiere DB, pero axios usará la base_url de la DB seleccionada)
-        const ipRes = await api.get('device/my-ip')
-        ip.value = ipRes.data.ip
+        const result = await ensureDeviceRegistered()
+        persistentId.value = result.idPersistente || await getPersistentId()
+        ip.value = result.direccionIp || ''
 
-        // 2. Verificar si ya está registrado en la base de datos seleccionada
-        const checkRes = await api.get('device/check', {
-            params: {
-                id_persistente: persistentId,
-                direccion_ip: ip.value
-            }
-        })
-
-        if (checkRes.data.registered) {
-            setDeviceRegisteredStatus(true)
-            // Si ya está registrado, vamos directo al login sin mostrar nada
+        if (result.registered) {
             router.replace({ name: 'login' })
-        } else {
-            // No está registrado, desactivamos el loading para mostrar la UI de registro
-            loading.value = false
+            return
         }
+
+        loading.value = false
     } catch (err) {
         console.error('Error en el registro de dispositivo:', err)
-        error.value = 'No se pudo conectar con el servidor para verificar el dispositivo.'
+        const detail = err.response?.data?.error || err.message || ''
+        error.value = detail
+            ? `No se pudo conectar con el servidor para verificar el dispositivo. ${detail}`
+            : 'No se pudo conectar con el servidor para verificar el dispositivo.'
         loading.value = false
     }
 }
@@ -49,16 +46,20 @@ async function handleRegister() {
     loading.value = true
     error.value = ''
     try {
-        await api.post('device/register', {
-            id_persistente: persistentId,
-            direccion_ip: ip.value,
-            estado: 'ACTIVO'
-        })
+        const id = persistentId.value || await getPersistentId()
+        await registerDeviceOnServer(id, ip.value)
         setDeviceRegisteredStatus(true)
-        router.replace({ name: 'select-database' })
+        router.replace({ name: 'login' })
     } catch (err) {
         console.error('Error al registrar dispositivo:', err)
-        error.value = 'Error al intentar registrar el dispositivo.'
+        const detail = err.response?.data?.error || err.message || ''
+        if (err.response?.status === 409) {
+            error.value = detail || 'Se alcanzó el límite de dispositivos registrados.'
+        } else {
+            error.value = detail
+                ? `Error al intentar registrar el dispositivo. ${detail}`
+                : 'Error al intentar registrar el dispositivo.'
+        }
         loading.value = false
     }
 }
@@ -82,7 +83,7 @@ onMounted(() => {
 
             <section class="glass-card">
                 <h1>Registro de Dispositivo</h1>
-                
+
                 <div v-if="loading" class="loading-container">
                     <div class="spinner"></div>
                     <p>Verificando dispositivo...</p>
@@ -105,13 +106,8 @@ onMounted(() => {
                             <span class="value">{{ ip }}</span>
                         </div>
                     </div>
-                    <UiButton 
-                        label="Registrar este dispositivo" 
-                        color="create" 
-                        size="lg" 
-                        icon="Tablet" 
-                        @click="handleRegister" 
-                    />
+                    <UiButton label="Registrar este dispositivo" color="create" size="lg" icon="Tablet"
+                        @click="handleRegister" />
                 </div>
             </section>
 
@@ -126,7 +122,7 @@ onMounted(() => {
 <style scoped>
 .container-login {
     min-height: 100vh;
-    background: 
+    background:
         radial-gradient(circle at top center, rgba(255, 255, 255, 0.12), transparent 45%),
         linear-gradient(180deg, #163766 0%, #0f2b54 50%, #0a1f3f 100%);
     display: flex;
@@ -142,7 +138,7 @@ onMounted(() => {
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background-image: 
+    background-image:
         radial-gradient(rgba(255, 255, 255, 0.10) 1px, transparent 1px),
         linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
@@ -219,7 +215,8 @@ onMounted(() => {
 }
 
 .glass-card {
-    background: rgba(255, 255, 255, 0.85); /* Fiori Light Card */
+    background: rgba(255, 255, 255, 0.85);
+    /* Fiori Light Card */
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
     border-radius: 28px;
@@ -283,7 +280,9 @@ h1 {
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .device-info {
@@ -351,11 +350,12 @@ h1 {
 }
 
 .img-logo-emp {
-    max-width: 650px;
+    max-width: 320px;
     width: 80%;
     height: auto;
     opacity: 0.85;
-    margin-top: -14px; /* Eleva el logo reduciendo el espacio con respecto al texto */
+    margin-top: -14px;
+    /* Eleva el logo reduciendo el espacio con respecto al texto */
 }
 
 @media (min-width: 768px) {
@@ -363,5 +363,4 @@ h1 {
         max-width: 380px;
     }
 }
-
 </style>

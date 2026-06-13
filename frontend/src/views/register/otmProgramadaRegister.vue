@@ -1117,14 +1117,13 @@ function datosCierreOTM({
     padding: var(--space-md);
     max-width: 1000px;
     margin: 0 auto;
-    max-height: 750px;
 }
 
 .data-container {
     display: flex;
     flex-direction: column;
     gap: var(--space-md);
-    max-height: 580px;
+    max-height: calc(100% - 140px);
     overflow-y: auto;
     padding-bottom: var(--space-sm);
 }
@@ -1341,6 +1340,7 @@ textarea:focus {
     max-width: 1050px;
     /* Tamaño máximo optimizado */
     margin: 0 auto;
+    height: calc(100vh - 235px);
 }
 
 
