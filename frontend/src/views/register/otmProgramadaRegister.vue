@@ -129,7 +129,8 @@
                             </div>
 
                             <div class="mt-4">
-                                <UiSignature v-model="user.firma" label="Firma del operario" :height="150" />
+                                <UiSignature v-model="user.firma" label="Firma del operario" :height="150"
+                                    @clear="solicitarConfirmacionEliminacion('firma-operario', user)" />
                             </div>
 
                             <div class="buttons-container-cards">
@@ -252,17 +253,18 @@
             <section class="section-card">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="section-card-title">Aprobación OTM</h2>
-                    <UiButton :label="isAddingSupervisor ? 'Cancelar' : (addSupervisorList.length ? 'Cambiar Supervisor' : 'Seleccionar Supervisor')"
+        
+                    <UiButton :label="isAddingSupervisor ? 'Cancelar' : 'Agregar Supervisor'"
                         :color="isAddingSupervisor ? 'delete' : 'create'" :icon="isAddingSupervisor ? 'x' : 'plus'"
-                        iconPosition="end" @click="isAddingSupervisor = !isAddingSupervisor" />
+                        iconPosition="end" @click="agregarSupervisor()" />
                 </div>
 
                 <Transition name="fade-slide">
                     <div v-if="isAddingSupervisor" class="mb-6">
-                        <UiSearchSelector :items="supervisorList" :searchFields="['nombrePersona']"
-                            itemKey="codigoPersona" label="Buscar supervisor" placeholder="Ej: Juan Perez"
+                        <UiSearchSelector :items="supervisorList" :searchFields="['nombrePersona', 'codigoPersona']"
+                            itemKey="codigoPersona" label="Buscar supervisor" placeholder="Ej: Juan Perez o 12345"
                             selectLabel="Seleccionar supervisor" confirmLabel="Confirmar"
-                            :displayFormat="(s) => `${s.nombrePersona}`" @select="confirmarSeleccionSupervisor" />
+                            :displayFormat="(s) => `Id: ${s.codigoPersona}  ${s.nombrePersona}`" @select="confirmarSeleccionSupervisor" />
                     </div>
                 </Transition>
 
@@ -273,7 +275,8 @@
                             <span class="usuario-name text-sm">{{ sup.nombrePersona }}</span>
 
                             <div class="mt-4">
-                                <UiSignature v-model="sup.firma" label="Firma del supervisor" :height="150" />
+                                <UiSignature v-model="sup.firma" label="Firma del supervisor" :height="150"
+                                    @clear="solicitarConfirmacionEliminacion('firma-supervisor', sup)" />
                             </div>
                         </div>
 
@@ -281,7 +284,7 @@
                             <UiButton label="Supervisor" color="delete" icon="trash"
                                 @click="solicitarConfirmacionEliminacion('supervisor', sup)" />
                             <UiButton label="Aprobar" color="create" icon="check" iconPosition="end"
-                                @click="aprobarOTM()" />
+                                @click="aprobarOTM(sup)" />
                         </div>
                     </div>
                     <p v-if="addSupervisorList.length === 0" class="text-muted text-center py-4">
@@ -390,6 +393,11 @@ function solicitarConfirmacionEliminacion(tipo, item) {
             message: `¿Está seguro de eliminar a ${item.nombrePersona} de la OTM?`,
             onConfirm: () => eliminarUsuario(item.codigoPersona)
         },
+        'firma-operario': {
+            title: 'Eliminar firma del operario',
+            message: `¿Está seguro de eliminar la firma de ${item.nombrePersona}?`,
+            onConfirm: () => eliminarFirmaPersonal(item, 'operario')
+        },
         repuesto: {
             title: 'Eliminar repuesto',
             message: `¿Está seguro de eliminar el repuesto "${item.NOMBRE_REPUESTO}"?`,
@@ -399,6 +407,11 @@ function solicitarConfirmacionEliminacion(tipo, item) {
             title: 'Eliminar supervisor',
             message: `¿Está seguro de quitar a ${item.nombrePersona} como supervisor?`,
             onConfirm: () => eliminarSupervisor(item.codigoPersona)
+        },
+        'firma-supervisor': {
+            title: 'Eliminar firma del supervisor',
+            message: `¿Está seguro de eliminar la firma de ${item.nombrePersona}?`,
+            onConfirm: () => eliminarFirmaPersonal(item, 'supervisor')
         },
         fotos: {
             title: 'Eliminar foto',
@@ -511,28 +524,21 @@ function validarRequisitosCumplir() {
         return {
             ok: false,
             title: 'Supervisor requerido',
-            message: 'Debe asignar un supervisor antes de cumplir la OTM.'
+            message: 'Debe asignar al menos un supervisor antes de cumplir la OTM.'
         }
     }
 
-    if (addSupervisorList.value.length > 1) {
+    const supervisoresSinFirma = addSupervisorList.value.filter(s => !hasFirma(s.firma))
+    if (supervisoresSinFirma.length > 0) {
+        const nombres = supervisoresSinFirma.map(s => s.nombrePersona).join(', ')
         return {
             ok: false,
-            title: 'Supervisor duplicado',
-            message: 'Solo puede haber un supervisor asignado. Elimine el supervisor extra o seleccione uno nuevo.'
+            title: 'Firmas de supervisión pendientes',
+            message: `Todos los supervisores asignados deben firmar. Pendientes: ${nombres}.`
         }
     }
 
-    const supervisor = addSupervisorList.value[0]
-    if (!hasFirma(supervisor.firma)) {
-        return {
-            ok: false,
-            title: 'Firma del supervisor',
-            message: 'El supervisor asignado debe firmar antes de cumplir la OTM.'
-        }
-    }
-
-    if (!foto1.value) {
+    /*if (!foto1.value) {
         return {
             ok: false,
             title: 'Foto 1 requerida',
@@ -546,7 +552,7 @@ function validarRequisitosCumplir() {
             title: 'Foto 2 requerida',
             message: 'Debe capturar y guardar la foto 2 antes de cumplir la OTM.'
         }
-    }
+    }*/
 
     if (!observacionesEjecucion.value || !observacionesEjecucion.value.trim()) {
         return {
@@ -754,7 +760,12 @@ async function loadData() {
             }))
         }
 
-        if (supervisorAsignadoRes.data) {
+        if (Array.isArray(supervisorAsignadoRes.data)) {
+            addSupervisorList.value = supervisorAsignadoRes.data.map(sup => ({
+                ...sup,
+                firma: resolveUploadUrl(sup.firma)
+            }))
+        } else if (supervisorAsignadoRes.data) {
             const sup = supervisorAsignadoRes.data
             addSupervisorList.value = [{
                 ...sup,
@@ -794,6 +805,10 @@ function agregarUsuario() {
     isAddingUser.value = !isAddingUser.value
 }
 
+function agregarSupervisor() {
+    isAddingSupervisor.value = !isAddingSupervisor.value
+}
+
 
 async function eliminarUsuario(codigoPersona) {
     try {
@@ -808,6 +823,29 @@ async function eliminarUsuario(codigoPersona) {
     } catch (error) {
         console.error('Error al eliminar personal:', error)
         showAlert('error', 'Error', 'No se pudo eliminar el personal: ' + (error.response?.data?.error || error.message))
+    }
+}
+
+async function eliminarFirmaPersonal(persona, tipo) {
+    if (!persona) return
+
+    if (!persona.firma) {
+        return
+    }
+
+    try {
+        await axios.delete('otmProgramada/delete-firma-personal-otm', {
+            params: {
+                idOtm: otmData.value.ID_OTM,
+                codigoPersona: persona.codigoPersona
+            }
+        })
+
+        persona.firma = null
+        showAlert('success', 'Firma eliminada', `La firma del ${tipo} ha sido eliminada correctamente`)
+    } catch (error) {
+        console.error('Error al eliminar firma:', error)
+        showAlert('error', 'Error', 'No se pudo eliminar la firma: ' + (error.response?.data?.error || error.message))
     }
 }
 
@@ -872,30 +910,34 @@ function confirmarSeleccion(user) {
 function confirmarSeleccionSupervisor(supervisor) {
     if (!supervisor) return
 
-    const anterior = addSupervisorList.value[0]
-    const mismaPersona = anterior?.codigoPersona === supervisor.codigoPersona
+    const exists = addSupervisorList.value.some(s => s.codigoPersona === supervisor.codigoPersona)
 
-    addSupervisorList.value = [{
-        ...supervisor,
-        firma: mismaPersona ? anterior.firma : null
-    }]
-    isAddingSupervisor.value = false
-
-    if (anterior && !mismaPersona) {
-        showAlert(
-            'info',
-            'Supervisor reemplazado',
-            `${anterior.nombrePersona} fue sustituido por ${supervisor.nombrePersona}. Debe firmar nuevamente.`
-        )
+    if (exists) {
+        showAlert('info', 'Supervisor ya agregado', `${supervisor.nombrePersona} ya está en la lista de aprobación.`)
+        isAddingSupervisor.value = false
         return
     }
+
+    addSupervisorList.value.push({ ...supervisor })
+    isAddingSupervisor.value = false
 
     showAlert('success', 'Supervisor seleccionado', `${supervisor.nombrePersona} ha sido asignado para la aprobación.`)
 }
 
-function eliminarSupervisor(codigoPersona) {
-    addSupervisorList.value = addSupervisorList.value.filter(s => s.codigoPersona !== codigoPersona)
-    showAlert('info', 'Supervisor removido', 'Se ha quitado el supervisor de la lista.')
+async function eliminarSupervisor(codigoPersona) {
+    try {
+        await axios.delete('otmProgramada/delete-supervisor-otm', {
+            params: {
+                idOtm: otmData.value.ID_OTM,
+                codigoPersona
+            }
+        })
+        addSupervisorList.value = addSupervisorList.value.filter(s => s.codigoPersona !== codigoPersona)
+        showAlert('success', 'Eliminado', 'El supervisor ha sido eliminado correctamente')
+    } catch (error) {
+        console.error('Error al eliminar supervisor:', error)
+        showAlert('error', 'Error', 'No se pudo eliminar el supervisor: ' + (error.response?.data?.error || error.message))
+    }
 }
 
 function agregarRepuesto() {
@@ -979,19 +1021,11 @@ function confirmarSeleccionRepuesto(repuesto) {
     }
 }
 
-async function aprobarOTM() {
-    const supervisor = addSupervisorList.value[0]
+async function aprobarOTM(supervisor) {
     if (!supervisor) return
 
     if (!supervisor.firma) {
         showAlert('warning', 'Firma requerida', 'El supervisor debe firmar para aprobar la OTM')
-        return
-    }
-
-    const check = validarRequisitosCumplir()
-    if (!check.ok) {
-        showAlert('warning', check.title, check.message)
-        showConfirmModal.value = false
         return
     }
 
@@ -1003,7 +1037,7 @@ async function aprobarOTM() {
         }
 
         await axios.post(`otmProgramada/aprobar-otm/${otmData.value.ID_OTM}`, payload)
-        showAlert('success', 'OTM Aprobada', 'La orden de trabajo ha sido aprobada correctamente.')
+        showAlert('success', 'Supervisor aprobado', `${supervisor.nombrePersona} ha sido aprobado correctamente.`)
     } catch (error) {
         console.error('Error al aprobar OTM:', error)
         showAlert('error', 'Error de aprobación', 'No se pudo aprobar la OTM: ' + (error.response?.data?.error || error.message))

@@ -2,7 +2,7 @@
   <div class="signature-container">
     <div v-if="label" class="signature-label">
       <label>{{ label }}</label>
-      <UiButton label="Firma" color="delete" icon="trash" size="sm" @click="clear" />
+      <UiButton label="Firma" color="delete" icon="trash" size="sm" @click="handleClearClick" />
     </div>
     <canvas
       ref="canvasRef"
@@ -30,7 +30,7 @@ const props = defineProps({
   height: { type: Number, default: 200 }
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'clear'])
 
 const canvasRef = ref(null)
 const isDrawing = ref(false)
@@ -120,6 +120,10 @@ function getCoordinates(e) {
 function clear() {
   ctx.clearRect(0, 0, canvasRef.value.width, canvasRef.value.height)
   emit('update:modelValue', null)
+}
+
+function handleClearClick() {
+  emit('clear')
 }
 
 function saveSignature() {

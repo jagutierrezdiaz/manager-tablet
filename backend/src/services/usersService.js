@@ -107,8 +107,9 @@ export async function getSupervisorAsignado(idOtm) {
     JOIN CARGO_MOD CA ON MO.ID_CARGO = CA.ID_CARGO
     WHERE FP.ID_OTM = ?
       AND UPPER(TRIM(CA.NOMBRE_CARGO)) = 'SUPERVISOR MANTENIMIENTO'
+    ORDER BY MO.NOMBRE_PERSONA
   `
   const rows = await db.query(sql, [idOtm])
-  if (!rows || rows.length === 0) return null
-  return convertUserRowToDto(rows[0])
+  if (!rows || rows.length === 0) return []
+  return rows.map(convertUserRowToDto)
 }

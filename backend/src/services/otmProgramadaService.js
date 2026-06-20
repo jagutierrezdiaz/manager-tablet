@@ -216,14 +216,51 @@ async function saveSignatureFile(idOtm, personaAsignada) {
     }
 }
 
+function deletePhysicalFile(publicPath) {
+    if (!publicPath) return
+
+    const absolutePath = toAbsolutePath(publicPath)
+    if (absolutePath && fs.existsSync(absolutePath)) {
+        fs.unlinkSync(absolutePath)
+    }
+}
+
+async function deleteSignatureFile(idOtm, codigoPersona) {
+    const sqlGet = `
+        SELECT CAST(URL_FIRMA AS VARCHAR(255)) AS URL_FIRMA
+        FROM FIRMA_PERSONAL
+        WHERE ID_OTM = ? AND CODIGO_PERSONAL = ?
+    `
+    const rows = await db.query(sqlGet, [idOtm, codigoPersona])
+
+    if (rows.length > 0) {
+        deletePhysicalFile(rows[0].URL_FIRMA)
+    }
+
+    const sqlDelete = 'DELETE FROM FIRMA_PERSONAL WHERE ID_OTM = ? AND CODIGO_PERSONAL = ?'
+    await db.query(sqlDelete, [idOtm, codigoPersona])
+}
+
+export async function deleteFirmaPersonalOtm(idOtm, codigoPersona) {
+    await deleteSignatureFile(idOtm, codigoPersona)
+    return { success: true, message: 'Firma eliminada correctamente' }
+}
+
 
 
 export async function deletePersonaAsignadaOtm(idOtm, codigoPersona) {
+    await deleteSignatureFile(idOtm, codigoPersona)
+
     const sql = `
         DELETE FROM CIERRE_MOD WHERE ID_OTM = ? AND CODIGO_PERSONA = ?
     `
     const rows = await db.query(sql, [idOtm, codigoPersona])
     return rows
+}
+
+export async function deleteSupervisorOtm(idOtm, codigoPersona) {
+    await deleteSignatureFile(idOtm, codigoPersona)
+    return { success: true, message: 'Supervisor eliminado correctamente' }
 }
 
 
@@ -347,11 +384,7 @@ export async function deleteOtmPhoto(idOtm, photoNumber) {
 
         // 2. Eliminar el archivo físico si existe
         if (currentPath) {
-            const fullPath = toAbsolutePath(currentPath)
-
-            if (fullPath && fs.existsSync(fullPath)) {
-                fs.unlinkSync(fullPath)
-            }
+            deletePhysicalFile(currentPath)
         }
 
         // 3. Limpiar el campo en la base de datos

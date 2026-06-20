@@ -78,6 +78,40 @@ export async function deletePersonaAsignadaOtmController(req, res, next) {
     }
 }
 
+export async function deleteSupervisorOtmController(req, res, next) {
+    try {
+        const idOtm = String(req.query.idOtm || '').trim()
+        const codigoPersona = String(req.query.codigoPersona || '').trim()
+
+        if (!idOtm || !codigoPersona) {
+            return res.status(400).json({ error: 'idOtm y codigoPersona son requeridos' })
+        }
+
+        const result = await otmProgramadaService.deleteSupervisorOtm(idOtm, codigoPersona)
+        res.json(result)
+    }
+    catch (err) {
+        next(err)
+    }
+}
+
+export async function deleteFirmaPersonalOtmController(req, res, next) {
+    try {
+        const idOtm = String(req.query.idOtm || '').trim()
+        const codigoPersona = String(req.query.codigoPersona || '').trim()
+
+        if (!idOtm || !codigoPersona) {
+            return res.status(400).json({ error: 'idOtm y codigoPersona son requeridos' })
+        }
+
+        const result = await otmProgramadaService.deleteFirmaPersonalOtm(idOtm, codigoPersona)
+        res.json(result)
+    }
+    catch (err) {
+        next(err)
+    }
+}
+
 export async function getRepuestosAsignadosOtmController(req, res, next) {
     try {
         const idOtm = String(req.params.idOtm || req.query.idOtm || '').trim()
