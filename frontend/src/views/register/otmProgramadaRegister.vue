@@ -859,6 +859,7 @@ async function guardarUsuario(codigoPersona) {
     }
 
     const inicio = new Date(user.horaInicio)
+    
     const fin = new Date(user.horaFin)
     const fechaProgramada = new Date(otmData.value.FECHA_PROGRAMADA)
 
