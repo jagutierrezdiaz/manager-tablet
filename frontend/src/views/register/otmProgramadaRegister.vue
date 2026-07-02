@@ -6,7 +6,7 @@
             <UiButton label="Regresar" color="read" icon="arrow-left" @click="$router.back()" />
             <div v-if="itemsList.length > 0">
                 <span v-if="itemsList.length > 1" class="pagination-info">{{ currentIndex + 1 }} de {{ itemsList.length
-                }}</span>
+                    }}</span>
                 <UiButton v-if="itemsList.length > 1" label="Anterior" color="edit" icon="arrow-left"
                     :disabled="currentIndex === 0" @click="anterior()" />
 
@@ -104,7 +104,7 @@
 
                             <div class="flex align-center gap-3">
                                 <span class="usuario-name">Nombre: {{ user.nombrePersona }} - Id: {{ user.codigoPersona
-                                    }}</span>
+                                }}</span>
                             </div>
 
                             <div class="flex flex-col align-center gap-3">
@@ -175,7 +175,7 @@
                                 <div
                                     class="flex justify-between items-center bg-primary/5 p-2 rounded border border-primary/10">
                                     <span class="text-sm font-bold">Tipo: {{ selectedTipoRepuesto.NOMBRE_TIPO_REPUESTO
-                                        }}</span>
+                                    }}</span>
                                     <UiButton label="Cambiar tipo" size="sm" color="info"
                                         @click="selectedTipoRepuesto = null" />
                                 </div>
@@ -221,9 +221,11 @@
                 <h2 class="section-card-title">Fotos</h2>
                 <div class="grid  gap-6 mt-4">
                     <UiImageUpload label="Foto 1" v-model="foto1" placeholder="Capturar o seleccionar foto 1"
-                        @save="(img) => guardarFotoOtm(1, img)" @remove="solicitarConfirmacionEliminacion('fotos', 1)" />
+                        @save="(img) => guardarFotoOtm(1, img)"
+                        @remove="solicitarConfirmacionEliminacion('fotos', 1)" />
                     <UiImageUpload label="Foto 2" v-model="foto2" placeholder="Capturar o seleccionar foto 2"
-                        @save="(img) => guardarFotoOtm(2, img)" @remove="solicitarConfirmacionEliminacion('fotos', 2)" />
+                        @save="(img) => guardarFotoOtm(2, img)"
+                        @remove="solicitarConfirmacionEliminacion('fotos', 2)" />
                 </div>
             </section>
 
@@ -253,7 +255,7 @@
             <section class="section-card">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="section-card-title">Aprobación OTM</h2>
-        
+
                     <UiButton :label="isAddingSupervisor ? 'Cancelar' : 'Agregar Supervisor'"
                         :color="isAddingSupervisor ? 'delete' : 'create'" :icon="isAddingSupervisor ? 'x' : 'plus'"
                         iconPosition="end" @click="agregarSupervisor()" />
@@ -264,7 +266,8 @@
                         <UiSearchSelector :items="supervisorList" :searchFields="['nombrePersona', 'codigoPersona']"
                             itemKey="codigoPersona" label="Buscar supervisor" placeholder="Ej: Juan Perez o 12345"
                             selectLabel="Seleccionar supervisor" confirmLabel="Confirmar"
-                            :displayFormat="(s) => `Id: ${s.codigoPersona}  ${s.nombrePersona}`" @select="confirmarSeleccionSupervisor" />
+                            :displayFormat="(s) => `Id: ${s.codigoPersona}  ${s.nombrePersona}`"
+                            @select="confirmarSeleccionSupervisor" />
                     </div>
                 </Transition>
 
@@ -306,15 +309,9 @@
             :message="`La OTM anterior #${otmAnteriorDetalle.ID_OTM} (${otmAnteriorDetalle.NOMBRE_ACTIVIDAD}) programada para el ${formatDate(otmAnteriorDetalle.FECHA_PROGRAMADA)} no ha sido cumplida. ¿Deseas realizar esta OTM ahora?`"
             confirmLabel="Sí, realizar ahora" confirmIcon="ArrowRight" @confirm="handleIrAAnterior" />
 
-        <UiModal
-            v-model="showDeleteConfirmModal"
-            :title="deleteConfirmConfig.title"
-            :message="deleteConfirmConfig.message"
-            confirmLabel="Sí, eliminar"
-            confirmColor="delete"
-            confirmIcon="trash"
-            @confirm="ejecutarEliminacionConfirmada"
-        />
+        <UiModal v-model="showDeleteConfirmModal" :title="deleteConfirmConfig.title"
+            :message="deleteConfirmConfig.message" confirmLabel="Sí, eliminar" confirmColor="delete" confirmIcon="trash"
+            @confirm="ejecutarEliminacionConfirmada" />
     </div>
 </template>
 
@@ -490,9 +487,49 @@ function hasFirma(firma) {
     return typeof firma === 'string' && firma.trim().length > 0
 }
 
+function logRutasImagenesOtm(contexto, { idOtm, otm, personasAsignadas, supervisores }) {
+    const fotos = {
+        FOTO_1: {
+            bd: otm?.FOTO_1 ?? null,
+            url: otm?.FOTO_1 ? resolveUploadUrl(otm.FOTO_1) : null
+        },
+        FOTO_2: {
+            bd: otm?.FOTO_2 ?? null,
+            url: otm?.FOTO_2 ? resolveUploadUrl(otm.FOTO_2) : null
+        }
+    }
+
+    const firmasOperarios = (Array.isArray(personasAsignadas) ? personasAsignadas : []).map((p) => ({
+        codigo: p.codigoPersona ?? p.CODIGO_PERSONA,
+        nombre: p.nombrePersona ?? p.NOMBRE_PERSONA,
+        bd: p.firma ?? p.FIRMA ?? null,
+        url: resolveUploadUrl(p.firma ?? p.FIRMA)
+    }))
+
+    const listaSupervisores = Array.isArray(supervisores)
+        ? supervisores
+        : supervisores
+            ? [supervisores]
+            : []
+
+    const firmasSupervisores = listaSupervisores.map((s) => ({
+        codigo: s.codigoPersona ?? s.CODIGO_PERSONA,
+        nombre: s.nombrePersona ?? s.NOMBRE_PERSONA,
+        bd: s.firma ?? s.FIRMA ?? null,
+        url: resolveUploadUrl(s.firma ?? s.FIRMA)
+    }))
+
+    console.log(`[OTM uploads] Rutas ${contexto}`, {
+        idOtm,
+        fotos,
+        firmasOperarios,
+        firmasSupervisores
+    })
+}
+
 function validarRequisitosCumplir() {
     const tiempoMayorOperario = Math.max(
-    ...addUsersList.value.map(user => Number(user.horaTotal))
+        ...addUsersList.value.map(user => Number(user.horaTotal))
     )
     if (!tiempoEjecucion.value || Number(tiempoEjecucion.value) <= tiempoMayorOperario) {
         return {
@@ -784,6 +821,13 @@ async function loadData() {
         if (Array.isArray(repuestosAsignadosRes.data)) {
             addRepuestosList.value = repuestosAsignadosRes.data
         }
+
+        logRutasImagenesOtm('al cargar', {
+            idOtm: idStr,
+            otm: itemsList.value[0],
+            personasAsignadas: personasAsignadasRes.data,
+            supervisores: supervisorAsignadoRes.data
+        })
     } catch (error) {
         console.error('Error al cargar datos de la OTM:', error)
     }
@@ -859,7 +903,7 @@ async function guardarUsuario(codigoPersona) {
     }
 
     const inicio = new Date(user.horaInicio)
-    
+
     const fin = new Date(user.horaFin)
     const fechaProgramada = new Date(otmData.value.FECHA_PROGRAMADA)
 
@@ -1053,11 +1097,18 @@ async function guardarFotoOtm(photoNumber, imageBase64) {
         }
         const res = await axios.post(`otmProgramada/save-otm-photo/${otmData.value.ID_OTM}`, payload)
 
+        const urlResuelta = resolveUploadUrl(res.data.url)
         if (photoNumber === 1) {
-            foto1.value = resolveUploadUrl(res.data.url)
+            foto1.value = urlResuelta
         } else {
-            foto2.value = resolveUploadUrl(res.data.url)
+            foto2.value = urlResuelta
         }
+
+        console.log(`[OTM uploads] Foto ${photoNumber} al guardar`, {
+            idOtm: otmData.value.ID_OTM,
+            bd: res.data.url,
+            url: urlResuelta
+        })
 
         showAlert('success', 'Foto guardada', `La foto ${photoNumber} ha sido guardada correctamente`)
     } catch (error) {
