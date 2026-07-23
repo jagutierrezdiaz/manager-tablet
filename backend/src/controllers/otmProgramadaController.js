@@ -196,8 +196,28 @@ export async function saveCumplimientoOtmController(req, res, next) {
         
         console.log(tiempoReal, indiceCumplimiento, efectividadCumplimiento, comentariosCierre, tiempoMod, idOtm)
 
-        if (!tiempoReal || !indiceCumplimiento || !efectividadCumplimiento || !comentariosCierre || !tiempoMod || !idOtm) {
-            return res.status(400).json({ error: 'Todos los campos son requeridos' })
+        const campos = [
+            { nombre: 'Tiempo real de ejecución', valor: tiempoReal, numerico: true },
+            { nombre: 'Índice de cumplimiento', valor: indiceCumplimiento, numerico: true },
+            { nombre: 'Efectividad de cumplimiento', valor: efectividadCumplimiento, numerico: true },
+            { nombre: 'Observaciones de cierre', valor: comentariosCierre, numerico: false },
+            { nombre: 'Tiempo MOD (suma del personal)', valor: tiempoMod, numerico: true },
+            { nombre: 'ID de la OTM', valor: idOtm, numerico: false },
+        ]
+
+        const faltantes = campos
+            .filter(({ valor, numerico }) => {
+                if (valor === null || valor === undefined || valor === '') return true
+                if (numerico && Number(valor) === 0) return true
+                if (!numerico && typeof valor === 'string' && !valor.trim()) return true
+                return false
+            })
+            .map(({ nombre }) => nombre)
+
+        if (faltantes.length > 0) {
+            return res.status(400).json({
+                error: `Faltan campos requeridos: ${faltantes.join(', ')}`
+            })
         }
         
         const result = await otmProgramadaService.saveCumplimientoOtm(tiempoReal, indiceCumplimiento, efectividadCumplimiento, comentariosCierre, tiempoMod, idOtm)

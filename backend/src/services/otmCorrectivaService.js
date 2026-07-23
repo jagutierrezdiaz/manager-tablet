@@ -67,6 +67,7 @@ export async function getListActividades(claseActividad) {
         SELECT ID_ACTIVIDAD, NOMBRE_ACTIVIDAD, CLASE_ACTIVIDAD
         FROM ACTIVIDAD
         WHERE TIPO_MANTENIMIENTO = 'CORRECTIVO'
+        AND ACTIVA = 'SI'
     `
     const params = []
 

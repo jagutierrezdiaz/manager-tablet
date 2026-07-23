@@ -121,10 +121,13 @@
                                         placeholder="Hora de fin"
                                         :min="user.horaInicio || formatForDateTimeInput(otmData.FECHA_PROGRAMADA)" />
                                 </div>
-                                <div>
+                                <div class="w-full">
                                     <label>Tiempo total</label>
-                                    <UiInput type="text" v-model="user.horaTotal" size="sm" minWidth="120px"
-                                        placeholder="00:00" readonly />
+                                    <div class="tiempo-total-row">
+                                        <UiInput class="tiempo-total-input" type="text" v-model="user.horaTotal"
+                                            size="sm" minWidth="0" placeholder="0,00" :readOnly="true" />
+                                        <span class="tiempo-total-unidad">Horas</span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -246,7 +249,8 @@
             <section class="section-card data-tiempo-ejecucion">
                 <h2 style="margin:0; border:none; padding:0;">Tiempo de ejecución</h2>
                 <div class="flex items-center gap-3">
-                    <UiInput type="number" v-model="tiempoEjecucion" min="0" max="24" size="sm" minWidth="120px" />
+                    <UiInput type="text" :modelValue="tiempoEjecucion" placeholder="0,00" size="sm"
+                        minWidth="120px" @update:modelValue="onTiempoEjecucionInput" />
                     <span class="font-bold">Horas</span>
                 </div>
             </section>
@@ -328,7 +332,7 @@ import UiImageUpload from '../../components/UiImageUpload.vue'
 import UiSignature from '../../components/UiSignature.vue'
 import UiModal from '../../components/UiModal.vue'
 import UiAlert from '../../components/UiAlert.vue'
-import { formatDate, formatForDateTimeInput } from '../../utils/formatDate.js'
+import { formatDate, formatForDateTimeInput, formatDecimalHours, parseDecimalHours } from '../../utils/formatDate.js'
 import { getSessionUser } from '../../utils/authSession.js'
 
 const props = defineProps({
@@ -346,7 +350,7 @@ const tipoRepuestosList = ref([])
 const repuestosList = ref([])
 const supervisorList = ref([])
 const currentIndex = ref(0)
-const tiempoEjecucion = ref(0)
+const tiempoEjecucion = ref('0,00')
 const addUsersList = ref([])
 const addSupervisorList = ref([])
 const isAddingUser = ref(false)
@@ -441,18 +445,12 @@ watch(() => addUsersList.value, (newList) => {
 
             const diffMs = end - start
             if (diffMs > 0) {
-                const totalSeconds = Math.floor(diffMs / 1000)
-                const hours = Math.floor(totalSeconds / 3600)
-                const minutes = Math.floor((totalSeconds % 3600) / 60)
-
-                user.horaTotal = [hours, minutes]
-                    .map(v => v.toString().padStart(2, '0'))
-                    .join(':')
+                user.horaTotal = formatDecimalHours(diffMs / (1000 * 60 * 60))
             } else {
-                user.horaTotal = '00:00'
+                user.horaTotal = '0,00'
             }
         } else {
-            user.horaTotal = '00:00'
+            user.horaTotal = '0,00'
         }
     })
 }, { deep: true })
@@ -527,11 +525,30 @@ function logRutasImagenesOtm(contexto, { idOtm, otm, personasAsignadas, supervis
     })
 }
 
+function onTiempoEjecucionInput(valor) {
+    const limpio = String(valor).replace(/[^\d,]/g, '')
+    const partes = limpio.split(',')
+    tiempoEjecucion.value = partes.length <= 2
+        ? partes.join(',')
+        : `${partes[0]},${partes.slice(1).join('')}`
+}
+
 function validarRequisitosCumplir() {
+    const tiempoReal = parseDecimalHours(tiempoEjecucion.value)
     const tiempoMayorOperario = Math.max(
-        ...addUsersList.value.map(user => Number(user.horaTotal))
+        0,
+        ...addUsersList.value.map(user => parseDecimalHours(user.horaTotal))
     )
-    if (!tiempoEjecucion.value || Number(tiempoEjecucion.value) <= tiempoMayorOperario) {
+
+    if (!tiempoReal || tiempoReal <= 0 || tiempoReal > 24) {
+        return {
+            ok: false,
+            title: 'Tiempo inválido',
+            message: 'Debe ingresar un tiempo de ejecución válido entre 0,01 y 24,00 horas.'
+        }
+    }
+
+    if (tiempoReal <= tiempoMayorOperario) {
         return {
             ok: false,
             title: 'Tiempo inválido',
@@ -600,6 +617,34 @@ function validarRequisitosCumplir() {
     }
 
     return { ok: true }
+}
+
+function validarPayloadCumplimiento(payload) {
+    const campos = [
+        { key: 'tiempoReal', label: 'Tiempo real de ejecución', numerico: true },
+        { key: 'indiceCumplimiento', label: 'Índice de cumplimiento', numerico: true },
+        { key: 'efectividadCumplimiento', label: 'Efectividad de cumplimiento', numerico: true },
+        { key: 'comentariosCierre', label: 'Observaciones de cierre', numerico: false },
+        { key: 'tiempoMod', label: 'Tiempo MOD (suma del personal)', numerico: true },
+        { key: 'idOtm', label: 'ID de la OTM', numerico: false },
+    ]
+
+    const faltantes = campos
+        .filter(({ key, numerico }) => {
+            const valor = payload[key]
+            if (valor === null || valor === undefined || valor === '') return true
+            if (numerico && Number(valor) === 0) return true
+            if (!numerico && typeof valor === 'string' && !valor.trim()) return true
+            return false
+        })
+        .map(({ label }) => label)
+
+    if (faltantes.length === 0) return { ok: true }
+
+    return {
+        ok: false,
+        message: `Faltan campos requeridos: ${faltantes.join(', ')}`
+    }
 }
 
 async function handleIrAAnterior() {
@@ -688,13 +733,7 @@ async function handleConfirmCumplir() {
     // 2. Calcular tiempoMod (suma de horas de personal) en formato decimal
     let totalModHours = 0
     addUsersList.value.forEach(user => {
-        if (user.horaTotal) {
-            const parts = user.horaTotal.split(':')
-            const h = parseInt(parts[0], 10) || 0
-            const m = parseInt(parts[1], 10) || 0
-            const s = parseInt(parts[2], 10) || 0
-            totalModHours += h + (m / 60) + (s / 3600)
-        }
+        totalModHours += parseDecimalHours(user.horaTotal)
     })
 
     // 3. Preparar datos de cierre usando la función datosCierreOTM
@@ -702,7 +741,7 @@ async function handleConfirmCumplir() {
         otm: otmData.value,
         tiempoEstimadoActividad: itemsList.value[0].TIEMPO_ESTIMADO_ACTIVIDAD,
         tiempoMod: totalModHours,
-        tiempoReal: tiempoEjecucion.value,
+        tiempoReal: parseDecimalHours(tiempoEjecucion.value),
         comentariosCierre: observacionesEjecucion.value,
         idOtm: otmData.value.ID_OTM
     })
@@ -718,6 +757,12 @@ async function handleConfirmCumplir() {
             comentariosCierre: datos.comentarios_de_cierre,
             tiempoMod: datos.tiempo_mod,
             idOtm: datos.id_otm
+        }
+
+        const checkPayload = validarPayloadCumplimiento(payload)
+        if (!checkPayload.ok) {
+            showAlert('warning', 'Datos incompletos', checkPayload.message)
+            return
         }
 
         await axios.post('otmProgramada/save-cumplimiento-otm', payload)
@@ -753,6 +798,7 @@ async function loadData() {
     addSupervisorList.value = []
     foto1.value = null
     foto2.value = null
+    tiempoEjecucion.value = '0,00'
     currentIndex.value = 0
 
     try {
@@ -792,7 +838,7 @@ async function loadData() {
                 ...u,
                 horaInicio: formatForDateTimeInput(u.horaInicio),
                 horaFin: formatForDateTimeInput(u.horaFin),
-                horaTotal: u.horaTotal || '00:00:00',
+                horaTotal: u.horaTotal != null ? formatDecimalHours(Number(u.horaTotal)) : '0,00',
                 firma: resolveUploadUrl(u.firma)
             }))
         }
@@ -815,7 +861,7 @@ async function loadData() {
             if (otm.FOTO_1) foto1.value = resolveUploadUrl(otm.FOTO_1)
             if (otm.FOTO_2) foto2.value = resolveUploadUrl(otm.FOTO_2)
             observacionesEjecucion.value = otm.COMENTARIOS_DE_CIERRE || ''
-            tiempoEjecucion.value = otm.TIEMPO_REAL || 0
+            tiempoEjecucion.value = formatDecimalHours(otm.TIEMPO_REAL || 0)
         }
 
         if (Array.isArray(repuestosAsignadosRes.data)) {
@@ -927,7 +973,7 @@ async function guardarUsuario(codigoPersona) {
             nombrePersona: user.nombrePersona,
             horaInicio: user.horaInicio,
             horaFin: user.horaFin,
-            horaTotal: user.horaTotal,
+            horaTotal: parseDecimalHours(user.horaTotal),
             ano: inicio.getFullYear(),
             mes: inicio.getMonth() + 1,
             firma: user.firma
@@ -1368,6 +1414,27 @@ textarea:focus {
     font-size: 1.4rem;
     font-weight: 600;
     color: var(--color-text);
+}
+
+.tiempo-total-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    width: 100%;
+}
+
+.tiempo-total-input {
+    flex: 1;
+    min-width: 120px;
+}
+
+.tiempo-total-input :deep(.ui-input) {
+    width: 100%;
+}
+
+.tiempo-total-unidad {
+    font-weight: 700;
+    flex-shrink: 0;
 }
 
 

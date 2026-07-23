@@ -92,8 +92,9 @@
 
                         </div>
                         <div class="flex gap-2 ">
-                            <UiInput label="Tiempo estimado de la actividad" type="number" min="0" class="w-full"
-                                v-model="tiempoActividad" placeholder="Tiempo estimado en horas" />
+                            <UiInput label="Tiempo estimado de la actividad" type="text" class="w-full"
+                                :modelValue="tiempoActividad" placeholder="0,00"
+                                @update:modelValue="onTiempoActividadInput" />
                             <p class="text-horas"> Horas </p>
                         </div>
                     </div>
@@ -151,7 +152,7 @@ import UiSearchSelector from '../../components/UiSearchSelector.vue'
 import UiModal from '../../components/UiModal.vue'
 import UiAlert from '../../components/UiAlert.vue'
 import axios from '../../api/axios.js'
-import { formatDate } from '../../utils/formatDate.js'
+import { formatDate, parseDecimalHours } from '../../utils/formatDate.js'
 const causoParada = ref('NO')
 import { getSessionUser } from '../../utils/authSession.js'
 
@@ -168,7 +169,7 @@ const router = useRouter()
 const otmData = ref(null)
 const actividadesList = ref([])
 const addActividadesList = ref([])
-const tiempoActividad = ref(0)
+const tiempoActividad = ref('0,00')
 const prioridadActividad = ref('Alta')
 const observacionesOTM = ref('')
 const showConfirmModal = ref(false)
@@ -200,6 +201,14 @@ const confirmMessage = computed(() => {
     return `¿Estás seguro de que deseas crear esta OTM Correctiva?`
 })
 
+function onTiempoActividadInput(valor) {
+    const limpio = String(valor).replace(/[^\d,]/g, '')
+    const partes = limpio.split(',')
+    tiempoActividad.value = partes.length <= 2
+        ? partes.join(',')
+        : `${partes[0]},${partes.slice(1).join('')}`
+}
+
 function validarFormularioCrear() {
     if (addEquiposList.value.length === 0) {
         return {
@@ -217,7 +226,8 @@ function validarFormularioCrear() {
         }
     }
 
-    if (!tiempoActividad.value || Number(tiempoActividad.value) <= 0) {
+    const tiempo = parseDecimalHours(tiempoActividad.value)
+    if (!tiempo || tiempo <= 0) {
         return {
             ok: false,
             title: 'Tiempo inválido',
@@ -238,7 +248,7 @@ function validarFormularioCrear() {
 
 function regresar() {
     observacionesOTM.value = ''
-    tiempoActividad.value = 0
+    tiempoActividad.value = '0,00'
     isAddingEquipo.value = false
     isAddingActividad.value = false
     router.back()
@@ -279,7 +289,7 @@ async function handleConfirmCrear() {
             CODIGO_PERSONA: user?.codigoPersona || '',
             ID_EQUIPO: equipo.ID_EQUIPO,
             ID_ACTIVIDAD: actividad.ID_ACTIVIDAD,
-            TIEMPO_ACTIVIDAD: tiempoActividad.value,
+            TIEMPO_ACTIVIDAD: parseDecimalHours(tiempoActividad.value),
             CAUSO_PARADA: causoParada.value,
             OBSERVACION_OTM: observacionesOTM.value,
             PRIORIDAD: prioridadActividad.value
@@ -295,7 +305,7 @@ async function handleConfirmCrear() {
 
 
         observacionesOTM.value = ''
-        tiempoActividad.value = 0
+        tiempoActividad.value = '0,00'
         isAddingEquipo.value = false
         isAddingActividad.value = false
         setTimeout(() => {
@@ -344,7 +354,7 @@ function confirmarSeleccion(actividad) {
 function eliminarActividad(nombreActividad) {
     addActividadesList.value = addActividadesList.value.filter(a => a.NOMBRE_ACTIVIDAD !== nombreActividad)
     isAddingActividad.value = false
-    tiempoActividad.value = 0
+    tiempoActividad.value = '0,00'
 }
 
 async function fetchActividades() {

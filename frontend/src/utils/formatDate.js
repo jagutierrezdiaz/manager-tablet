@@ -6,6 +6,28 @@ export function formatDate(date) {
     })
 }
 
+export function formatDecimalHours(hours) {
+    const value = Number(hours)
+    if (!Number.isFinite(value)) return '0,00'
+    return value.toFixed(2).replace('.', ',')
+}
+
+export function parseDecimalHours(value) {
+    if (value == null || value === '') return 0
+    if (typeof value === 'number') return value
+
+    const str = String(value).trim()
+    if (str.includes(':')) {
+        const parts = str.split(':')
+        const h = parseInt(parts[0], 10) || 0
+        const m = parseInt(parts[1], 10) || 0
+        const s = parseInt(parts[2], 10) || 0
+        return h + (m / 60) + (s / 3600)
+    }
+
+    return parseFloat(str.replace(',', '.')) || 0
+}
+
 export function formatForDateTimeInput(dateStr) {
     if (!dateStr) return ''
     const date = new Date(dateStr)
