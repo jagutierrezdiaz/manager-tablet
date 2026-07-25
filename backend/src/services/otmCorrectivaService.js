@@ -113,7 +113,14 @@ function buildOpenOtmErrorMessage(otm = {}) {
 }
 
 export async function saveOTMCorrectiva(data) {
+    console.log('[saveOTMCorrectiva] inicio', {
+        ID_EQUIPO: data.ID_EQUIPO,
+        ID_ACTIVIDAD: data.ID_ACTIVIDAD,
+        TIEMPO_ACTIVIDAD: data.TIEMPO_ACTIVIDAD
+    })
+
     const otmCheck = await checkOtmExists(data.ID_EQUIPO, data.ID_ACTIVIDAD)
+    console.log('[saveOTMCorrectiva] checkOtmExists.status =', otmCheck.status)
 
     if (otmCheck.status === 'open') {
         const details = {
@@ -129,13 +136,52 @@ export async function saveOTMCorrectiva(data) {
         throw err
     }
 
-    if (otmCheck.status === 'none') {
-        const exists = await checkActividadEquipoExists(data.ID_EQUIPO, data.ID_ACTIVIDAD)
-        if (!exists) {
-            await insertActividadEquipoOtm(data.ID_EQUIPO, data.ID_ACTIVIDAD, data.TIEMPO_ACTIVIDAD)
-        } else {
-            await updateValorVariableMtto(data.ID_EQUIPO, data.ID_ACTIVIDAD, data.TIEMPO_ACTIVIDAD)
-        }
+    // Bloque anterior: insert/update solo cuando status === 'none'
+    // if (otmCheck.status === 'none') {
+    //     const exists = await checkActividadEquipoExists(data.ID_EQUIPO, data.ID_ACTIVIDAD)
+    //     console.log('[saveOTMCorrectiva] status=none → ACTIVIDAD_EQUIPO exists =', exists)
+    //
+    //     if (!exists) {
+    //         console.log('[saveOTMCorrectiva] → insertActividadEquipoOtm', {
+    //             ID_EQUIPO: data.ID_EQUIPO,
+    //             ID_ACTIVIDAD: data.ID_ACTIVIDAD,
+    //             TIEMPO_ACTIVIDAD: data.TIEMPO_ACTIVIDAD
+    //         })
+    //         await insertActividadEquipoOtm(data.ID_EQUIPO, data.ID_ACTIVIDAD, data.TIEMPO_ACTIVIDAD)
+    //         console.log('[saveOTMCorrectiva] insertActividadEquipoOtm OK')
+    //     } else {
+    //         console.log('[saveOTMCorrectiva] → updateValorVariableMtto', {
+    //             ID_EQUIPO: data.ID_EQUIPO,
+    //             ID_ACTIVIDAD: data.ID_ACTIVIDAD,
+    //             VALOR_VARIABLE_MTTO: data.TIEMPO_ACTIVIDAD
+    //         })
+    //         await updateValorVariableMtto(data.ID_EQUIPO, data.ID_ACTIVIDAD, data.TIEMPO_ACTIVIDAD)
+    //         console.log('[saveOTMCorrectiva] updateValorVariableMtto OK')
+    //     }
+    // } else {
+    //     console.log('[saveOTMCorrectiva] status=', otmCheck.status, '→ se omite insert/update ACTIVIDAD_EQUIPO')
+    // }
+
+    // Insert/update según exista la relación ACTIVIDAD_EQUIPO (también con status fulfilled)
+    const exists = await checkActividadEquipoExists(data.ID_EQUIPO, data.ID_ACTIVIDAD)
+    console.log('[saveOTMCorrectiva] ACTIVIDAD_EQUIPO exists =', exists, '| otmCheck.status =', otmCheck.status)
+
+    if (!exists) {
+        console.log('[saveOTMCorrectiva] → insertActividadEquipoOtm', {
+            ID_EQUIPO: data.ID_EQUIPO,
+            ID_ACTIVIDAD: data.ID_ACTIVIDAD,
+            TIEMPO_ACTIVIDAD: data.TIEMPO_ACTIVIDAD
+        })
+        await insertActividadEquipoOtm(data.ID_EQUIPO, data.ID_ACTIVIDAD, data.TIEMPO_ACTIVIDAD)
+        console.log('[saveOTMCorrectiva] insertActividadEquipoOtm OK')
+    } else {
+        console.log('[saveOTMCorrectiva] → updateValorVariableMtto', {
+            ID_EQUIPO: data.ID_EQUIPO,
+            ID_ACTIVIDAD: data.ID_ACTIVIDAD,
+            VALOR_VARIABLE_MTTO: data.TIEMPO_ACTIVIDAD
+        })
+        await updateValorVariableMtto(data.ID_EQUIPO, data.ID_ACTIVIDAD, data.TIEMPO_ACTIVIDAD)
+        console.log('[saveOTMCorrectiva] updateValorVariableMtto OK')
     }
 
     // Si status === 'fulfilled' (CUMPLIDA = SI), omitir insertActividadEquipoOtm y crear la nueva OTM
@@ -219,7 +265,10 @@ export async function updateValorVariableMtto(idEquipo, idActividad, tiempoActiv
         WHERE ID_ACTIVIDAD = ?
           AND ID_EQUIPO = ?
     `
-    await db.query(sql, [tiempoActividad, idActividad, idEquipo])
+    const params = [tiempoActividad, idActividad, idEquipo]
+    console.log('[updateValorVariableMtto] sql =', sql)
+    console.log('[updateValorVariableMtto] params =', params)
+    await db.query(sql, params)
     return { success: true }
 }
 
