@@ -241,6 +241,19 @@ export async function assignOtmToUserController(req, res, next) {
     }
 }
 
+export async function saveComentariosCierreController(req, res, next) {
+    try {
+        const { comentariosCierre, idNumerico } = req.body
+        if (!comentariosCierre?.trim() || idNumerico == null || idNumerico === '') {
+            return res.status(400).json({ error: 'comentariosCierre e idNumerico son requeridos' })
+        }
+        const result = await otmProgramadaService.saveComentariosCierre(comentariosCierre.trim(), idNumerico)
+        res.json(result)
+    } catch (err) {
+        next(err)
+    }
+}
+
 export async function validarOtmAnteriorController(req, res, next) {
     try {
         const idNumerico = String(req.body.idNumerico || '').trim()

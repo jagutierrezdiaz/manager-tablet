@@ -130,10 +130,12 @@ export async function saveOTMCorrectiva(data) {
     }
 
     if (otmCheck.status === 'none') {
-
         const exists = await checkActividadEquipoExists(data.ID_EQUIPO, data.ID_ACTIVIDAD)
-        if (!exists) 
+        if (!exists) {
             await insertActividadEquipoOtm(data.ID_EQUIPO, data.ID_ACTIVIDAD, data.TIEMPO_ACTIVIDAD)
+        } else {
+            await updateValorVariableMtto(data.ID_EQUIPO, data.ID_ACTIVIDAD, data.TIEMPO_ACTIVIDAD)
+        }
     }
 
     // Si status === 'fulfilled' (CUMPLIDA = SI), omitir insertActividadEquipoOtm y crear la nueva OTM
@@ -208,6 +210,17 @@ export async function checkActividadEquipoExists(idEquipo, idActividad) {
     `
     const rows = await db.query(sql, [idEquipo, idActividad])
     return rows.length > 0
+}
+
+export async function updateValorVariableMtto(idEquipo, idActividad, tiempoActividad) {
+    const sql = `
+        UPDATE ACTIVIDAD_EQUIPO
+        SET VALOR_VARIABLE_MTTO = ?
+        WHERE ID_ACTIVIDAD = ?
+          AND ID_EQUIPO = ?
+    `
+    await db.query(sql, [tiempoActividad, idActividad, idEquipo])
+    return { success: true }
 }
 
 export async function insertActividadEquipoOtm(idEquipo, idActividad, tiempoActividad) {

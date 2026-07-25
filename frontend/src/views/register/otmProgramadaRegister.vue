@@ -243,6 +243,10 @@
                 <div class="section-card obs-box">
                     <h2>Observaciones al ejecutar</h2>
                     <textarea v-model="observacionesEjecucion" placeholder="Escribe aquí tus observaciones..." />
+                    <div class="buttons-container-cards">
+                        <UiButton color="create" label="Guardar" icon="save"
+                            @click="guardarObservacionesEjecucion()" />
+                    </div>
                 </div>
             </section>
 
@@ -548,11 +552,11 @@ function validarRequisitosCumplir() {
         }
     }
 
-    if (tiempoReal <= tiempoMayorOperario) {
+    if (tiempoReal < tiempoMayorOperario) {
         return {
             ok: false,
             title: 'Tiempo inválido',
-            message: 'Debe ingresar el tiempo de ejecución mayor al tiempo de la persona que mas tiempo trabajo.'
+            message: 'Debe ingresar el tiempo de ejecución mayor o igual al tiempo de la persona que mas tiempo trabajo.'
         }
     }
 
@@ -1132,6 +1136,29 @@ async function aprobarOTM(supervisor) {
     } catch (error) {
         console.error('Error al aprobar OTM:', error)
         showAlert('error', 'Error de aprobación', 'No se pudo aprobar la OTM: ' + (error.response?.data?.error || error.message))
+    }
+}
+
+async function guardarObservacionesEjecucion() {
+    if (!observacionesEjecucion.value?.trim()) {
+        showAlert('warning', 'Observaciones', 'Debe ingresar las observaciones de ejecución.')
+        return
+    }
+    if (!currentDatosOtm.value?.ID_NUMERICO) {
+        showAlert('error', 'Error', 'No se encontró el ID_NUMERICO de la OTM.')
+        return
+    }
+
+    try {
+        await axios.post('otmProgramada/save-comentarios-cierre', {
+            comentariosCierre: observacionesEjecucion.value.trim(),
+            idNumerico: currentDatosOtm.value.ID_NUMERICO
+        })
+        showAlert('success', 'Guardado', 'Las observaciones se guardaron correctamente.')
+    } catch (error) {
+        console.error('Error al guardar observaciones:', error)
+        showAlert('error', 'Error de guardado',
+            'No se pudieron guardar las observaciones: ' + (error.response?.data?.error || error.message))
     }
 }
 

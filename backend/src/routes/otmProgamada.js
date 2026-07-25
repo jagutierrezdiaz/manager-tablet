@@ -19,6 +19,7 @@ router.post('/aprobar-otm/:idOtm', otmProgramadaController.aprobarOtmController)
 router.post('/save-otm-photo/:idOtm', otmProgramadaController.saveOtmPhotoController)
 router.delete('/delete-otm-photo/:idOtm', otmProgramadaController.deleteOtmPhotoController)
 router.post('/save-cumplimiento-otm', otmProgramadaController.saveCumplimientoOtmController)
+router.post('/save-comentarios-cierre', otmProgramadaController.saveComentariosCierreController)
 router.post('/validar-otm-anterior', otmProgramadaController.validarOtmAnteriorController)
 router.post('/assign-otm-to-user', otmProgramadaController.assignOtmToUserController)
 

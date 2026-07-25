@@ -408,7 +408,8 @@ export async function saveCumplimientoOtm(tiempoReal, indiceCumplimiento, efecti
                 EFECTIVIDAD_CUMPLIMIENTO = ?,
                 COMENTARIOS_DE_CIERRE = ?,
                 TIEMPO_MOD = ?,
-                CUMPLIDA = 'SI'
+                CUMPLIDA = 'SI',
+                FECHA_CIERRE = CURRENT_DATE
             WHERE ID_OTM = ?
         `
         await db.query(sql, [tiempoReal, indiceCumplimiento, efectividadCumplimiento, comentariosCierre, tiempoMod, idOtm])
@@ -437,6 +438,21 @@ export async function saveCumplimientoOtm(tiempoReal, indiceCumplimiento, efecti
         return { success: true, message: 'Cumplimiento de la OTM guardado y siguientes actualizadas correctamente' }
     } catch (error) {
         console.error('Error saving OTM cumplimiento:', error)
+        throw error
+    }
+}
+
+export async function saveComentariosCierre(comentariosCierre, idNumerico) {
+    try {
+        const sql = `
+            UPDATE OTM
+            SET COMENTARIOS_DE_CIERRE = ?
+            WHERE ID_NUMERICO = ?
+        `
+        await db.query(sql, [comentariosCierre, idNumerico])
+        return { success: true, message: 'Comentarios de cierre guardados correctamente' }
+    } catch (error) {
+        console.error('Error saving comentarios de cierre:', error)
         throw error
     }
 }
