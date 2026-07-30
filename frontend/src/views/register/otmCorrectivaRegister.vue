@@ -117,7 +117,7 @@
             </section>
 
             <section class="section-card">
-                <h2 class="section-card-title">Observaciones</h2>
+                <h2 class="section-card-title">Observaciones al Crear la OTM</h2>
 
                 <textarea v-model="observacionesOTM" placeholder="Escribe aquí tus observaciones..." />
             </section>

@@ -132,7 +132,7 @@
                             </div>
 
                             <div class="mt-4">
-                                <UiSignature v-model="user.firma" label="Firma del operario" :height="150"
+                                <UiSignature v-model="user.firma" label="Firma Persona de Mantenimiento" :height="150"
                                     @clear="solicitarConfirmacionEliminacion('firma-operario', user)" />
                             </div>
 
@@ -968,6 +968,11 @@ async function guardarUsuario(codigoPersona) {
     const fechaProgMinutos = new Date(fechaProgramada).setSeconds(0, 0);
     if (inicioMinutos < fechaProgMinutos) {
         showAlert('error', 'Fecha inválida', `La fecha de inicio no puede ser menor a la fecha programada (${formatDate(otmData.value.FECHA_PROGRAMADA)})`)
+        return
+    }
+
+    if (!user.firma) {
+        showAlert('warning', 'Firma requerida', 'El operario debe firmar para guardar tiempo y firma')
         return
     }
 
