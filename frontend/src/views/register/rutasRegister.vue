@@ -58,7 +58,7 @@
             <section class="section-card data-tarea" v-if="currentItem">
                 <h2 class="section-card-title">Tareas a realizar</h2>
 
-                <textarea v-model="currentItem.INDICACIONES_ESPECIFICAS" placeholder="Escribe aquí tus tareas..." />
+                <textarea v-model="currentItem.INDICACIONES_ESPECIFICAS" readonly />
             </section>
 
 

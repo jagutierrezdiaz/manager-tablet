@@ -21,19 +21,18 @@ function convertUserRowToDto(dbRow = {}) {
 }
 
 export async function getAllUsers() {
-  const sql = 'SELECT * FROM MOD'
+  const sql = "SELECT * FROM MOD WHERE SUSPENDIDO = 'NO' ORDER BY NOMBRE_PERSONA"
   const rows = await db.query(sql, [])
   if (!Array.isArray(rows)) return []
   return rows.map(convertUserRowToDto)
 }
 
 export async function getNotSuspendedUsers() {
-  const sql = "SELECT * FROM MOD WHERE UPPER(TRIM(SUSPENDIDO)) = 'NO' ORDER BY NOMBRE_PERSONA"
+  const sql = "SELECT * FROM MOD WHERE SUSPENDIDO= 'NO' ORDER BY NOMBRE_PERSONA"
   const rows = await db.query(sql, [])
   if (!Array.isArray(rows)) return []
   return rows.map(convertUserRowToDto)
 }
-
 
 export async function getUserById(id) {
   // Buscar por la clave numérica CODIGO_PERSONA de la tabla MOD
@@ -87,10 +86,6 @@ export async function getPersonasAsignadas(idOtm) {
     WHERE CM.ID_OTM = ?
     ORDER BY MO.NOMBRE_PERSONA
   `
-
-
-
-
   const params = [idOtm]
   const rows = await db.query(sql, params)
   return rows.map(convertUserRowToDto)
