@@ -191,10 +191,15 @@ export async function deleteOtmPhotoController(req, res, next) {
 
 export async function saveCumplimientoOtmController(req, res, next) {
     try {
-        const { tiempoReal, indiceCumplimiento, efectividadCumplimiento, comentariosCierre, tiempoMod, idOtm } = req.body
-        
-        
-        console.log(tiempoReal, indiceCumplimiento, efectividadCumplimiento, comentariosCierre, tiempoMod, idOtm)
+        const {
+            tiempoReal,
+            indiceCumplimiento,
+            efectividadCumplimiento,
+            comentariosCierre,
+            tiempoMod,
+            idOtm,
+            reprogramarSiguientes
+        } = req.body
 
         const campos = [
             { nombre: 'Tiempo real de ejecución', valor: tiempoReal, numerico: true },
@@ -219,8 +224,29 @@ export async function saveCumplimientoOtmController(req, res, next) {
                 error: `Faltan campos requeridos: ${faltantes.join(', ')}`
             })
         }
-        
-        const result = await otmProgramadaService.saveCumplimientoOtm(tiempoReal, indiceCumplimiento, efectividadCumplimiento, comentariosCierre, tiempoMod, idOtm)
+
+        const result = await otmProgramadaService.saveCumplimientoOtm(
+            tiempoReal,
+            indiceCumplimiento,
+            efectividadCumplimiento,
+            comentariosCierre,
+            tiempoMod,
+            idOtm,
+            Boolean(reprogramarSiguientes)
+        )
+        res.json(result)
+    } catch (err) {
+        next(err)
+    }
+}
+
+export async function previewOtmsFuturasController(req, res, next) {
+    try {
+        const idOtm = String(req.body.idOtm || req.query.idOtm || '').trim()
+        if (!idOtm) {
+            return res.status(400).json({ error: 'idOtm es requerido' })
+        }
+        const result = await otmProgramadaService.previewOtmsFuturas(idOtm)
         res.json(result)
     } catch (err) {
         next(err)

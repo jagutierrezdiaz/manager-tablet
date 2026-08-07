@@ -1,4 +1,8 @@
-import db from '../db/index.js'
+import db, { logSql, toFirebirdBlobText, fromFirebirdText } from '../db/index.js'
+import { firebirdNodeEncoding } from '../db/firebirdEncoding.js'
+
+const LOG_CUMPLIR_OTM = '[CUMPLIR-OTM]'
+const LOG_ELIMINAR_PERSONA_OTM = '[ELIMINAR-PERSONA-OTM]'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -11,6 +15,16 @@ import {
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+
+/** Suma días a una fecha (Firebird: fecha + entero = días). */
+function addDaysToDate(fecha, dias) {
+    const d = fecha instanceof Date ? new Date(fecha) : new Date(fecha)
+    if (Number.isNaN(d.getTime())) {
+        throw new Error(`Fecha inválida: ${fecha}`)
+    }
+    d.setDate(d.getDate() + Number(dias))
+    return d
+}
 
 export async function getOtmProgramadas(codigoPersona) {
     const sql = `
@@ -32,6 +46,13 @@ export async function getOtmProgramadas(codigoPersona) {
     return rows
 }
 
+function decodeBlobTextField(value) {
+    if (value == null) return value
+    if (Buffer.isBuffer(value)) return value.toString(firebirdNodeEncoding)
+    if (typeof value === 'string') return fromFirebirdText(value)
+    return value
+}
+
 export async function getDatosOtmById(idOtmProgramada) {
     const sql = `
         SELECT
@@ -40,8 +61,8 @@ export async function getDatosOtmById(idOtmProgramada) {
             OTM.FECHA_PROGRAMADA,
             OTM.FECHA_CIERRE,
             OTM.LIMITE_CIERRE,
-            CAST(OTM.OBSERVACION_OTM AS VARCHAR(2000)) AS OBSERVACION_OTM,
-            CAST(OTM.COMENTARIOS_DE_CIERRE AS VARCHAR(2000)) AS COMENTARIOS_DE_CIERRE,
+            CAST(OTM.OBSERVACION_OTM AS VARCHAR(2000) CHARACTER SET OCTETS) AS OBSERVACION_OTM,
+            CAST(OTM.COMENTARIOS_DE_CIERRE AS VARCHAR(2000) CHARACTER SET OCTETS) AS COMENTARIOS_DE_CIERRE,
             CAST(OTM.FOTO_1 AS VARCHAR(255)) AS FOTO_1,
             CAST(OTM.FOTO_2 AS VARCHAR(255)) AS FOTO_2,
             OTM.TIEMPO_REAL,
@@ -83,7 +104,15 @@ export async function getDatosOtmById(idOtmProgramada) {
     `
 
     const rows = await db.query(sql, [idOtmProgramada])
-    return rows
+    const list = Array.isArray(rows) ? rows : []
+    return list.map((row) => ({
+        ...row,
+        OBSERVACION_OTM: decodeBlobTextField(row.OBSERVACION_OTM),
+        COMENTARIOS_DE_CIERRE: decodeBlobTextField(row.COMENTARIOS_DE_CIERRE),
+        NOMBRE_ACTIVIDAD: typeof row.NOMBRE_ACTIVIDAD === 'string'
+            ? fromFirebirdText(row.NOMBRE_ACTIVIDAD)
+            : row.NOMBRE_ACTIVIDAD
+    }))
 }
 
 export async function getTipoRepuestos() {
@@ -225,20 +254,23 @@ function deletePhysicalFile(publicPath) {
     }
 }
 
-async function deleteSignatureFile(idOtm, codigoPersona) {
+async function deleteSignatureFile(idOtm, codigoPersona, logTag) {
+    const params = [idOtm, codigoPersona]
     const sqlGet = `
         SELECT CAST(URL_FIRMA AS VARCHAR(255)) AS URL_FIRMA
         FROM FIRMA_PERSONAL
         WHERE ID_OTM = ? AND CODIGO_PERSONAL = ?
     `
-    const rows = await db.query(sqlGet, [idOtm, codigoPersona])
+    if (logTag) logSql(sqlGet, params, `${logTag} SELECT firma`)
+    const rows = await db.query(sqlGet, params)
 
     if (rows.length > 0) {
         deletePhysicalFile(rows[0].URL_FIRMA)
     }
 
     const sqlDelete = 'DELETE FROM FIRMA_PERSONAL WHERE ID_OTM = ? AND CODIGO_PERSONAL = ?'
-    await db.query(sqlDelete, [idOtm, codigoPersona])
+    if (logTag) logSql(sqlDelete, params, `${logTag} DELETE firma`)
+    await db.query(sqlDelete, params)
 }
 
 export async function deleteFirmaPersonalOtm(idOtm, codigoPersona) {
@@ -249,12 +281,14 @@ export async function deleteFirmaPersonalOtm(idOtm, codigoPersona) {
 
 
 export async function deletePersonaAsignadaOtm(idOtm, codigoPersona) {
-    await deleteSignatureFile(idOtm, codigoPersona)
+    await deleteSignatureFile(idOtm, codigoPersona, LOG_ELIMINAR_PERSONA_OTM)
 
     const sql = `
         DELETE FROM CIERRE_MOD WHERE ID_OTM = ? AND CODIGO_PERSONA = ?
     `
-    const rows = await db.query(sql, [idOtm, codigoPersona])
+    const params = [idOtm, codigoPersona]
+    logSql(sql, params, `${LOG_ELIMINAR_PERSONA_OTM} DELETE CIERRE_MOD`)
+    const rows = await db.query(sql, params)
     return rows
 }
 
@@ -399,7 +433,64 @@ export async function deleteOtmPhoto(idOtm, photoNumber) {
 }
 
 
-export async function saveCumplimientoOtm(tiempoReal, indiceCumplimiento, efectividadCumplimiento, comentariosCierre, tiempoMod, idOtm) {
+export async function previewOtmsFuturas(idOtm) {
+    const datosRows = await getDatosOtmById(idOtm)
+    if (!datosRows.length) {
+        return {
+            success: true,
+            cantidad: 0,
+            nombreActividad: null,
+            diasProgramacion: 0,
+            idNumerico: null,
+            idActividad: null,
+            idEquipo: null
+        }
+    }
+
+    const {
+        ID_NUMERICO,
+        ID_ACTIVIDAD,
+        ID_EQUIPO,
+        NOMBRE_ACTIVIDAD,
+        TIEMPO_ESTIMADO_ACTIVIDAD
+    } = datosRows[0]
+
+    const diasProgramacion = Number(TIEMPO_ESTIMADO_ACTIVIDAD ?? 0)
+
+    const sqlFuturas = `
+        SELECT ID_NUMERICO, ID_OTM
+        FROM OTM
+        WHERE ID_NUMERICO > ?
+          AND ID_ACTIVIDAD = ?
+          AND ID_EQUIPO = ?
+          AND CUMPLIDA = 'NO'
+        ORDER BY ID_NUMERICO
+    `
+    const paramsFuturas = [ID_NUMERICO, ID_ACTIVIDAD, ID_EQUIPO]
+    logSql(sqlFuturas, paramsFuturas, `${LOG_CUMPLIR_OTM} SELECT preview OTMs futuras`)
+    const otmsFuturas = await db.query(sqlFuturas, paramsFuturas)
+    const list = Array.isArray(otmsFuturas) ? otmsFuturas : []
+
+    return {
+        success: true,
+        cantidad: list.length,
+        nombreActividad: NOMBRE_ACTIVIDAD ?? null,
+        diasProgramacion,
+        idNumerico: ID_NUMERICO,
+        idActividad: ID_ACTIVIDAD,
+        idEquipo: ID_EQUIPO
+    }
+}
+
+export async function saveCumplimientoOtm(
+    tiempoReal,
+    indiceCumplimiento,
+    efectividadCumplimiento,
+    comentariosCierre,
+    tiempoMod,
+    idOtm,
+    reprogramarSiguientes = false
+) {
     try {
         const sql = `
             UPDATE OTM
@@ -412,30 +503,103 @@ export async function saveCumplimientoOtm(tiempoReal, indiceCumplimiento, efecti
                 FECHA_CIERRE = CURRENT_DATE
             WHERE ID_OTM = ?
         `
-        await db.query(sql, [tiempoReal, indiceCumplimiento, efectividadCumplimiento, comentariosCierre, tiempoMod, idOtm])
+        const paramsCumplir = [
+            tiempoReal,
+            indiceCumplimiento,
+            efectividadCumplimiento,
+            toFirebirdBlobText(comentariosCierre),
+            tiempoMod,
+            idOtm
+        ]
+        logSql(sql, paramsCumplir, `${LOG_CUMPLIR_OTM} UPDATE cumplida`)
+        await db.query(sql, paramsCumplir)
 
-        // 1. Obtener datos de la OTM que se acaba de cumplir
-        const sqlGet = 'SELECT ID_NUMERICO, ID_ACTIVIDAD, ID_EQUIPO FROM OTM WHERE ID_OTM = ?'
-        const rows = await db.query(sqlGet, [idOtm])
+        // --- Código anterior (UPDATE masivo de OTMs siguientes) ---
+        // ... (comentado arriba en historial)
 
-        if (rows.length > 0) {
-            const { ID_NUMERICO, ID_ACTIVIDAD, ID_EQUIPO } = rows[0]
+        const sqlParam = 'SELECT LIMITE_CIERRE FROM PARAMETRO'
+        logSql(sqlParam, [], `${LOG_CUMPLIR_OTM} SELECT parametro`)
+        const paramRows = await db.query(sqlParam, [])
+        const varParametroLimiteCierre = Number(paramRows[0]?.LIMITE_CIERRE ?? 0)
 
-            // 2. Actualizar las OTMs programadas siguientes (mismo equipo y actividad)
-            // Se incrementa tanto la fecha programada como el límite de cierre según el parámetro configurado
-            const sqlUpdateNext = `
-                UPDATE OTM O
-                SET O.FECHA_PROGRAMADA = O.FECHA_PROGRAMADA + (SELECT P.LIMITE_CIERRE FROM PARAMETRO P),
-                    O.LIMITE_CIERRE = O.LIMITE_CIERRE + (SELECT P.LIMITE_CIERRE FROM PARAMETRO P)
-                WHERE O.ID_NUMERICO > ?
-                  AND O.ID_ACTIVIDAD = ?
-                  AND O.ID_EQUIPO = ?
-                  AND O.CUMPLIDA = 'NO'
+        let cantidadFuturas = 0
+        let nombreActividad = null
+        let diasProgramacion = 0
+        let reprogramadas = false
+
+        const datosRows = await getDatosOtmById(idOtm)
+        if (datosRows.length > 0) {
+            const {
+                ID_NUMERICO,
+                ID_ACTIVIDAD,
+                ID_EQUIPO,
+                FECHA_CIERRE,
+                TIEMPO_ESTIMADO_ACTIVIDAD,
+                NOMBRE_ACTIVIDAD
+            } = datosRows[0]
+
+            nombreActividad = NOMBRE_ACTIVIDAD ?? null
+            const varValorVariableMantto = Number(TIEMPO_ESTIMADO_ACTIVIDAD ?? 0)
+            diasProgramacion = varValorVariableMantto
+            let varFechaProgramadaAnterior = FECHA_CIERRE
+
+            const sqlFuturas = `
+                SELECT ID_NUMERICO, ID_OTM, ID_EQUIPO, ID_ACTIVIDAD,
+                       FECHA_OTM, FECHA_PROGRAMADA, LIMITE_CIERRE, FECHA_CIERRE
+                FROM OTM
+                WHERE ID_NUMERICO > ?
+                  AND ID_ACTIVIDAD = ?
+                  AND ID_EQUIPO = ?
+                  AND CUMPLIDA = 'NO'
+                ORDER BY ID_NUMERICO
             `
-            await db.query(sqlUpdateNext, [ID_NUMERICO, ID_ACTIVIDAD, ID_EQUIPO])
+            const paramsFuturas = [ID_NUMERICO, ID_ACTIVIDAD, ID_EQUIPO]
+            logSql(sqlFuturas, paramsFuturas, `${LOG_CUMPLIR_OTM} SELECT OTMs futuras`)
+            const otmsFuturas = await db.query(sqlFuturas, paramsFuturas)
+            const listFuturas = Array.isArray(otmsFuturas) ? otmsFuturas : []
+            cantidadFuturas = listFuturas.length
+
+            // Paso 5: solo si el usuario aceptó reprogramar y hay OTMs futuras
+            if (reprogramarSiguientes && cantidadFuturas > 0) {
+                const sqlUpdateOne = `
+                    UPDATE OTM O
+                    SET O.FECHA_PROGRAMADA = ?,
+                        O.LIMITE_CIERRE = ?
+                    WHERE O.ID_NUMERICO = ?
+                `
+
+                for (const row of listFuturas) {
+                    const varIdNumericoOTM = row.ID_NUMERICO
+                    const varFechaNuevaProgramada = addDaysToDate(varFechaProgramadaAnterior, varValorVariableMantto)
+                    const varLimiteCierre = addDaysToDate(varFechaNuevaProgramada, varParametroLimiteCierre)
+
+                    const paramsUpdateOne = [varFechaNuevaProgramada, varLimiteCierre, varIdNumericoOTM]
+                    logSql(sqlUpdateOne, paramsUpdateOne, `${LOG_CUMPLIR_OTM} UPDATE OTM futura ${varIdNumericoOTM}`)
+                    await db.query(sqlUpdateOne, paramsUpdateOne)
+
+                    varFechaProgramadaAnterior = varFechaNuevaProgramada
+                }
+                reprogramadas = true
+            }
         }
 
-        return { success: true, message: 'Cumplimiento de la OTM guardado y siguientes actualizadas correctamente' }
+        let message = 'La orden de trabajo ha sido finalizada con éxito.'
+        if (reprogramadas) {
+            message = `OTM finalizada. Se reprogramaron ${cantidadFuturas} OTM siguientes de la actividad «${nombreActividad || ''}» (${diasProgramacion} días de programación).`
+        } else if (cantidadFuturas > 0) {
+            message = 'OTM finalizada. No se reprogramaron las OTM siguientes.'
+        } else {
+            message = 'OTM finalizada. No había OTM siguientes para reprogramar.'
+        }
+
+        return {
+            success: true,
+            reprogramadas,
+            cantidadFuturas,
+            nombreActividad,
+            diasProgramacion,
+            message
+        }
     } catch (error) {
         console.error('Error saving OTM cumplimiento:', error)
         throw error
@@ -449,7 +613,7 @@ export async function saveComentariosCierre(comentariosCierre, idNumerico) {
             SET COMENTARIOS_DE_CIERRE = ?
             WHERE ID_NUMERICO = ?
         `
-        await db.query(sql, [comentariosCierre, idNumerico])
+        await db.query(sql, [toFirebirdBlobText(comentariosCierre), idNumerico])
         return { success: true, message: 'Comentarios de cierre guardados correctamente' }
     } catch (error) {
         console.error('Error saving comentarios de cierre:', error)
@@ -462,6 +626,7 @@ export async function assignOtmToUser(idOtm, codigoPersona) {
     try {
         // Verificar si ya existe la asignación
         const sqlCheck = 'SELECT * FROM CIERRE_MOD WHERE ID_OTM = ? AND CODIGO_PERSONA = ?'
+        logSql(sqlCheck, [idOtm, codigoPersona], `${LOG_CUMPLIR_OTM} SELECT asignación usuario`)
         const rows = await db.query(sqlCheck, [idOtm, codigoPersona])
 
         if (rows && rows.length > 0) {
@@ -494,6 +659,7 @@ export async function assignOtmToUser(idOtm, codigoPersona) {
                 0
             )
         `
+        logSql(sqlInsert, [idOtm, codigoPersona], `${LOG_CUMPLIR_OTM} INSERT asignación usuario`)
         await db.query(sqlInsert, [idOtm, codigoPersona])
         return { success: true, message: 'OTM asignada correctamente al usuario' }
     } catch (error) {
@@ -503,8 +669,6 @@ export async function assignOtmToUser(idOtm, codigoPersona) {
 }
 
 export async function validarOtmAnterior(idNumerico, idEquipo, idActividad) {
-    console.log('Validating previous OTM Params:', { idNumerico, idEquipo, idActividad })
-    
     if (!idNumerico || !idEquipo || !idActividad) {
         console.warn('Missing parameters for validating previous OTM')
         return { success: true, idOtm: null }
@@ -521,8 +685,9 @@ export async function validarOtmAnterior(idNumerico, idEquipo, idActividad) {
                 AND ID_ACTIVIDAD = ?
                 AND CUMPLIDA='NO');
         `
-        console.log('SQL:', sql, [idNumerico, idEquipo, idActividad])
-        const rows = await db.query(sql, [idNumerico, idEquipo, idActividad])
+        const paramsValidar = [idNumerico, idEquipo, idActividad]
+        logSql(sql, paramsValidar, `${LOG_CUMPLIR_OTM} SELECT OTM anterior`)
+        const rows = await db.query(sql, paramsValidar)
         
         if (rows.length > 0) {
             const idOtmAnterior = rows[0].ID_OTM
@@ -532,6 +697,7 @@ export async function validarOtmAnterior(idNumerico, idEquipo, idActividad) {
                 WHERE O.ID_ACTIVIDAD = A.ID_ACTIVIDAD 
                 AND O.ID_OTM = ?
             `
+            logSql(sqlDetalle, [idOtmAnterior], `${LOG_CUMPLIR_OTM} SELECT detalle OTM anterior`)
             const rowsDetalle = await db.query(sqlDetalle, [idOtmAnterior])
             return { 
                 success: true, 

@@ -21,6 +21,7 @@ router.delete('/delete-otm-photo/:idOtm', otmProgramadaController.deleteOtmPhoto
 router.post('/save-cumplimiento-otm', otmProgramadaController.saveCumplimientoOtmController)
 router.post('/save-comentarios-cierre', otmProgramadaController.saveComentariosCierreController)
 router.post('/validar-otm-anterior', otmProgramadaController.validarOtmAnteriorController)
+router.post('/preview-otms-futuras', otmProgramadaController.previewOtmsFuturasController)
 router.post('/assign-otm-to-user', otmProgramadaController.assignOtmToUserController)
 
 export default router

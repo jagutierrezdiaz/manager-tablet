@@ -1,4 +1,5 @@
 import './firebirdEncoding.js'
+import { firebirdNodeEncoding, toFirebirdBlobText, fromFirebirdText } from './firebirdEncoding.js'
 import Fb from 'node-firebird'
 import dotenv from 'dotenv'
 import { AsyncLocalStorage } from 'async_hooks'
@@ -24,7 +25,7 @@ const pools = new Map()
 
 function getPool() {
   const dbId = asyncLocalStorage.getStore() || 'db1'
-  
+
   if (pools.has(dbId)) {
     return pools.get(dbId)
   }
@@ -59,7 +60,9 @@ function getConnection() {
 function safeParamToString(p) {
   if (p === null || p === undefined) return 'NULL'
   if (typeof p === 'number') return String(p)
-  // escape simple de comillas para visualización
+  if (Buffer.isBuffer(p)) {
+    return `'${p.toString(firebirdNodeEncoding).replace(/'/g, "''")}'`
+  }
   return `'${String(p).replace(/'/g, "''")}'`
 }
 
@@ -71,27 +74,46 @@ function interpolateSql(sql, params = []) {
   })
 }
 
+/** Imprime el SQL con los parámetros ya sustituidos (solo para depuración). */
+export function logSql(sql, params = [], tag = '[SQL]') {
+  try {
+    const full = interpolateSql(sql, params).replace(/\s+/g, ' ').trim()
+    console.log(tag, full)
+  } catch {
+    console.log(tag, String(sql).replace(/\s+/g, ' ').trim(), params)
+  }
+}
+
+/**
+ * Prepara parámetros para Firebird WIN1252/NONE.
+ * - string → latin1-safe (VARCHAR vía SQLParamString parcheado).
+ * - Buffer (p. ej. toFirebirdBlobText) → se envía tal cual al BLOB.
+ */
+export function encodeQueryParams(params = []) {
+  return params.map((p) => {
+    if (Buffer.isBuffer(p)) return p
+    if (typeof p !== 'string') return p
+    return Buffer.from(p, firebirdNodeEncoding).toString(firebirdNodeEncoding)
+  })
+}
+
+export { toFirebirdBlobText, fromFirebirdText }
+
+/** Corrige mojibake UTF-8→WIN1252 (ej. verificaciÃ³n). */
+export function fixUtf8Mojibake(text) {
+  return fromFirebirdText(text)
+}
+
 function query(sql, params = []) {
   return new Promise(async (resolve, reject) => {
     let db
     try {
-      // Opcional: controlar con variable de entorno para activar logs: SHOW_SQL=true
-      const showSql = process.env.SHOW_SQL === 'true'
-      if (showSql) {
-        try {
-          const full = interpolateSql(sql, params)
-          console.log('[SQL]', full)
-        } catch (e) {
-          // en caso de fallo, cae a logging básico
-          console.log('[SQL] statement:', sql)
-          console.log('[SQL] params:', params)
-        }
+      const encodedParams = encodeQueryParams(params)
+      if (process.env.SHOW_SQL === 'true') {
+        logSql(sql, encodedParams)
       }
-      // Añadir justo antes de: db = await getConnection()
-      // Log mínimo para depuración (no altera lógica)
-      console.log('[SQL]', sql, params)
       db = await getConnection()
-      db.query(sql, params, (err, result) => {
+      db.query(sql, encodedParams, (err, result) => {
         try { db.detach() } catch (e) { /* ignore */ }
         if (err) return reject(err)
         resolve(result)
@@ -105,4 +127,12 @@ function query(sql, params = []) {
   })
 }
 
-export default { query, getConnection, asyncLocalStorage }
+export default {
+  query,
+  getConnection,
+  asyncLocalStorage,
+  encodeQueryParams,
+  fixUtf8Mojibake,
+  toFirebirdBlobText,
+  fromFirebirdText
+}

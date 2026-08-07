@@ -1,4 +1,4 @@
-import db from '../db/index.js'
+import db, { toFirebirdBlobText } from '../db/index.js'
 
 export async function getMachines(idProceso = null) {
     const params = []
@@ -236,7 +236,9 @@ export async function saveOTMCorrectiva(data) {
         fechaProgramada,
         mesOtm,
         limiteCierre,
-        data.OBSERVACION_OTM,
+        data.OBSERVACION_OTM != null && data.OBSERVACION_OTM !== ''
+            ? toFirebirdBlobText(data.OBSERVACION_OTM)
+            : data.OBSERVACION_OTM,
         data.CAUSO_PARADA,
         data.PRIORIDAD || 'Alta'
     ]

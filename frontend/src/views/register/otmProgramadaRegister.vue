@@ -14,7 +14,16 @@
                     @click="siguiente()" />
 
                 <UiButton v-if="currentIndex === itemsList.length - 1" label="Cumplir" color="create" icon="save"
-                    @click="cumplir()" />
+                    :disabled="isCumpliendo" @click="cumplir()" />
+            </div>
+        </div>
+
+        <!-- Spinner mientras se cumple la OTM -->
+        <div v-if="isCumpliendo" class="cumplir-loading-overlay" aria-busy="true" aria-live="polite">
+            <div class="cumplir-loading-box">
+                <div class="spinner"></div>
+                <p>Finalizando OTM...</p>
+                <p class="cumplir-loading-hint">Validando y reprogramando órdenes siguientes</p>
             </div>
         </div>
 
@@ -312,6 +321,12 @@
             :message="`¿Estás seguro de que deseas marcar la OTM #${otmData.ID_OTM} (${currentDatosOtm.NOMBRE_ACTIVIDAD}) como cumplida? Esta acción no se puede deshacer.`"
             confirmLabel="Sí, finalizar" confirmIcon="Check" @confirm="handleConfirmCumplir" />
 
+        <!-- Modal reprogramar OTMs siguientes -->
+        <UiModal v-model="showReprogramarModal" title="Reprogramar OTM siguientes"
+            :message="mensajeReprogramarModal" confirmLabel="Sí, reprogramar" cancelLabel="No reprogramar"
+            confirmIcon="Check" @confirm="confirmarReprogramarSiguientes(true)"
+            @cancel="confirmarReprogramarSiguientes(false)" />
+
         <!-- Modal OTM Anterior -->
         <UiModal v-if="otmAnteriorDetalle" v-model="showAnteriorModal" title="OTM Anterior Pendiente"
             :message="`La OTM anterior #${otmAnteriorDetalle.ID_OTM} (${otmAnteriorDetalle.NOMBRE_ACTIVIDAD}) programada para el ${formatDate(otmAnteriorDetalle.FECHA_PROGRAMADA)} no ha sido cumplida. ¿Deseas realizar esta OTM ahora?`"
@@ -368,12 +383,25 @@ const observacionesEjecucion = ref('')
 const showConfirmModal = ref(false)
 const showAnteriorModal = ref(false)
 const showDeleteConfirmModal = ref(false)
+const showReprogramarModal = ref(false)
+const isCumpliendo = ref(false)
+const pendingCumplirPayload = ref(null)
+const previewFuturas = ref(null)
 const deleteConfirmConfig = ref({
     title: 'Confirmar eliminación',
     message: '¿Está seguro de que desea eliminar este registro?',
     onConfirm: null
 })
 const otmAnteriorDetalle = ref(null)
+
+const mensajeReprogramarModal = computed(() => {
+    const p = previewFuturas.value
+    if (!p) return '¿Desea reprogramar las OTM siguientes?'
+    const actividad = p.nombreActividad || 'esta actividad'
+    const dias = p.diasProgramacion ?? 0
+    const n = p.cantidad ?? 0
+    return `¿Desea reprogramar las OTM siguientes de la actividad «${actividad}»? con un intervalo de ${dias} días.`
+})
 
 // Estado para alertas
 const alertConfig = ref({
@@ -537,6 +565,13 @@ function onTiempoEjecucionInput(valor) {
         : `${partes[0]},${partes.slice(1).join('')}`
 }
 
+function toDateOnly(value) {
+    if (value == null || value === '') return null
+    const d = value instanceof Date ? value : new Date(value)
+    if (Number.isNaN(d.getTime())) return null
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+}
+
 function validarRequisitosCumplir() {
     const tiempoReal = parseDecimalHours(tiempoEjecucion.value)
     const tiempoMayorOperario = Math.max(
@@ -544,11 +579,33 @@ function validarRequisitosCumplir() {
         ...addUsersList.value.map(user => parseDecimalHours(user.horaTotal))
     )
 
-    if (!tiempoReal || tiempoReal <= 0 || tiempoReal > 24) {
+    if (!tiempoReal || tiempoReal <= 0) {
         return {
             ok: false,
             title: 'Tiempo inválido',
-            message: 'Debe ingresar un tiempo de ejecución válido entre 0,01 y 24,00 horas.'
+            message: 'Debe ingresar un tiempo de ejecución mayor a 0,00 horas.'
+        }
+    }
+
+    const fechaProgramada = toDateOnly(
+        otmData.value?.FECHA_PROGRAMADA ?? currentDatosOtm.value?.FECHA_PROGRAMADA
+    )
+    // Misma lógica que FECHA_CIERRE = CURRENT_DATE al cumplir en backend
+    const fechaCierre = toDateOnly(new Date())
+
+    if (!fechaProgramada) {
+        return {
+            ok: false,
+            title: 'Fecha programada inválida',
+            message: 'No se pudo obtener la fecha programada de la OTM.'
+        }
+    }
+
+    if (fechaProgramada.getTime() > fechaCierre.getTime()) {
+        return {
+            ok: false,
+            title: 'Fecha programada futura',
+            message: 'No se puede cumplir la OTM: la fecha programada es posterior a la fecha actual (fecha de cierre).'
         }
     }
 
@@ -714,6 +771,9 @@ async function handleConfirmCumplir() {
         return
     }
 
+    isCumpliendo.value = true
+    showConfirmModal.value = false
+
     try {
         const result = await axios.post('otmProgramada/validar-otm-anterior', {
             idNumerico: currentDatosOtm.value.ID_NUMERICO,
@@ -724,36 +784,23 @@ async function handleConfirmCumplir() {
         if (result.data.idOtm) {
             otmAnteriorDetalle.value = result.data.detalle
             showAnteriorModal.value = true
-            showConfirmModal.value = false
             return
         }
-    } catch (error) {
-        console.error('Error al validar OTM anterior:', error)
-        showAlert('error', 'Error de validación', 'No se pudo verificar la OTM anterior: ' + (error.response?.data?.error || error.message))
-        showConfirmModal.value = false
-        return
-    }
 
-    // 2. Calcular tiempoMod (suma de horas de personal) en formato decimal
-    let totalModHours = 0
-    addUsersList.value.forEach(user => {
-        totalModHours += parseDecimalHours(user.horaTotal)
-    })
+        let totalModHours = 0
+        addUsersList.value.forEach(user => {
+            totalModHours += parseDecimalHours(user.horaTotal)
+        })
 
-    // 3. Preparar datos de cierre usando la función datosCierreOTM
-    const datos = datosCierreOTM({
-        otm: otmData.value,
-        tiempoEstimadoActividad: itemsList.value[0].TIEMPO_ESTIMADO_ACTIVIDAD,
-        tiempoMod: totalModHours,
-        tiempoReal: parseDecimalHours(tiempoEjecucion.value),
-        comentariosCierre: observacionesEjecucion.value,
-        idOtm: otmData.value.ID_OTM
-    })
+        const datos = datosCierreOTM({
+            otm: otmData.value,
+            tiempoEstimadoActividad: itemsList.value[0].TIEMPO_ESTIMADO_ACTIVIDAD,
+            tiempoMod: totalModHours,
+            tiempoReal: parseDecimalHours(tiempoEjecucion.value),
+            comentariosCierre: observacionesEjecucion.value,
+            idOtm: otmData.value.ID_OTM
+        })
 
-    console.log('datos_cierre_otm', datos)
-
-    // 4. Llamar al backend para guardar el cumplimiento
-    try {
         const payload = {
             tiempoReal: datos.tiempo_real,
             indiceCumplimiento: datos.indice_cumplimiento,
@@ -769,20 +816,72 @@ async function handleConfirmCumplir() {
             return
         }
 
-        await axios.post('otmProgramada/save-cumplimiento-otm', payload)
+        const previewRes = await axios.post('otmProgramada/preview-otms-futuras', {
+            idOtm: payload.idOtm
+        })
+        const preview = previewRes.data || {}
+        previewFuturas.value = preview
 
-        showAlert('success', 'OTM Finalizada', 'La orden de trabajo ha sido finalizada con éxito.')
+        if (Number(preview.cantidad) > 0) {
+            pendingCumplirPayload.value = payload
+            isCumpliendo.value = false
+            showReprogramarModal.value = true
+            return
+        }
 
-        // Limpiar datos y redirigir
+        await ejecutarSaveCumplimiento(payload, false)
+    } catch (error) {
+        console.error('Error al finalizar OTM:', error)
+        const msg = error.response?.data?.error || error.message
+        const isValidacion = error.config?.url?.includes('validar-otm-anterior')
+        showAlert(
+            'error',
+            isValidacion ? 'Error de validación' : 'Error',
+            isValidacion
+                ? `No se pudo verificar la OTM anterior: ${msg}`
+                : `No se pudo finalizar la OTM: ${msg}`
+        )
+    } finally {
+        if (!showReprogramarModal.value) {
+            isCumpliendo.value = false
+        }
+    }
+}
+
+async function confirmarReprogramarSiguientes(acepta) {
+    const payload = pendingCumplirPayload.value
+    pendingCumplirPayload.value = null
+    showReprogramarModal.value = false
+    if (!payload) return
+    await ejecutarSaveCumplimiento(payload, Boolean(acepta))
+}
+
+async function ejecutarSaveCumplimiento(payload, reprogramarSiguientes) {
+    isCumpliendo.value = true
+    try {
+        const res = await axios.post('otmProgramada/save-cumplimiento-otm', {
+            ...payload,
+            reprogramarSiguientes
+        })
+        const mensaje = res.data?.message
+            || (reprogramarSiguientes
+                ? 'OTM finalizada. Se reprogramaron las OTM siguientes.'
+                : 'OTM finalizada. No se reprogramaron las OTM siguientes.')
+        showAlert('success', 'OTM Finalizada', mensaje)
+
         setTimeout(() => {
             clearSelectedOtm()
             router.push({ name: 'principal-programadas' })
-        }, 1500)
+        }, 2000)
     } catch (error) {
         console.error('Error al finalizar OTM:', error)
-        showAlert('error', 'Error', 'No se pudo finalizar la OTM: ' + (error.response?.data?.error || error.message))
+        showAlert(
+            'error',
+            'Error',
+            'No se pudo finalizar la OTM: ' + (error.response?.data?.error || error.message)
+        )
     } finally {
-        showConfirmModal.value = false
+        isCumpliendo.value = false
     }
 }
 
@@ -963,6 +1062,11 @@ async function guardarUsuario(codigoPersona) {
         return
     }
 
+    const ahora = new Date()
+    if (fin.getTime() > ahora.getTime()) {
+        showAlert('error', 'Fecha inválida', 'La fecha final no puede ser mayor a la fecha y hora actual')
+        return
+    }
 
     const inicioMinutos = new Date(inicio).setSeconds(0, 0);
     const fechaProgMinutos = new Date(fechaProgramada).setSeconds(0, 0);
@@ -1551,6 +1655,56 @@ textarea:focus {
     display: flex;
     gap: 20px;
     justify-content: end;
+}
+
+.cumplir-loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 35, 70, 0.45);
+    backdrop-filter: blur(4px);
+}
+
+.cumplir-loading-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.75rem 2rem;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+    text-align: center;
+}
+
+.cumplir-loading-box p {
+    margin: 0;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.cumplir-loading-hint {
+    font-weight: 500 !important;
+    font-size: 0.9rem;
+    color: #64748b !important;
+}
+
+.spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba(15, 35, 70, 0.08);
+    border-left-color: #2563eb;
+    border-radius: 50%;
+    animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 @media (max-width: 768px) {
