@@ -17,13 +17,15 @@
         </div>
 
         <div class="buttons-container-cards" v-if="itemsList.length > 0">
-            <UiButton color="edit" label="Tarea Anterior" icon="ArrowLeft" :disabled="currentIndex === 0"
+            <UiButton color="edit" label="Tarea Anterior" icon="ArrowLeft"
+                :disabled="currentIndex === 0 || isBusyKey('ruta:nav')"
                 @click="anterior()" />
             <span v-if="itemsList.length > 1" class="text-muted font-bold">
                 {{ currentIndex + 1 }} / {{ itemsList.length }}
             </span>
             <UiButton color="edit" label="Tarea Siguiente" iconPosition="end" icon="ArrowRight"
-                :disabled="currentIndex === itemsList.length - 1" @click="siguiente()" />
+                :disabled="currentIndex === itemsList.length - 1 || isBusyKey('ruta:nav')"
+                @click="siguiente()" />
         </div>
         <div class="container-ruta">
 
@@ -78,7 +80,9 @@
                             name="criterios" />
                         <UiRadio label="No cumple" v-model="currentItem.CUMPLE_REVISION" value="NO" color="delete"
                             name="criterios" />
-                        <UiButton color="create" icon="Save" label="Guardar" @click="guardarRutaIndividual" />
+                        <UiButton color="create" icon="Save" label="Guardar"
+                            :disabled="isBusyKey('ruta:save')"
+                            @click="guardarRutaIndividual" />
                     </div>
                 </div>
             </section>
@@ -97,13 +101,17 @@
 
 
         <div class="footer-actions" v-if="itemsList.length > 0">
-            <UiButton label="Cumplir" color="create" icon="Check" :disabled="!isUltimoRegistro" @click="cumplirRuta" />
+            <UiButton label="Cumplir" color="create" icon="Check"
+                :disabled="!isUltimoRegistro || isBusyKey('ruta:cumplir:validate') || isBusyKey('ruta:cumplir:save')"
+                @click="cumplirRuta" />
         </div>
 
         <!-- Modal de Confirmación -->
         <UiModal v-if="rutaInfo" v-model="showConfirmModal" title="Finalizar Registro de Ruta"
             :message="`¿Estás seguro de que deseas marcar la ruta ${rutaInfo.NOMBRE_TIPO_RUTA} (ID: ${rutaInfo.ID_TIPO_RUTA}) como cumplida? Se guardarán todos los resultados de la inspección.`"
-            confirmLabel="Sí, finalizar" confirmIcon="Check" @confirm="handleConfirmCumplir" />
+            confirmLabel="Sí, finalizar" confirmIcon="Check"
+            :confirmDisabled="isBusyKey('ruta:cumplir:save')"
+            @confirm="handleConfirmCumplir" />
 
         <!-- Alertas Flotantes -->
         <Transition name="fade-slide">
@@ -159,6 +167,25 @@ const isUltimoRegistro = computed(() => {
 
 const tiempoEjecucion = ref(0)
 const showConfirmModal = ref(false)
+const busyKeys = ref(new Set())
+
+function isBusyKey(key) {
+    return busyKeys.value.has(key)
+}
+
+async function withBusy(key, fn) {
+    if (busyKeys.value.has(key)) return
+    const next = new Set(busyKeys.value)
+    next.add(key)
+    busyKeys.value = next
+    try {
+        await fn()
+    } finally {
+        const after = new Set(busyKeys.value)
+        after.delete(key)
+        busyKeys.value = after
+    }
+}
 
 // Lógica de autoguardado en LocalStorage
 const storageKey = computed(() => rutaInfo.value ? `draft_ruta_${rutaInfo.value.ID_TIPO_RUTA.trim()}` : null)
@@ -191,27 +218,29 @@ async function cumplirRuta() {
     }
 
     try {
-        // Validar contra la BD que todos los registros tengan OBSERVACION y CUMPLE_REVISION
-        const response = await api.get('/personRouteList/all-routes-details', {
-            params: {
-                idNumerico: rutaInfo.value.ID_NUMERICO,
-                idTipoRuta: String(rutaInfo.value.ID_TIPO_RUTA || '').trim()
+        await withBusy('ruta:cumplir:validate', async () => {
+            // Validar contra la BD que todos los registros tengan OBSERVACION y CUMPLE_REVISION
+            const response = await api.get('/personRouteList/all-routes-details', {
+                params: {
+                    idNumerico: rutaInfo.value.ID_NUMERICO,
+                    idTipoRuta: String(rutaInfo.value.ID_TIPO_RUTA || '').trim()
+                }
+            })
+            const detalles = Array.isArray(response.data) ? response.data : []
+            const hayIncompletos = detalles.some(item =>
+                String(item.OBSERVACION || '').trim() === '' ||
+                String(item.CUMPLE_REVISION || '').trim() === ''
+            )
+
+            console.log('detalles', detalles)
+
+            if (detalles.length === 0 || hayIncompletos) {
+                showAlert('warning', 'Registros incompletos', 'Es necesario que todos los registros tengan observación y resultado de revisión (cumple / no cumple) antes de cumplir la ruta.')
+                return
             }
+
+            showConfirmModal.value = true
         })
-        const detalles = Array.isArray(response.data) ? response.data : []
-        const hayIncompletos = detalles.some(item =>
-            String(item.OBSERVACION || '').trim() === '' ||
-            String(item.CUMPLE_REVISION || '').trim() === ''
-        )
-
-        console.log('detalles', detalles)
-
-        if (detalles.length === 0 || hayIncompletos) {
-            showAlert('warning', 'Registros incompletos', 'Es necesario que todos los registros tengan observación y resultado de revisión (cumple / no cumple) antes de cumplir la ruta.')
-            return
-        }
-
-        showConfirmModal.value = true
     } catch (error) {
         console.error('Error al validar los registros de la ruta:', error)
         showAlert('error', 'Error', 'No se pudieron validar los registros de la ruta: ' + (error.response?.data?.error || error.message))
@@ -222,24 +251,26 @@ async function handleConfirmCumplir() {
     if (!rutaInfo.value) return
 
     try {
-        const now = new Date()
-        const fechaCumplida = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+        await withBusy('ruta:cumplir:save', async () => {
+            const now = new Date()
+            const fechaCumplida = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 
-        const data = {
-            ID_NUMERICO: rutaInfo.value.ID_NUMERICO,
-            FECHA_CUMPLIDA: fechaCumplida,
-            TIEMPO_REAL: tiempoEjecucion.value
-        }
-        console.log('cumplir-ruta data', data)
-        await api.post('/personRouteList/cumplir-ruta', data)
+            const data = {
+                ID_NUMERICO: rutaInfo.value.ID_NUMERICO,
+                FECHA_CUMPLIDA: fechaCumplida,
+                TIEMPO_REAL: tiempoEjecucion.value
+            }
+            console.log('cumplir-ruta data', data)
+            await api.post('/personRouteList/cumplir-ruta', data)
 
-        // Limpiar borrador al finalizar
-        if (storageKey.value) {
-            localStorage.removeItem(storageKey.value)
-        }
+            // Limpiar borrador al finalizar
+            if (storageKey.value) {
+                localStorage.removeItem(storageKey.value)
+            }
 
-        clearSelectedRuta()
-        router.push({ name: 'principal-rutas' })
+            clearSelectedRuta()
+            router.push({ name: 'principal-rutas' })
+        })
     } catch (error) {
         console.error('Error al cumplir la ruta:', error)
         showAlert('error', 'Error', 'No se pudo cumplir la ruta: ' + (error.response?.data?.error || error.message))
@@ -248,20 +279,24 @@ async function handleConfirmCumplir() {
 
 async function siguiente() {
     console.log('[siguiente] index actual:', currentIndex.value, 'total:', itemsList.value.length)
-    if (currentIndex.value < itemsList.value.length - 1) {
+    if (currentIndex.value >= itemsList.value.length - 1) return
+
+    await withBusy('ruta:nav', async () => {
         currentIndex.value++
         console.log('[siguiente] nuevo index:', currentIndex.value)
         await fetchEjecucionRuta()
-    }
+    })
 }
 
 async function anterior() {
     console.log('[anterior] index actual:', currentIndex.value, 'total:', itemsList.value.length)
-    if (currentIndex.value > 0) {
+    if (currentIndex.value <= 0) return
+
+    await withBusy('ruta:nav', async () => {
         currentIndex.value--
         console.log('[anterior] nuevo index:', currentIndex.value)
         await fetchEjecucionRuta()
-    }
+    })
 }
 
 
@@ -367,16 +402,18 @@ async function guardarEjecucionRuta() {
         return
     }
     try {
-        const data = {
-            ID_NUMERICO: rutaInfo.value.ID_NUMERICO,
-            ID_TIPO_RUTA: String(rutaInfo.value.ID_TIPO_RUTA || '').trim(),
-            ID_EQUIPO: String(currentItem.value.ID_EQUIPO || '').trim(),
-            CUMPLE_REVISION: currentItem.value.CUMPLE_REVISION,
-            OBSERVACION: currentItem.value.OBSERVACION
-        }
-        console.log('data', data)
-        await api.post('/personRouteList/ejecucion-ruta', data)
-        showAlert('success', 'Guardado', 'La ejecución de la ruta se ha guardado correctamente.')
+        await withBusy('ruta:save', async () => {
+            const data = {
+                ID_NUMERICO: rutaInfo.value.ID_NUMERICO,
+                ID_TIPO_RUTA: String(rutaInfo.value.ID_TIPO_RUTA || '').trim(),
+                ID_EQUIPO: String(currentItem.value.ID_EQUIPO || '').trim(),
+                CUMPLE_REVISION: currentItem.value.CUMPLE_REVISION,
+                OBSERVACION: currentItem.value.OBSERVACION
+            }
+            console.log('data', data)
+            await api.post('/personRouteList/ejecucion-ruta', data)
+            showAlert('success', 'Guardado', 'La ejecución de la ruta se ha guardado correctamente.')
+        })
     } catch (error) {
         console.error('Error al guardar ejecución de ruta:', error)
         showAlert('error', 'Error', 'No se pudo guardar la ejecución de la ruta: ' + (error.response?.data?.error || error.message))

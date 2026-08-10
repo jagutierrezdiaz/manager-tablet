@@ -206,38 +206,51 @@ export async function savePersonaAsignadaOtm(idOtm, personaAsignada) {
     }
 }
 
+function isFirmaPersonalDuplicateError(error) {
+    const msg = String(error?.message || error || '')
+    return msg.includes('IDX_FIRMA_PERSONAL_1') ||
+        (msg.includes('duplicate value') && msg.includes('FIRMA_PERSONAL'))
+}
+
 async function saveSignatureFile(idOtm, personaAsignada) {
     try {
         const base64Data = personaAsignada.firma.replace(/^data:image\/png;base64,/, "")
         const uploadDir = getFirmaPersonalDir()
+        const idOtmKey = String(idOtm).trim()
+        const codigoPersona = String(personaAsignada.codigoPersona ?? '').trim()
 
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true })
         }
 
         const cleanNombre = personaAsignada.nombrePersona.replace(/[\\/:*?"<>|]/g, "")
-        const fileName = `${idOtm}_${personaAsignada.codigoPersona}_${cleanNombre}.png`
+        const fileName = `${idOtmKey}_${codigoPersona}_${cleanNombre}.png`
         const filePath = path.join(uploadDir, fileName)
 
         fs.writeFileSync(filePath, base64Data, 'base64')
 
         const urlFirma = toPublicPath('Firma_Personal', fileName)
 
-        // Verificar si ya existe la firma para esta OTM y persona
+        const sqlUpdate = 'UPDATE FIRMA_PERSONAL SET URL_FIRMA = ? WHERE ID_OTM = ? AND CODIGO_PERSONAL = ?'
         const sqlCheck = 'SELECT ID_NUMERICO FROM FIRMA_PERSONAL WHERE ID_OTM = ? AND CODIGO_PERSONAL = ?'
-        const rows = await db.query(sqlCheck, [idOtm, personaAsignada.codigoPersona])
+        const rows = await db.query(sqlCheck, [idOtmKey, codigoPersona])
 
         if (rows && rows.length > 0) {
-            const sqlUpdate = 'UPDATE FIRMA_PERSONAL SET URL_FIRMA = ? WHERE ID_OTM = ? AND CODIGO_PERSONAL = ?'
-            await db.query(sqlUpdate, [urlFirma, idOtm, personaAsignada.codigoPersona])
-        } else {
-            // Obtener el siguiente ID_NUMERICO
-            const sqlMaxId = 'SELECT MAX(ID_NUMERICO) AS MAXID FROM FIRMA_PERSONAL'
-            const maxRows = await db.query(sqlMaxId)
-            const nextId = (maxRows[0]?.MAXID || 0) + 1
+            await db.query(sqlUpdate, [urlFirma, idOtmKey, codigoPersona])
+            return
+        }
 
-            const sqlInsert = 'INSERT INTO FIRMA_PERSONAL (ID_NUMERICO, CODIGO_PERSONAL, URL_FIRMA, ID_OTM) VALUES (?, ?, ?, ?)'
-            await db.query(sqlInsert, [nextId, personaAsignada.codigoPersona, urlFirma, idOtm])
+        const sqlMaxId = 'SELECT MAX(ID_NUMERICO) AS MAXID FROM FIRMA_PERSONAL'
+        const maxRows = await db.query(sqlMaxId)
+        const nextId = (maxRows[0]?.MAXID || 0) + 1
+
+        const sqlInsert = 'INSERT INTO FIRMA_PERSONAL (ID_NUMERICO, CODIGO_PERSONAL, URL_FIRMA, ID_OTM) VALUES (?, ?, ?, ?)'
+        try {
+            await db.query(sqlInsert, [nextId, codigoPersona, urlFirma, idOtmKey])
+        } catch (insertError) {
+            // Carrera (doble clic) o fila ya existente: actualizar en lugar de fallar
+            if (!isFirmaPersonalDuplicateError(insertError)) throw insertError
+            await db.query(sqlUpdate, [urlFirma, idOtmKey, codigoPersona])
         }
     } catch (error) {
         console.error('Error saving signature file:', error)

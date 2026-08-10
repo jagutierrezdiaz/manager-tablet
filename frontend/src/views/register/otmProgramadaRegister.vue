@@ -142,13 +142,16 @@
 
                             <div class="mt-4">
                                 <UiSignature v-model="user.firma" label="Firma Persona de Mantenimiento" :height="150"
+                                    :disabled="isBusyKey(`persona:${user.codigoPersona}:firma`)"
                                     @clear="solicitarConfirmacionEliminacion('firma-operario', user)" />
                             </div>
 
                             <div class="buttons-container-cards">
                                 <UiButton color="create" label="Tiempo y Firma" icon="save"
+                                    :disabled="isBusyKey(`persona:${user.codigoPersona}:save`)"
                                     @click="guardarUsuario(user.codigoPersona)" />
                                 <UiButton color="delete" label="Persona" icon="trash"
+                                    :disabled="isBusyKey(`persona:${user.codigoPersona}:delete`)"
                                     @click="solicitarConfirmacionEliminacion('operario', user)" />
                             </div>
                         </div>
@@ -216,8 +219,11 @@
                                             class="w-16 p-1 border rounded text-center" min="1" />
                                     </div>
                                     <div class="repuesto-actions">
-                                        <UiButton color="create" icon="save" size="sm" @click="guardarRepuesto(rep)" />
+                                        <UiButton color="create" icon="save" size="sm"
+                                            :disabled="isBusyKey(`rep:${rep.ID_REPUESTO}:save`)"
+                                            @click="guardarRepuesto(rep)" />
                                         <UiButton color="delete" icon="trash" size="sm"
+                                            :disabled="isBusyKey(`rep:${rep.ID_REPUESTO}:delete`)"
                                             @click="solicitarConfirmacionEliminacion('repuesto', rep)" />
                                     </div>
                                 </div>
@@ -233,9 +239,13 @@
                 <h2 class="section-card-title">Fotos</h2>
                 <div class="grid  gap-6 mt-4">
                     <UiImageUpload label="Foto 1" v-model="foto1" placeholder="Capturar o seleccionar foto 1"
+                        :saveDisabled="isBusyKey('foto:1:save')"
+                        :removeDisabled="isBusyKey('foto:1:delete')"
                         @save="(img) => guardarFotoOtm(1, img)"
                         @remove="solicitarConfirmacionEliminacion('fotos', 1)" />
                     <UiImageUpload label="Foto 2" v-model="foto2" placeholder="Capturar o seleccionar foto 2"
+                        :saveDisabled="isBusyKey('foto:2:save')"
+                        :removeDisabled="isBusyKey('foto:2:delete')"
                         @save="(img) => guardarFotoOtm(2, img)"
                         @remove="solicitarConfirmacionEliminacion('fotos', 2)" />
                 </div>
@@ -254,6 +264,7 @@
                     <textarea v-model="observacionesEjecucion" placeholder="Escribe aquí tus observaciones..." />
                     <div class="buttons-container-cards">
                         <UiButton color="create" label="Guardar" icon="save"
+                            :disabled="isBusyKey('obs:save')"
                             @click="guardarObservacionesEjecucion()" />
                     </div>
                 </div>
@@ -296,14 +307,17 @@
 
                             <div class="mt-4">
                                 <UiSignature v-model="sup.firma" label="Firma del supervisor" :height="150"
+                                    :disabled="isBusyKey(`sup:${sup.codigoPersona}:firma`)"
                                     @clear="solicitarConfirmacionEliminacion('firma-supervisor', sup)" />
                             </div>
                         </div>
 
                         <div class="btn-aprobar">
                             <UiButton label="Supervisor" color="delete" icon="trash"
+                                :disabled="isBusyKey(`sup:${sup.codigoPersona}:delete`)"
                                 @click="solicitarConfirmacionEliminacion('supervisor', sup)" />
                             <UiButton label="Aprobar" color="create" icon="check" iconPosition="end"
+                                :disabled="isBusyKey(`sup:${sup.codigoPersona}:aprobar`)"
                                 @click="aprobarOTM(sup)" />
                         </div>
                     </div>
@@ -385,6 +399,7 @@ const showAnteriorModal = ref(false)
 const showDeleteConfirmModal = ref(false)
 const showReprogramarModal = ref(false)
 const isCumpliendo = ref(false)
+const busyKeys = ref(new Set())
 const pendingCumplirPayload = ref(null)
 const previewFuturas = ref(null)
 const deleteConfirmConfig = ref({
@@ -393,6 +408,24 @@ const deleteConfirmConfig = ref({
     onConfirm: null
 })
 const otmAnteriorDetalle = ref(null)
+
+function isBusyKey(key) {
+    return busyKeys.value.has(key)
+}
+
+async function withBusy(key, fn) {
+    if (busyKeys.value.has(key)) return
+    const next = new Set(busyKeys.value)
+    next.add(key)
+    busyKeys.value = next
+    try {
+        await fn()
+    } finally {
+        const after = new Set(busyKeys.value)
+        after.delete(key)
+        busyKeys.value = after
+    }
+}
 
 const mensajeReprogramarModal = computed(() => {
     const p = previewFuturas.value
@@ -1005,14 +1038,16 @@ function agregarSupervisor() {
 
 async function eliminarUsuario(codigoPersona) {
     try {
-        await axios.delete('otmProgramada/delete-persona-asignada-otm', {
-            params: {
-                idOtm: otmData.value.ID_OTM,
-                codigoPersona: codigoPersona
-            }
+        await withBusy(`persona:${codigoPersona}:delete`, async () => {
+            await axios.delete('otmProgramada/delete-persona-asignada-otm', {
+                params: {
+                    idOtm: otmData.value.ID_OTM,
+                    codigoPersona: codigoPersona
+                }
+            })
+            addUsersList.value = addUsersList.value.filter(u => u.codigoPersona !== codigoPersona)
+            showAlert('success', 'Eliminado', 'El personal ha sido eliminado correctamente')
         })
-        addUsersList.value = addUsersList.value.filter(u => u.codigoPersona !== codigoPersona)
-        showAlert('success', 'Eliminado', 'El personal ha sido eliminado correctamente')
     } catch (error) {
         console.error('Error al eliminar personal:', error)
         showAlert('error', 'Error', 'No se pudo eliminar el personal: ' + (error.response?.data?.error || error.message))
@@ -1026,16 +1061,22 @@ async function eliminarFirmaPersonal(persona, tipo) {
         return
     }
 
-    try {
-        await axios.delete('otmProgramada/delete-firma-personal-otm', {
-            params: {
-                idOtm: otmData.value.ID_OTM,
-                codigoPersona: persona.codigoPersona
-            }
-        })
+    const key = tipo === 'supervisor'
+        ? `sup:${persona.codigoPersona}:firma`
+        : `persona:${persona.codigoPersona}:firma`
 
-        persona.firma = null
-        showAlert('success', 'Firma eliminada', `La firma del ${tipo} ha sido eliminada correctamente`)
+    try {
+        await withBusy(key, async () => {
+            await axios.delete('otmProgramada/delete-firma-personal-otm', {
+                params: {
+                    idOtm: otmData.value.ID_OTM,
+                    codigoPersona: persona.codigoPersona
+                }
+            })
+
+            persona.firma = null
+            showAlert('success', 'Firma eliminada', `La firma del ${tipo} ha sido eliminada correctamente`)
+        })
     } catch (error) {
         console.error('Error al eliminar firma:', error)
         showAlert('error', 'Error', 'No se pudo eliminar la firma: ' + (error.response?.data?.error || error.message))
@@ -1081,19 +1122,21 @@ async function guardarUsuario(codigoPersona) {
     }
 
     try {
-        const payload = {
-            codigoPersona: user.codigoPersona,
-            nombrePersona: user.nombrePersona,
-            horaInicio: user.horaInicio,
-            horaFin: user.horaFin,
-            horaTotal: parseDecimalHours(user.horaTotal),
-            ano: inicio.getFullYear(),
-            mes: inicio.getMonth() + 1,
-            firma: user.firma
-        }
+        await withBusy(`persona:${codigoPersona}:save`, async () => {
+            const payload = {
+                codigoPersona: user.codigoPersona,
+                nombrePersona: user.nombrePersona,
+                horaInicio: user.horaInicio,
+                horaFin: user.horaFin,
+                horaTotal: parseDecimalHours(user.horaTotal),
+                ano: inicio.getFullYear(),
+                mes: inicio.getMonth() + 1,
+                firma: user.firma
+            }
 
-        await axios.post(`otmProgramada/save-persona-asignada-otm/${otmData.value.ID_OTM}`, payload)
-        showAlert('success', 'Guardado en Base de Datos', 'El personal ha sido registrado correctamente en la base de datos.')
+            await axios.post(`otmProgramada/save-persona-asignada-otm/${otmData.value.ID_OTM}`, payload)
+            showAlert('success', 'Guardado en Base de Datos', 'El personal ha sido registrado correctamente en la base de datos.')
+        })
     } catch (error) {
         console.error('Error al guardar personal:', error)
         showAlert('error', 'Error de guardado', 'No se pudo guardar el personal: ' + (error.response?.data?.error || error.message))
@@ -1130,14 +1173,16 @@ function confirmarSeleccionSupervisor(supervisor) {
 
 async function eliminarSupervisor(codigoPersona) {
     try {
-        await axios.delete('otmProgramada/delete-supervisor-otm', {
-            params: {
-                idOtm: otmData.value.ID_OTM,
-                codigoPersona
-            }
+        await withBusy(`sup:${codigoPersona}:delete`, async () => {
+            await axios.delete('otmProgramada/delete-supervisor-otm', {
+                params: {
+                    idOtm: otmData.value.ID_OTM,
+                    codigoPersona
+                }
+            })
+            addSupervisorList.value = addSupervisorList.value.filter(s => s.codigoPersona !== codigoPersona)
+            showAlert('success', 'Eliminado', 'El supervisor ha sido eliminado correctamente')
         })
-        addSupervisorList.value = addSupervisorList.value.filter(s => s.codigoPersona !== codigoPersona)
-        showAlert('success', 'Eliminado', 'El supervisor ha sido eliminado correctamente')
     } catch (error) {
         console.error('Error al eliminar supervisor:', error)
         showAlert('error', 'Error', 'No se pudo eliminar el supervisor: ' + (error.response?.data?.error || error.message))
@@ -1158,19 +1203,21 @@ async function guardarRepuesto(repuesto) {
     }
 
     try {
-        const now = new Date()
-        const payload = {
-            ID_REPUESTO: repuesto.ID_REPUESTO,
-            UND_REAL: repuesto.UND_REAL,
-            ano: now.getFullYear(),
-            mes: now.getMonth() + 1
-        }
+        await withBusy(`rep:${repuesto.ID_REPUESTO}:save`, async () => {
+            const now = new Date()
+            const payload = {
+                ID_REPUESTO: repuesto.ID_REPUESTO,
+                UND_REAL: repuesto.UND_REAL,
+                ano: now.getFullYear(),
+                mes: now.getMonth() + 1
+            }
 
-        await axios.post('otmProgramada/save-repuestos-asignados-otm', payload, {
-            params: { idOtm: otmData.value.ID_OTM }
+            await axios.post('otmProgramada/save-repuestos-asignados-otm', payload, {
+                params: { idOtm: otmData.value.ID_OTM }
+            })
+
+            showAlert('success', 'Repuesto guardado', `El repuesto ${repuesto.NOMBRE_REPUESTO} ha sido guardado correctamente`)
         })
-
-        showAlert('success', 'Repuesto guardado', `El repuesto ${repuesto.NOMBRE_REPUESTO} ha sido guardado correctamente`)
     } catch (error) {
         console.error('Error al guardar repuesto:', error)
         showAlert('error', 'Error de guardado', 'No se pudo guardar el repuesto: ' + (error.response?.data?.error || error.message))
@@ -1180,14 +1227,16 @@ async function guardarRepuesto(repuesto) {
 
 async function eliminarRepuesto(idRepuesto) {
     try {
-        await axios.delete('otmProgramada/delete-repuestos-asignados-otm', {
-            params: {
-                idOtm: otmData.value.ID_OTM,
-                idRepuesto: idRepuesto
-            }
+        await withBusy(`rep:${idRepuesto}:delete`, async () => {
+            await axios.delete('otmProgramada/delete-repuestos-asignados-otm', {
+                params: {
+                    idOtm: otmData.value.ID_OTM,
+                    idRepuesto: idRepuesto
+                }
+            })
+            addRepuestosList.value = addRepuestosList.value.filter(r => r.ID_REPUESTO !== idRepuesto)
+            showAlert('success', 'Eliminado', 'El repuesto ha sido eliminado correctamente')
         })
-        addRepuestosList.value = addRepuestosList.value.filter(r => r.ID_REPUESTO !== idRepuesto)
-        showAlert('success', 'Eliminado', 'El repuesto ha sido eliminado correctamente')
     } catch (error) {
         console.error('Error al eliminar repuesto:', error)
         showAlert('error', 'Error', 'No se pudo eliminar el repuesto: ' + (error.response?.data?.error || error.message))
@@ -1234,14 +1283,16 @@ async function aprobarOTM(supervisor) {
     }
 
     try {
-        const payload = {
-            codigoPersona: supervisor.codigoPersona,
-            nombrePersona: supervisor.nombrePersona,
-            firma: supervisor.firma
-        }
+        await withBusy(`sup:${supervisor.codigoPersona}:aprobar`, async () => {
+            const payload = {
+                codigoPersona: supervisor.codigoPersona,
+                nombrePersona: supervisor.nombrePersona,
+                firma: supervisor.firma
+            }
 
-        await axios.post(`otmProgramada/aprobar-otm/${otmData.value.ID_OTM}`, payload)
-        showAlert('success', 'Supervisor aprobado', `${supervisor.nombrePersona} ha sido aprobado correctamente.`)
+            await axios.post(`otmProgramada/aprobar-otm/${otmData.value.ID_OTM}`, payload)
+            showAlert('success', 'Supervisor aprobado', `${supervisor.nombrePersona} ha sido aprobado correctamente.`)
+        })
     } catch (error) {
         console.error('Error al aprobar OTM:', error)
         showAlert('error', 'Error de aprobación', 'No se pudo aprobar la OTM: ' + (error.response?.data?.error || error.message))
@@ -1259,11 +1310,13 @@ async function guardarObservacionesEjecucion() {
     }
 
     try {
-        await axios.post('otmProgramada/save-comentarios-cierre', {
-            comentariosCierre: observacionesEjecucion.value.trim(),
-            idNumerico: currentDatosOtm.value.ID_NUMERICO
+        await withBusy('obs:save', async () => {
+            await axios.post('otmProgramada/save-comentarios-cierre', {
+                comentariosCierre: observacionesEjecucion.value.trim(),
+                idNumerico: currentDatosOtm.value.ID_NUMERICO
+            })
+            showAlert('success', 'Guardado', 'Las observaciones se guardaron correctamente.')
         })
-        showAlert('success', 'Guardado', 'Las observaciones se guardaron correctamente.')
     } catch (error) {
         console.error('Error al guardar observaciones:', error)
         showAlert('error', 'Error de guardado',
@@ -1273,26 +1326,28 @@ async function guardarObservacionesEjecucion() {
 
 async function guardarFotoOtm(photoNumber, imageBase64) {
     try {
-        const payload = {
-            photoNumber,
-            image: imageBase64
-        }
-        const res = await axios.post(`otmProgramada/save-otm-photo/${otmData.value.ID_OTM}`, payload)
+        await withBusy(`foto:${photoNumber}:save`, async () => {
+            const payload = {
+                photoNumber,
+                image: imageBase64
+            }
+            const res = await axios.post(`otmProgramada/save-otm-photo/${otmData.value.ID_OTM}`, payload)
 
-        const urlResuelta = resolveUploadUrl(res.data.url)
-        if (photoNumber === 1) {
-            foto1.value = urlResuelta
-        } else {
-            foto2.value = urlResuelta
-        }
+            const urlResuelta = resolveUploadUrl(res.data.url)
+            if (photoNumber === 1) {
+                foto1.value = urlResuelta
+            } else {
+                foto2.value = urlResuelta
+            }
 
-        console.log(`[OTM uploads] Foto ${photoNumber} al guardar`, {
-            idOtm: otmData.value.ID_OTM,
-            bd: res.data.url,
-            url: urlResuelta
+            console.log(`[OTM uploads] Foto ${photoNumber} al guardar`, {
+                idOtm: otmData.value.ID_OTM,
+                bd: res.data.url,
+                url: urlResuelta
+            })
+
+            showAlert('success', 'Foto guardada', `La foto ${photoNumber} ha sido guardada correctamente`)
         })
-
-        showAlert('success', 'Foto guardada', `La foto ${photoNumber} ha sido guardada correctamente`)
     } catch (error) {
         console.error('Error al guardar foto:', error)
         showAlert('error', 'Error', 'No se pudo guardar la foto: ' + (error.response?.data?.error || error.message))
@@ -1301,12 +1356,14 @@ async function guardarFotoOtm(photoNumber, imageBase64) {
 
 async function eliminarFotoOtm(photoNumber) {
     try {
-        await axios.delete(`otmProgramada/delete-otm-photo/${otmData.value.ID_OTM}`, {
-            params: { photoNumber }
+        await withBusy(`foto:${photoNumber}:delete`, async () => {
+            await axios.delete(`otmProgramada/delete-otm-photo/${otmData.value.ID_OTM}`, {
+                params: { photoNumber }
+            })
+            if (photoNumber === 1) foto1.value = null
+            if (photoNumber === 2) foto2.value = null
+            showAlert('success', 'Foto eliminada', `La foto ${photoNumber} ha sido eliminada correctamente`)
         })
-        if (photoNumber === 1) foto1.value = null
-        if (photoNumber === 2) foto2.value = null
-        showAlert('success', 'Foto eliminada', `La foto ${photoNumber} ha sido eliminada correctamente`)
     } catch (error) {
         console.error('Error al eliminar foto:', error)
         showAlert('error', 'Error', 'No se pudo eliminar la foto: ' + (error.response?.data?.error || error.message))

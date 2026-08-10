@@ -65,6 +65,7 @@
                         <div class="add-panel__field">
                             <label class="field-label">Clase de actividad</label>
                             <select v-model="claseActividadSeleccionada" class="clase-select"
+                                :disabled="isBusyKey('correctiva:actividades')"
                                 @change="fetchActividades">
                                 <option v-for="clase in clasesActividad" :key="clase" :value="clase">{{ clase }}
                                 </option>
@@ -124,13 +125,16 @@
 
         </div>
         <div class="flex justify-center mt-6 mb-2">
-            <UiButton label="Crear OTM" color="create" icon="Check" @click="crearOTM" />
+            <UiButton label="Crear OTM" color="create" icon="Check"
+                :disabled="isBusyKey('correctiva:crear')"
+                @click="crearOTM" />
         </div>
     </div>
 
     <!-- Modal de Confirmación -->
     <UiModal v-model="showConfirmModal" title="Crear Nueva OTM" :message="confirmMessage" confirmLabel="Sí, crear"
-        confirmIcon="Check" @confirm="handleConfirmCrear" />
+        confirmIcon="Check" :confirmDisabled="isBusyKey('correctiva:crear')"
+        @confirm="handleConfirmCrear" />
 
     <!-- Alertas Flotantes Centradas -->
     <Transition name="fade-slide">
@@ -178,6 +182,25 @@ const listEquipos = ref([])
 const addEquiposList = ref([])
 const isAddingEquipo = ref(false)
 const isAddingActividad = ref(false)
+const busyKeys = ref(new Set())
+
+function isBusyKey(key) {
+    return busyKeys.value.has(key)
+}
+
+async function withBusy(key, fn) {
+    if (busyKeys.value.has(key)) return
+    const next = new Set(busyKeys.value)
+    next.add(key)
+    busyKeys.value = next
+    try {
+        await fn()
+    } finally {
+        const after = new Set(busyKeys.value)
+        after.delete(key)
+        busyKeys.value = after
+    }
+}
 
 const alertConfig = ref({
     show: false,
@@ -281,36 +304,37 @@ function crearOTM() {
 
 async function handleConfirmCrear() {
     try {
-        const equipo = addEquiposList.value[0]
-        const actividad = addActividadesList.value[0]
-        const user = getSessionUser()
+        await withBusy('correctiva:crear', async () => {
+            const equipo = addEquiposList.value[0]
+            const actividad = addActividadesList.value[0]
+            const user = getSessionUser()
 
-        const data = {
-            CODIGO_PERSONA: user?.codigoPersona || '',
-            ID_EQUIPO: equipo.ID_EQUIPO,
-            ID_ACTIVIDAD: actividad.ID_ACTIVIDAD,
-            TIEMPO_ACTIVIDAD: parseDecimalHours(tiempoActividad.value),
-            CAUSO_PARADA: causoParada.value,
-            OBSERVACION_OTM: observacionesOTM.value,
-            PRIORIDAD: prioridadActividad.value
-        }
+            const data = {
+                CODIGO_PERSONA: user?.codigoPersona || '',
+                ID_EQUIPO: equipo.ID_EQUIPO,
+                ID_ACTIVIDAD: actividad.ID_ACTIVIDAD,
+                TIEMPO_ACTIVIDAD: parseDecimalHours(tiempoActividad.value),
+                CAUSO_PARADA: causoParada.value,
+                OBSERVACION_OTM: observacionesOTM.value,
+                PRIORIDAD: prioridadActividad.value
+            }
 
-        const response = await axios.post('/otmCorrectiva/save-otm', data)
-        const idOtm = response.data.ID_OTM
-        console.log('idOtm', idOtm)
+            const response = await axios.post('/otmCorrectiva/save-otm', data)
+            const idOtm = response.data.ID_OTM
+            console.log('idOtm', idOtm)
 
-        showAlert('success', '¡Éxito!', `La OTM Correctiva ha sido creada correctamente. \n ID: ${idOtm}`)
-        showConfirmModal.value = false
-        clearSelectedOtm()
+            showAlert('success', '¡Éxito!', `La OTM Correctiva ha sido creada correctamente. \n ID: ${idOtm}`)
+            showConfirmModal.value = false
+            clearSelectedOtm()
 
-
-        observacionesOTM.value = ''
-        tiempoActividad.value = '0,00'
-        isAddingEquipo.value = false
-        isAddingActividad.value = false
-        setTimeout(() => {
-            router.push({ name: 'principal-correctivas' }).catch(() => { })
-        }, 5000)
+            observacionesOTM.value = ''
+            tiempoActividad.value = '0,00'
+            isAddingEquipo.value = false
+            isAddingActividad.value = false
+            setTimeout(() => {
+                router.push({ name: 'principal-correctivas' }).catch(() => { })
+            }, 5000)
+        })
     } catch (error) {
         console.error('Error al crear la OTM:', error)
         const status = error.response?.status
@@ -359,12 +383,14 @@ function eliminarActividad(nombreActividad) {
 
 async function fetchActividades() {
     try {
-        const clase = claseActividadSeleccionada.value
-        const url = clase && clase !== 'TODOS'
-            ? `/otmCorrectiva/get-list-actividades/${clase}`
-            : '/otmCorrectiva/get-list-actividades'
-        const response = await axios.get(url)
-        actividadesList.value = Array.isArray(response.data) ? response.data : []
+        await withBusy('correctiva:actividades', async () => {
+            const clase = claseActividadSeleccionada.value
+            const url = clase && clase !== 'TODOS'
+                ? `/otmCorrectiva/get-list-actividades/${clase}`
+                : '/otmCorrectiva/get-list-actividades'
+            const response = await axios.get(url)
+            actividadesList.value = Array.isArray(response.data) ? response.data : []
+        })
     } catch (error) {
         console.error('Error al cargar actividades:', error)
         actividadesList.value = []

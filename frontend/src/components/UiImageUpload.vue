@@ -51,7 +51,8 @@
         label="Imagen"
         size="sm" 
         color="delete" 
-        icon="trash" 
+        icon="trash"
+        :disabled="removeDisabled"
         @click.stop="removeImage"
       />
       <UiButton 
@@ -67,6 +68,7 @@
         color="create" 
         icon="save" 
         label="Imagen"
+        :disabled="saveDisabled"
         @click.stop="saveImage"
       />
     </div>
@@ -99,7 +101,9 @@ import UiButton from './UiButton.vue'
 const props = defineProps({
   label: { type: String, default: '' },
   placeholder: { type: String, default: 'Seleccionar imagen' },
-  modelValue: { type: [File, String], default: null }
+  modelValue: { type: [File, String], default: null },
+  saveDisabled: { type: Boolean, default: false },
+  removeDisabled: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['update:modelValue', 'change', 'save', 'remove'])

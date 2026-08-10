@@ -2,7 +2,8 @@
   <div class="signature-container">
     <div v-if="label" class="signature-label">
       <label>{{ label }}</label>
-      <UiButton label="Firma" color="delete" icon="trash" size="sm" @click="handleClearClick" />
+      <UiButton label="Firma" color="delete" icon="trash" size="sm" :disabled="disabled"
+        @click="handleClearClick" />
     </div>
     <canvas
       ref="canvasRef"
@@ -27,7 +28,8 @@ const props = defineProps({
   modelValue: String,
   label: String,
   width: { type: Number, default: 400 },
-  height: { type: Number, default: 200 }
+  height: { type: Number, default: 200 },
+  disabled: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['update:modelValue', 'clear'])

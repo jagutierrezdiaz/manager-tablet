@@ -27,6 +27,7 @@
             :label="confirmLabel" 
             :color="confirmColor" 
             :icon="confirmIcon"
+            :disabled="confirmDisabled"
             @click="confirm" 
           />
         </footer>
@@ -46,7 +47,8 @@ const props = defineProps({
   confirmLabel: { type: String, default: 'Confirmar' },
   cancelLabel: { type: String, default: 'Cancelar' },
   confirmColor: { type: String, default: 'create' },
-  confirmIcon: { type: String, default: 'Check' }
+  confirmIcon: { type: String, default: 'Check' },
+  confirmDisabled: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['update:modelValue', 'confirm', 'cancel'])
@@ -59,6 +61,7 @@ function close() {
 }
 
 function confirm() {
+  if (props.confirmDisabled) return
   emit('confirm')
   emit('update:modelValue', false)
 }
