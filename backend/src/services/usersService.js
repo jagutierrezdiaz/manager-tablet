@@ -35,7 +35,8 @@ export async function getNotSuspendedUsers() {
 }
 
 export async function getUserById(id) {
-  // Buscar por la clave numérica CODIGO_PERSONA de la tabla MOD
+  // CODIGO_PERSONA es string(10); comparar como texto (no parseInt) para respetar ceros a la izquierda
+  const codigo = String(id ?? '').trim()
   const sql = `
     SELECT 
       MO.CODIGO_PERSONA,
@@ -48,7 +49,7 @@ export async function getUserById(id) {
     WHERE (MO.SUSPENDIDO IS NULL OR UPPER(TRIM(MO.SUSPENDIDO)) <> 'SI')
     AND MO.CODIGO_PERSONA = ?
   `
-  const params = [id]
+  const params = [codigo]
   const rows = await db.query(sql, params)
   if (!rows || rows.length === 0) return null
   return convertUserRowToDto(rows[0])

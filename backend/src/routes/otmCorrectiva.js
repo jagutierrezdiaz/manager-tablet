@@ -12,11 +12,8 @@ router.get('/get-detail-machine/:idMachine', getDetailMachineController)
 // GET /api/otmCorrectiva/get-list-equipos/:idMachine
 router.get('/get-list-equipos/:idMachine', getListEquiposController)
 
-// GET /api/otmCorrectiva/get-list-actividades  (todas)
+// GET /api/otmCorrectiva/get-list-actividades?clase=&tipo=
 router.get('/get-list-actividades', getListActividadesController)
-
-// GET /api/otmCorrectiva/get-list-actividades/:claseActividad  (filtrada por clase)
-router.get('/get-list-actividades/:claseActividad', getListActividadesController)
 
 // POST /api/otmCorrectiva/save-otm
 router.post('/save-otm', saveOTMCorrectivaController)

@@ -62,30 +62,43 @@
                 <!-- Panel para agregar actividades -->
                 <Transition name="fade-slide">
                     <div v-if="isAddingActividad" class="add-panel">
-                        <div class="add-panel__field">
-                            <label class="field-label">Clase de actividad</label>
-                            <select v-model="claseActividadSeleccionada" class="clase-select"
-                                :disabled="isBusyKey('correctiva:actividades')"
-                                @change="fetchActividades">
-                                <option v-for="clase in clasesActividad" :key="clase" :value="clase">{{ clase }}
-                                </option>
-                            </select>
+                        <div class="add-panel__filters">
+                            <div class="add-panel__field">
+                                <label class="field-label">Clase de actividad</label>
+                                <select v-model="claseActividadSeleccionada" class="clase-select"
+                                    :disabled="isBusyKey('correctiva:actividades')"
+                                    @change="fetchActividades">
+                                    <option v-for="clase in clasesActividad" :key="clase" :value="clase">{{ clase }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="add-panel__field">
+                                <label class="field-label">Tipo Mantenimiento</label>
+                                <select v-model="tipoMantenimientoSeleccionado" class="clase-select"
+                                    :disabled="isBusyKey('correctiva:actividades')"
+                                    @change="fetchActividades">
+                                    <option v-for="tipo in tiposMantenimiento" :key="tipo" :value="tipo">{{ tipo }}
+                                    </option>
+                                </select>
+                            </div>
                         </div>
 
                         <UiSearchSelector :items="actividadesList"
-                            :searchFields="['NOMBRE_ACTIVIDAD', 'CLASE_ACTIVIDAD']" itemKey="NOMBRE_ACTIVIDAD"
+                            :searchFields="['NOMBRE_ACTIVIDAD', 'CLASE_ACTIVIDAD', 'TIPO_MANTENIMIENTO']"
+                            itemKey="ID_ACTIVIDAD"
                             label="Buscar actividad" placeholder="Ej: Lubricar o Revisar"
-                            :displayFormat="(a) => `${a.NOMBRE_ACTIVIDAD} (${a.CLASE_ACTIVIDAD})`"
+                            :displayFormat="(a) => `${a.NOMBRE_ACTIVIDAD} (${a.CLASE_ACTIVIDAD} · ${a.TIPO_MANTENIMIENTO})`"
                             @select="confirmarSeleccion" />
                     </div>
                 </Transition>
 
                 <div class="actividades-list">
-                    <div v-for="actividad in addActividadesList" :key="actividad.NOMBRE_ACTIVIDAD">
+                    <div v-for="actividad in addActividadesList" :key="actividad.ID_ACTIVIDAD">
                         <div class="actividad-chip">
                             <div class="actividad-chip__info">
                                 <span class="actividad-chip__name">{{ actividad.NOMBRE_ACTIVIDAD }}</span>
-                                <span class="actividad-chip__badge">{{ actividad.CLASE_ACTIVIDAD }}</span>
+                                <span class="actividad-chip__badge">{{ actividad.CLASE_ACTIVIDAD }} · {{ actividad.TIPO_MANTENIMIENTO }}</span>
                             </div>
                             <UiButton color="delete" icon="trash" label="Actividad"
                                 @click="eliminarActividad(actividad.NOMBRE_ACTIVIDAD)" />
@@ -218,6 +231,8 @@ function showAlert(type, title, message) {
 
 const clasesActividad = ['TODOS', 'LUBRICACION', 'ELECTRICO', 'MECANICO', 'INSTRUMENTACION']
 const claseActividadSeleccionada = ref('TODOS')
+const tiposMantenimiento = ['TODOS', 'CORRECTIVO', 'MEJORA', 'MONTAJE']
+const tipoMantenimientoSeleccionado = ref('TODOS')
 
 
 const confirmMessage = computed(() => {
@@ -278,7 +293,12 @@ function regresar() {
 }
 
 function agregaActividad() {
-    isAddingActividad.value = !isAddingActividad.value
+    const abriendo = !isAddingActividad.value
+    isAddingActividad.value = abriendo
+    if (!abriendo) return
+    claseActividadSeleccionada.value = 'TODOS'
+    tipoMantenimientoSeleccionado.value = 'TODOS'
+    fetchActividades()
 }
 
 function confirmarSeleccionEquipo(equipo) {
@@ -313,6 +333,7 @@ async function handleConfirmCrear() {
                 CODIGO_PERSONA: user?.codigoPersona || '',
                 ID_EQUIPO: equipo.ID_EQUIPO,
                 ID_ACTIVIDAD: actividad.ID_ACTIVIDAD,
+                TIPO_MANTENIMIENTO: actividad.TIPO_MANTENIMIENTO,
                 TIEMPO_ACTIVIDAD: parseDecimalHours(tiempoActividad.value),
                 CAUSO_PARADA: causoParada.value,
                 OBSERVACION_OTM: observacionesOTM.value,
@@ -381,14 +402,34 @@ function eliminarActividad(nombreActividad) {
     tiempoActividad.value = '0,00'
 }
 
+function filtroConcreto(valor) {
+    return Boolean(valor) && valor !== 'TODOS'
+}
+
 async function fetchActividades() {
+    const clase = claseActividadSeleccionada.value
+    const tipo = tipoMantenimientoSeleccionado.value
+    const claseConcreta = filtroConcreto(clase)
+    const tipoConcreto = filtroConcreto(tipo)
+
+    if (claseConcreta !== tipoConcreto) {
+        actividadesList.value = []
+        showAlert(
+            'warning',
+            'Filtro incompleto',
+            claseConcreta
+                ? 'Seleccione un tipo de mantenimiento para filtrar las actividades.'
+                : 'Seleccione una clase de actividad para filtrar las actividades.'
+        )
+        return
+    }
+
     try {
         await withBusy('correctiva:actividades', async () => {
-            const clase = claseActividadSeleccionada.value
-            const url = clase && clase !== 'TODOS'
-                ? `/otmCorrectiva/get-list-actividades/${clase}`
-                : '/otmCorrectiva/get-list-actividades'
-            const response = await axios.get(url)
+            const params = {}
+            if (claseConcreta) params.clase = clase
+            if (tipoConcreto) params.tipo = tipo
+            const response = await axios.get('/otmCorrectiva/get-list-actividades', { params })
             actividadesList.value = Array.isArray(response.data) ? response.data : []
         })
     } catch (error) {
@@ -409,6 +450,7 @@ async function loadData() {
         isAddingEquipo.value = false
         actividadesList.value = []
         claseActividadSeleccionada.value = 'TODOS'
+        tipoMantenimientoSeleccionado.value = 'TODOS'
         isAddingActividad.value = false
         try {
             const responseMachine = await axios.get(`/otmCorrectiva/get-detail-machine/${data.ID_MAQUINA}`)
@@ -417,8 +459,6 @@ async function loadData() {
 
             const responseEquipos = await axios.get(`/otmCorrectiva/get-list-equipos/${data.ID_MAQUINA}`)
             listEquipos.value = responseEquipos.data
-
-            await fetchActividades()
 
             console.log('dataMachine', dataMachine.value)
             console.log('listEquipos', listEquipos.value)
@@ -580,6 +620,17 @@ textarea:focus {
     background: var(--color-surface);
     border: 2px solid rgba(37, 99, 235, 0.12);
     border-radius: var(--radius);
+}
+
+.add-panel__filters {
+    display: flex;
+    gap: var(--space-md);
+    align-items: flex-end;
+}
+
+.add-panel__filters .add-panel__field {
+    flex: 1;
+    min-width: 0;
 }
 
 .add-panel__field {

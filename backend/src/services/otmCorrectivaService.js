@@ -59,21 +59,30 @@ export async function getListEquipos(idMachine) {
     return rows
 }
 
-export async function getListActividades(claseActividad) {
+const TIPOS_MANTENIMIENTO_ACTIVIDAD = ['CORRECTIVO', 'MEJORA', 'MONTAJE']
+
+export async function getListActividades(claseActividad, tipoMantenimiento) {
     const clase = String(claseActividad || '').trim()
+    const tipo = String(tipoMantenimiento || '').trim().toUpperCase()
     const filtrarPorClase = clase !== '' && clase.toUpperCase() !== 'TODOS'
+    const filtrarPorTipo = TIPOS_MANTENIMIENTO_ACTIVIDAD.includes(tipo)
 
     let sql = `
-        SELECT ID_ACTIVIDAD, NOMBRE_ACTIVIDAD, CLASE_ACTIVIDAD
+        SELECT ID_ACTIVIDAD, NOMBRE_ACTIVIDAD, CLASE_ACTIVIDAD, TIPO_MANTENIMIENTO
         FROM ACTIVIDAD
-        WHERE TIPO_MANTENIMIENTO = 'CORRECTIVO'
-        AND ACTIVA = 'SI'
+        WHERE ACTIVA = 'SI'
+        AND TIPO_MANTENIMIENTO IN ('CORRECTIVO', 'MEJORA', 'MONTAJE')
     `
     const params = []
 
     if (filtrarPorClase) {
         sql += ` AND CLASE_ACTIVIDAD = ?`
         params.push(clase)
+    }
+
+    if (filtrarPorTipo) {
+        sql += ` AND TIPO_MANTENIMIENTO = ?`
+        params.push(tipo)
     }
 
     const rows = await db.query(sql, params)
@@ -221,7 +230,7 @@ export async function saveOTMCorrectiva(data) {
             'U0001', NULL, NULL, 'NO', 'NO', 
             ?, NULL, NULL, 0, 0, 
             NULL, NULL, NULL, NULL, NULL, 
-            NULL, NULL, 'CORRECTIVO', ?, 'NO', 
+            NULL, NULL, ?, ?, 'NO', 
             ?, NULL, NULL, 0, 'SI', 
             0, 0, NULL, NULL, NULL, 
             'NO', 0, 0
@@ -239,6 +248,7 @@ export async function saveOTMCorrectiva(data) {
         data.OBSERVACION_OTM != null && data.OBSERVACION_OTM !== ''
             ? toFirebirdBlobText(data.OBSERVACION_OTM)
             : data.OBSERVACION_OTM,
+        data.TIPO_MANTENIMIENTO,
         data.CAUSO_PARADA,
         data.PRIORIDAD || 'Alta'
     ]
@@ -399,25 +409,41 @@ export async function checkModActividadExists(idActividad) {
 }
 
 export async function insertModActividad(idActividad, codigoPersona, idOtm) {
-    const exists = await checkModActividadExists(idActividad)
-    if (!exists) {
-        const sql = `
-            INSERT INTO MOD_ACTIVIDAD(
-                ID_ACTIVIDAD,
-                CODIGO_PERSONA
-            )
-            VALUES (?, ?)
-        `
-        const params = [idActividad, codigoPersona]
-        await db.query(sql, params)
-    }
+    // --- Flujo anterior (comentado) ---
+    // Se dejaba porque:
+    // 1) Si la actividad no tenía ninguna persona en MOD_ACTIVIDAD, insertaba al creador
+    //    como catálogo MOD de esa actividad (relación actividad ↔ persona).
+    // 2) Luego leía TODAS las personas de MOD_ACTIVIDAD para esa actividad y creaba
+    //    una fila en CIERRE_MOD por cada una (asignación de mano de obra a la OTM).
+    // Ese enfoque podía asignar a la OTM personas distintas al creador (las del
+    // catálogo) o no asignar al creador si ya existían otras en MOD_ACTIVIDAD.
+    //
+    // const exists = await checkModActividadExists(idActividad)
+    // if (!exists) {
+    //     const sql = `
+    //         INSERT INTO MOD_ACTIVIDAD(
+    //             ID_ACTIVIDAD,
+    //             CODIGO_PERSONA
+    //         )
+    //         VALUES (?, ?)
+    //     `
+    //     const params = [idActividad, codigoPersona]
+    //     await db.query(sql, params)
+    // }
+    //
+    // if (idOtm == null) return
+    //
+    // const personas = await getPersonaActividad(idActividad)
+    // for (const persona of personas) {
+    //     await insertCierreMod(idOtm, persona.CODIGO_PERSONA)
+    // }
 
+    // --- Flujo nuevo ---
+    // Asigna siempre al creador (CODIGO_PERSONA de sesión) en CIERRE_MOD para esta OTM
+    // (asignación inicial de mano de obra), sin consultar ni modificar MOD_ACTIVIDAD.
     if (idOtm == null) return
 
-    const personas = await getPersonaActividad(idActividad)
-    for (const persona of personas) {
-        await insertCierreMod(idOtm, persona.CODIGO_PERSONA)
-    }
+    await insertCierreMod(idOtm, codigoPersona)
 }
 
 

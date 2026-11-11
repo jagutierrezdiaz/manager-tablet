@@ -33,8 +33,8 @@
           @click="onClick('programadas', 'principal-programadas')"
         />
         <UiNavButton
-          label="Correctivas"
-          icon="Wrench"
+          label="Manuales"
+          icon="SquarePen"
           :active="selected === 'correctivas'"
           @click="onClick('correctivas', 'principal-correctivas')"
         />

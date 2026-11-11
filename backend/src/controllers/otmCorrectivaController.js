@@ -33,8 +33,9 @@ export async function getListEquiposController(req, res, next) {
 
 export async function getListActividadesController(req, res, next) {
     try {
-        const claseActividad = req.params.claseActividad
-        const listActividades = await otmCorrectivaService.getListActividades(claseActividad)
+        const claseActividad = req.query.clase
+        const tipoMantenimiento = req.query.tipo
+        const listActividades = await otmCorrectivaService.getListActividades(claseActividad, tipoMantenimiento)
         res.json(listActividades)
     } catch (err) {
         next(err)

@@ -4,21 +4,21 @@ export const DB_PROFILES = [
     {
         id: 'db1',
         label: 'Base de Datos 1',
-        description: 'Normandy Planta',
+        description: import.meta.env.VITE_DB_1_DESCRIPTION || 'Mantenimiento Planta',
         apiUrl: import.meta.env.VITE_API_URL_DB_1 || import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
         available: true
     },
     {
         id: 'db2',
         label: 'Base de Datos 2',
-        description: 'Normandy Locativos',
+        description: import.meta.env.VITE_DB_2_DESCRIPTION || 'Mantenimiento Locativos',
         apiUrl: import.meta.env.VITE_API_URL_DB_2 || import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
         available: true
     },
     {
         id: 'db3',
         label: 'Base de Datos 3',
-        description: 'Normandy Metrología',
+        description: import.meta.env.VITE_DB_3_DESCRIPTION || 'Mantenimiento Metrología',
         apiUrl: import.meta.env.VITE_API_URL_DB_3 || import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
         available: true
     }

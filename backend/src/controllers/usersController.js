@@ -20,11 +20,12 @@ export async function listNotSuspendedUsers(req, res, next) {
 
 export async function getUser(req, res, next) {
   try {
-    const { id } = req.params
-    if (!/^\d+$/.test(String(id))) {
+    // CODIGO_PERSONA es string(10): conservar ceros a la izquierda (ej. "0207")
+    const id = String(req.params.id ?? '').trim()
+    if (!/^\d+$/.test(id)) {
       return res.status(400).json({ error: 'Parametro invalido' })
     }
-    const user = await getUserById(parseInt(id, 10))
+    const user = await getUserById(id)
     if (!user) {
       return res.status(404).json({ error: 'Usuario no encontrado' })
     }
